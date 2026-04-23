@@ -9,7 +9,7 @@ from googleapiclient.discovery import build
 # ── PAGE CONFIG ───────────────────────────────────────────────────────────────
 
 st.set_page_config(
-page_title=“Zuzu Assistant”,
+page_title="Zuzu Assistant",
 page_icon=“🌸”,
 layout=“wide”,
 initial_sidebar_state=“collapsed”
