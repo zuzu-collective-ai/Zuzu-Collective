@@ -1,0 +1,103 @@
+/*
+ * Zuzu Collective portal — base styles
+ * Typography, reset, shared primitives. Landing-specific styles live alongside.
+ */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--zz-moonlight);
+  color: var(--zz-ink);
+  font-family: var(--zz-body);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+img { max-width: 100%; display: block; }
+
+a {
+  color: var(--zz-finn);
+  text-decoration: none;
+  border-bottom: 1px solid var(--zz-finn-20);
+  transition: border-color 180ms ease, color 180ms ease;
+}
+a:hover { border-bottom-color: var(--zz-finn); }
+
+/* ── Typography primitives ──────────────────────────────────────────────── */
+
+.display {
+  font-family: var(--zz-display);
+  font-weight: 400;
+  line-height: var(--lh-tight);
+  letter-spacing: -0.01em;
+}
+
+.display-xl { font-size: var(--fs-display-xl); }
+.display-lg { font-size: var(--fs-display-lg); }
+.display-md { font-size: var(--fs-display-md); }
+
+.display-italic {
+  font-family: var(--zz-display);
+  font-style: italic;
+  font-weight: 400;
+}
+
+/* Small-caps wide-tracked label — the deck's "FLORAL INSPIRATION" voice */
+.label {
+  font-family: var(--zz-display);
+  font-size: var(--fs-label);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  color: var(--zz-finn);
+  font-weight: 500;
+}
+
+/* Mono caption — for metadata, hex codes, dates in ticket style */
+.mono {
+  font-family: var(--zz-mono);
+  font-size: var(--fs-small);
+  letter-spacing: 0.02em;
+  color: var(--zz-tobacco);
+}
+
+.prose {
+  max-width: var(--prose-max);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+}
+
+/* ── Layout primitives ──────────────────────────────────────────────────── */
+
+.container {
+  width: 100%;
+  max-width: var(--content-max);
+  margin-inline: auto;
+  padding-inline: var(--space-md);
+}
+
+.hairline {
+  border: 0;
+  border-top: 1px solid var(--zz-finn-20);
+  margin: var(--space-lg) 0;
+}
+
+/* ── Arch-shape motif — echoes the deck's recurring UI element ──────────── */
+
+.arch {
+  border-radius: var(--arch-radius);
+  overflow: hidden;
+}
+
+/* Small arch swatch, used in palette rows */
+.arch-swatch {
+  width: 88px;
+  height: 112px;
+  border-radius: var(--arch-radius);
+  border: 1px solid var(--zz-finn-20);
+}
