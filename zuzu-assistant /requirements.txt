@@ -4,3 +4,5 @@ google-auth==2.29.0
 google-auth-oauthlib==1.2.0
 google-api-python-client==2.125.0
 openpyxl==3.1.2
+rich==13.7.1
+markdown-it-py==3.0.0
