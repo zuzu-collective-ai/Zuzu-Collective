@@ -29,7 +29,7 @@ See `styles/tokens.css` for the two-layer token definitions.
 | Wordmark is text "Zuzu" in Cormorant Garamond | When the Zuzu submark SVG lands in `brand/logo/`, replace `.wordmark` contents with `<img src="...">` |
 | Hero background is a warm stone color | Drop the engagement photo at `portal/mockup/assets/hero.jpg`, then uncomment the `.hero-photo` override block in `styles/landing.css` |
 | Fonts are Cormorant Garamond + Fragment Mono (free Google Fonts) | When Romie + Art Company Mono `.woff2` files land in `portal/mockup/assets/fonts/`, declare them via `@font-face` and update `--zz-display` / `--zz-mono` in `tokens.css` |
-| Portal cards link to `#` | Wire to real page paths once the 8 sub-pages exist |
+| Top nav links all `#` | Wire to real page paths once the 8 sub-pages exist |
 
 ## Voice compliance
 

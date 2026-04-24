@@ -16,10 +16,20 @@
 </head>
 <body>
 
-  <!-- ── Top bar ─────────────────────────────────────────────────────────── -->
+  <!-- ── Top bar — persistent nav across all 8 portal sections ──────────── -->
   <header class="topbar">
-    <div class="wordmark">Zuzu</div>
-    <div class="topbar-meta">portal.zuzucollective.com&nbsp;/&nbsp;alicia-and-jack_2026</div>
+    <a href="#" class="wordmark" aria-label="Zuzu Collective home">Zuzu</a>
+
+    <nav class="topnav" aria-label="Portal sections">
+      <a href="#" class="topnav-link is-current" aria-current="page">Home</a>
+      <a href="#" class="topnav-link">Palette</a>
+      <a href="#" class="topnav-link">Vendors</a>
+      <a href="#" class="topnav-link">Checklist</a>
+      <a href="#" class="topnav-link">Budget</a>
+      <a href="#" class="topnav-link">Timeline</a>
+      <a href="#" class="topnav-link">Floor&nbsp;Plan</a>
+      <a href="#" class="topnav-link">Seating</a>
+    </nav>
   </header>
 
   <!-- ── Hero ────────────────────────────────────────────────────────────── -->
@@ -47,58 +57,6 @@
     </p>
     <p class="intro-tagline">escape the mundane.</p>
   </section>
-
-  <hr class="hairline container">
-
-  <!-- ── Portal nav ──────────────────────────────────────────────────────── -->
-  <nav class="portal-nav" aria-label="Portal sections">
-    <div class="portal-nav-label">
-      <span class="label">Eight pages · one wedding</span>
-    </div>
-
-    <div class="portal-grid">
-      <a class="portal-card is-current" href="#">
-        <span class="portal-card-number">01</span>
-        <span class="portal-card-title">Home</span>
-        <span class="portal-card-caption">the overview</span>
-      </a>
-      <a class="portal-card" href="#">
-        <span class="portal-card-number">02</span>
-        <span class="portal-card-title">Palette &amp; Style</span>
-        <span class="portal-card-caption">colors, mood, inspiration</span>
-      </a>
-      <a class="portal-card" href="#">
-        <span class="portal-card-number">03</span>
-        <span class="portal-card-title">Vendors</span>
-        <span class="portal-card-caption">your trusted team</span>
-      </a>
-      <a class="portal-card" href="#">
-        <span class="portal-card-number">04</span>
-        <span class="portal-card-title">Checklist</span>
-        <span class="portal-card-caption">what's next</span>
-      </a>
-      <a class="portal-card" href="#">
-        <span class="portal-card-number">05</span>
-        <span class="portal-card-title">Budget</span>
-        <span class="portal-card-caption">where it goes</span>
-      </a>
-      <a class="portal-card" href="#">
-        <span class="portal-card-number">06</span>
-        <span class="portal-card-title">Timeline</span>
-        <span class="portal-card-caption">the arc of the day</span>
-      </a>
-      <a class="portal-card" href="#">
-        <span class="portal-card-number">07</span>
-        <span class="portal-card-title">Floor Plan</span>
-        <span class="portal-card-caption">the layout</span>
-      </a>
-      <a class="portal-card" href="#">
-        <span class="portal-card-number">08</span>
-        <span class="portal-card-title">Seating</span>
-        <span class="portal-card-caption">who sits where</span>
-      </a>
-    </div>
-  </nav>
 
   <!-- ── Couple palette preview ──────────────────────────────────────────── -->
   <section class="palette-preview">
@@ -157,7 +115,11 @@
       </div>
     </div>
 
-    <div class="footer-meta">Zuzu Collective · San Diego</div>
+    <div class="footer-meta">
+      Zuzu Collective · San Diego
+      <span class="footer-sep">·</span>
+      portal.zuzucollective.com / alicia-and-jack_2026
+    </div>
   </footer>
 
 </body>

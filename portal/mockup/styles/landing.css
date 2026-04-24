@@ -3,13 +3,20 @@
  * Full-bleed hero, editorial intro, eight-page nav, palette preview, footer.
  */
 
-/* ── Top bar ─────────────────────────────────────────────────────────────── */
+/* ── Top bar — sticky, persistent nav across the portal ─────────────────── */
 
 .topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-md) var(--space-md);
+  gap: var(--space-lg);
+  padding: var(--space-sm) var(--space-md);
+  background: rgba(239, 237, 225, 0.92);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--zz-finn-20);
 }
 
@@ -20,14 +27,55 @@
   font-weight: 500;
   color: var(--zz-finn);
   text-transform: uppercase;
+  text-decoration: none;
+  border-bottom: 0;
+  flex-shrink: 0;
+}
+.wordmark:hover { border-bottom: 0; color: var(--zz-tobacco); }
+
+/* Horizontal nav — editorial small-caps, wide-tracked, subtle underline for
+   the current page. Horizontal scroll on narrow screens.                    */
+.topnav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.topnav::-webkit-scrollbar { display: none; }
+
+.topnav-link {
+  font-family: var(--zz-display);
+  font-size: var(--fs-label);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--zz-finn);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  padding-bottom: 2px;
+  white-space: nowrap;
+  transition: color 180ms ease, border-color 180ms ease;
+}
+.topnav-link:hover {
+  border-bottom-color: var(--zz-finn-60);
+}
+.topnav-link.is-current {
+  border-bottom-color: var(--zz-finn);
+  font-style: italic;
 }
 
-.topbar-meta {
-  font-family: var(--zz-mono);
-  font-size: var(--fs-small);
-  color: var(--zz-tobacco);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+@media (max-width: 720px) {
+  .topbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-sm);
+    padding: var(--space-sm);
+  }
+  .topnav {
+    width: 100%;
+    gap: var(--space-sm);
+    padding-bottom: var(--space-xs);
+  }
 }
 
 /* ── Hero ────────────────────────────────────────────────────────────────── */
@@ -160,77 +208,6 @@
   font-family: var(--zz-display);
   font-style: italic;
   color: var(--zz-finn);
-}
-
-/* ── Portal nav — 8 pages as arch cards ──────────────────────────────────── */
-
-.portal-nav {
-  padding: var(--space-xl) var(--space-md) var(--space-2xl);
-}
-
-.portal-nav-label {
-  text-align: center;
-  margin-bottom: var(--space-lg);
-}
-
-.portal-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: var(--space-md);
-  max-width: var(--content-max);
-  margin-inline: auto;
-}
-
-.portal-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-end;
-  padding: var(--space-lg) var(--space-sm) var(--space-md);
-  min-height: 240px;
-  background: transparent;
-  border: 1px solid var(--zz-finn-20);
-  border-radius: var(--arch-radius);
-  color: var(--zz-finn);
-  text-decoration: none;
-  transition: background 220ms ease, border-color 220ms ease, transform 220ms ease;
-}
-
-.portal-card:hover {
-  background: rgba(65, 39, 51, 0.04);
-  border-color: var(--zz-finn-60);
-  transform: translateY(-2px);
-}
-
-.portal-card.is-current {
-  background: var(--zz-finn);
-  color: var(--zz-moonlight);
-  border-color: var(--zz-finn);
-}
-
-.portal-card-number {
-  font-family: var(--zz-mono);
-  font-size: 0.75rem;
-  letter-spacing: 0.2em;
-  opacity: 0.6;
-  margin-bottom: var(--space-sm);
-}
-
-.portal-card-title {
-  font-family: var(--zz-display);
-  font-size: 1.5rem;
-  text-align: center;
-  line-height: 1.1;
-}
-
-.portal-card-caption {
-  font-family: var(--zz-mono);
-  font-size: 0.75rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  margin-top: var(--space-sm);
-  opacity: 0.7;
-  text-align: center;
 }
 
 /* ── Palette preview — Alicia & Jack's couple layer ─────────────────────── */
@@ -372,3 +349,5 @@
   text-transform: uppercase;
   color: var(--zz-finn-60);
 }
+
+.footer-sep { margin: 0 var(--space-xs); opacity: 0.5; }
