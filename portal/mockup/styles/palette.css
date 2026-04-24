@@ -1,0 +1,255 @@
+/*
+ * Zuzu Collective portal — palette & style page
+ * Editorial, content-dense. Mirrors the structure of the Alicia & Jack deck
+ * (slides 2-10) translated to the web.
+ */
+
+/* ── Page header — label + display title + short intro ──────────────────── */
+
+.page-header {
+  padding: var(--space-xl) var(--space-md) var(--space-lg);
+  text-align: center;
+  border-bottom: 1px solid var(--zz-finn-20);
+}
+
+.page-eyebrow { display: block; margin-bottom: var(--space-md); }
+
+.page-title {
+  font-family: var(--zz-display);
+  font-style: italic;
+  font-size: var(--fs-display-lg);
+  line-height: 1;
+  margin: 0;
+  color: var(--zz-finn);
+}
+
+.page-subtitle {
+  margin: var(--space-md) auto 0;
+  max-width: 48ch;
+  font-family: var(--zz-display);
+  font-size: 1.125rem;
+  line-height: 1.55;
+  color: var(--zz-ink);
+}
+
+/* ── Section scaffolding ────────────────────────────────────────────────── */
+
+.section {
+  padding: var(--space-xl) var(--space-md);
+}
+.section + .section { border-top: 1px solid var(--zz-finn-20); }
+
+.section-head {
+  max-width: var(--content-max);
+  margin: 0 auto var(--space-lg);
+  text-align: center;
+}
+.section-head .label { display: block; margin-bottom: var(--space-sm); }
+.section-head .section-title {
+  font-family: var(--zz-display);
+  font-style: italic;
+  font-size: var(--fs-display-md);
+  line-height: 1.1;
+  color: var(--zz-finn);
+  margin: 0;
+}
+.section-head .section-description {
+  margin: var(--space-md) auto 0;
+  max-width: 52ch;
+  font-family: var(--zz-display);
+  font-size: 1.0625rem;
+  line-height: 1.55;
+  color: var(--zz-ink);
+}
+
+/* ── Primary palette — large circle swatches, mirrors deck slide 2 ──────── */
+
+.palette-primary {
+  background: var(--zz-moonlight);
+}
+
+.circle-swatches {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-lg) var(--space-md);
+  padding-inline: var(--space-md);
+  justify-items: center;
+}
+
+.circle-swatch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-xs);
+}
+
+.circle-swatch-disc {
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  border: 1px solid var(--zz-finn-20);
+  box-shadow: 0 1px 0 rgba(65, 39, 51, 0.04);
+}
+
+.circle-swatch-name {
+  font-family: var(--zz-display);
+  font-size: 1.5rem;
+  font-style: italic;
+  color: var(--zz-finn);
+  margin-top: var(--space-sm);
+}
+
+.circle-swatch-hex {
+  font-family: var(--zz-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  color: var(--zz-tobacco);
+  text-transform: uppercase;
+}
+
+/* ── Tone & feeling — full-bleed dark section, keywords + one-liner ─────── */
+
+.tone-section {
+  background: var(--zz-finn);
+  color: var(--zz-moonlight);
+  text-align: center;
+}
+.tone-section .section-head .label { color: var(--zz-moonlight); opacity: 0.7; }
+.tone-section .section-head .section-title { color: var(--zz-moonlight); }
+
+.tone-keywords {
+  max-width: 48rem;
+  margin: var(--space-lg) auto 0;
+  font-family: var(--zz-display);
+  font-size: clamp(1.25rem, 2.2vw, 1.75rem);
+  line-height: 1.5;
+  letter-spacing: 0.02em;
+}
+
+.tone-statement {
+  margin-top: var(--space-lg);
+  font-family: var(--zz-display);
+  font-style: italic;
+  font-size: 1.125rem;
+  color: var(--zz-moonlight);
+  opacity: 0.85;
+}
+
+/* ── Inspiration grid — editorial 4-col with asymmetric heights ─────────── */
+
+.inspiration-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-auto-rows: minmax(180px, auto);
+  gap: var(--space-sm);
+  max-width: var(--content-max);
+  margin: 0 auto;
+}
+
+.inspo-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: var(--space-md);
+  border: 1px solid var(--zz-finn-20);
+  border-radius: 2px;
+  overflow: hidden;
+  color: var(--zz-finn);
+  min-height: 220px;
+  background: var(--couple-1);
+}
+
+/* Alternating tints using the couple's palette — placeholder until real
+   photos land at portal/mockup/assets/inspo/*.jpg                         */
+.inspo-tile:nth-child(4n+1) { background: var(--couple-1); }
+.inspo-tile:nth-child(4n+2) { background: var(--couple-4); }
+.inspo-tile:nth-child(4n+3) { background: var(--couple-3); }
+.inspo-tile:nth-child(4n+4) {
+  background: var(--couple-2);
+  color: var(--zz-moonlight);
+  border-color: transparent;
+}
+
+.inspo-tile.is-tall { grid-row: span 2; }
+.inspo-tile.is-wide { grid-column: span 2; }
+
+.inspo-tile-label {
+  font-family: var(--zz-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  opacity: 0.65;
+  margin-bottom: var(--space-xs);
+}
+
+.inspo-tile-title {
+  font-family: var(--zz-display);
+  font-style: italic;
+  font-size: 1.375rem;
+  line-height: 1.15;
+}
+
+.inspo-tile-note {
+  position: absolute;
+  top: var(--space-sm);
+  right: var(--space-sm);
+  font-family: var(--zz-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  opacity: 0.55;
+}
+
+/* ── Materials detail — smaller 3-col grid, like deck slides 8-9 ────────── */
+
+.materials-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-md);
+  max-width: var(--content-max);
+  margin: 0 auto;
+}
+
+.material {
+  text-align: center;
+  padding: var(--space-md);
+}
+
+.material-swatch {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  border-radius: var(--arch-radius);
+  border: 1px solid var(--zz-finn-20);
+  margin-bottom: var(--space-md);
+}
+
+.material-title {
+  font-family: var(--zz-display);
+  font-size: 1.25rem;
+  font-style: italic;
+  color: var(--zz-finn);
+}
+
+.material-note {
+  font-family: var(--zz-display);
+  font-size: 0.9375rem;
+  color: var(--zz-ink);
+  margin-top: var(--space-xs);
+}
+
+/* ── Responsive ─────────────────────────────────────────────────────────── */
+
+@media (max-width: 900px) {
+  .inspiration-grid { grid-template-columns: repeat(2, 1fr); }
+  .materials-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 560px) {
+  .inspiration-grid { grid-template-columns: 1fr; }
+  .inspo-tile.is-wide { grid-column: auto; }
+  .inspo-tile.is-tall { grid-row: auto; }
+}

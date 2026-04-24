@@ -1,6 +1,13 @@
-# Portal mockup — landing page
+# Portal mockup
 
-Static HTML/CSS proof of the portal's aesthetic before any backend work. No framework, no build step — open `landing.html` in a browser.
+Static HTML/CSS proof of the portal's aesthetic before any backend work. No framework, no build step — open the files in a browser.
+
+## Pages built so far
+
+- `landing.html` — hero, intro, palette preview, footer. The couple's "home."
+- `palette.html` — page header, primary palette (circle swatches), tone & feeling, inspiration grid, materials detail. Section 02 of the portal.
+
+The top nav is wired between Home ↔ Palette. The other six links (Vendors, Checklist, Budget, Timeline, Floor Plan, Seating) still point to `#` until those pages exist.
 
 ## How to view
 
@@ -9,7 +16,7 @@ open portal/mockup/landing.html        # macOS
 xdg-open portal/mockup/landing.html    # Linux
 ```
 
-Or any static server (`python3 -m http.server` in this directory, then visit `http://localhost:8000/landing.html`).
+Or any static server (`python3 -m http.server` in this directory, then visit `http://localhost:8000/landing.html`). Click through the top nav to see the palette page.
 
 ## What this proves
 
@@ -29,7 +36,9 @@ See `styles/tokens.css` for the two-layer token definitions.
 | Wordmark is text "Zuzu" in Cormorant Garamond | When the Zuzu submark SVG lands in `brand/logo/`, replace `.wordmark` contents with `<img src="...">` |
 | Hero background is a warm stone color | Drop the engagement photo at `portal/mockup/assets/hero.jpg`, then uncomment the `.hero-photo` override block in `styles/landing.css` |
 | Fonts are Cormorant Garamond + Fragment Mono (free Google Fonts) | When Romie + Art Company Mono `.woff2` files land in `portal/mockup/assets/fonts/`, declare them via `@font-face` and update `--zz-display` / `--zz-mono` in `tokens.css` |
-| Top nav links all `#` | Wire to real page paths once the 8 sub-pages exist |
+| Top nav: 6 of 8 still link to `#` | Wire to real page paths as each sub-page is built (Home + Palette done) |
+| Inspiration tiles tint with the couple's palette colors | Drop reference photos at `assets/inspo/*.jpg`, swap `background` on `.inspo-tile` to the image URL |
+| Material swatches are CSS gradients (silver, matte white, clear glass) | Swap for real texture photos when ready |
 
 ## Voice compliance
 
