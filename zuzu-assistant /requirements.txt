@@ -1,6 +1,7 @@
-anthropic
+--extra-index-url https://pypi.org/simple
+streamlit>=1.32.0
+anthropic>=0.25.0
 google-auth
 google-auth-oauthlib
 google-api-python-client
 openpyxl
-flask
