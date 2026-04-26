@@ -6,8 +6,9 @@ Static HTML/CSS proof of the portal's aesthetic before any backend work. No fram
 
 - `landing.html` — hero, intro, palette preview, footer. The couple's "home."
 - `palette.html` — page header, primary palette (circle swatches), tone & feeling, inspiration grid, materials detail. Section 02 of the portal.
+- `budget.html` — summary stats (total / spent / remaining), 5 itemized categories with line items + status pills, plus a "still to come" rollup for unbooked categories. Section 05 of the portal.
 
-The top nav is wired between Home ↔ Palette. The other six links (Vendors, Checklist, Budget, Timeline, Floor Plan, Seating) still point to `#` until those pages exist.
+The top nav is wired between Home ↔ Palette ↔ Budget. The remaining four links (Vendors, Checklist, Timeline, Floor Plan, Seating) still point to `#` until those pages exist.
 
 ## How to view
 
@@ -36,7 +37,8 @@ See `styles/tokens.css` for the two-layer token definitions.
 | Wordmark is text "Zuzu" in Cormorant Garamond | When the Zuzu submark SVG lands in `brand/logo/`, replace `.wordmark` contents with `<img src="...">` |
 | Hero background is a warm stone color | Drop the engagement photo at `portal/mockup/assets/hero.jpg`, then uncomment the `.hero-photo` override block in `styles/landing.css` |
 | Fonts are Cormorant Garamond + Fragment Mono (free Google Fonts) | When Romie + Art Company Mono `.woff2` files land in `portal/mockup/assets/fonts/`, declare them via `@font-face` and update `--zz-display` / `--zz-mono` in `tokens.css` |
-| Top nav: 6 of 8 still link to `#` | Wire to real page paths as each sub-page is built (Home + Palette done) |
+| Top nav: 5 of 8 still link to `#` | Wire to real page paths as each sub-page is built (Home + Palette + Budget done) |
+| Budget numbers are placeholder data for Alicia & Jack ($120K total) | Replace with the couple's real budget when wired to the DB |
 | Inspiration tiles tint with the couple's palette colors | Drop reference photos at `assets/inspo/*.jpg`, swap `background` on `.inspo-tile` to the image URL |
 | Material swatches are CSS gradients (silver, matte white, clear glass) | Swap for real texture photos when ready |
 
