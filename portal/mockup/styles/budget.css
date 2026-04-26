@@ -2,8 +2,10 @@
  * Zuzu Collective portal — budget page
  *
  * The hardest page to make look good. Numbers want to read like a spreadsheet;
- * this page treats them like editorial pull-quotes instead. Big italic display
- * numbers, mono only on small meta lines, generous whitespace per category.
+ * this page treats them like editorial pull-quotes instead.
+ *
+ * Per category we show Estimated / Actual / Remaining (matches the Chris &
+ * Lindsay xlsx). Mono is restricted to small meta lines and status pills.
  */
 
 /* ── Summary stats — 3 large numbers, hairline-separated ────────────────── */
@@ -44,7 +46,6 @@
   line-height: 1;
   color: var(--zz-finn);
 }
-
 .stat-number--accent { color: var(--zz-tobacco); }
 
 .stat-note {
@@ -55,7 +56,50 @@
   opacity: 0.75;
 }
 
-/* ── Category section — left meta, right amount, line items below ───────── */
+/* ── AI allocator — placeholder for the Claude-powered split generator ──── */
+
+.ai-allocator {
+  max-width: var(--content-max);
+  margin: var(--space-xl) auto 0;
+  padding: var(--space-md) var(--space-md);
+  text-align: center;
+}
+
+.zz-button {
+  display: inline-block;
+  padding: 14px 32px;
+  background: transparent;
+  border: 1px solid var(--zz-finn);
+  color: var(--zz-finn);
+  font-family: var(--zz-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 200ms ease, color 200ms ease;
+}
+.zz-button:hover:not(:disabled) {
+  background: var(--zz-finn);
+  color: var(--zz-moonlight);
+}
+.zz-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.ai-allocator-note {
+  margin-top: var(--space-sm);
+  font-family: var(--zz-display);
+  font-size: 0.95rem;
+  color: var(--zz-ink);
+  opacity: 0.8;
+}
+.ai-allocator-note em {
+  font-style: italic;
+  color: var(--zz-tobacco);
+}
+
+/* ── Category section — header on one row, 3-cell amount block on the right */
 
 .category {
   max-width: var(--content-max);
@@ -65,7 +109,7 @@
 
 .category-header {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
   gap: var(--space-lg);
   align-items: end;
   padding-bottom: var(--space-md);
@@ -76,7 +120,7 @@
 
 .category-title {
   font-family: var(--zz-display);
-  font-size: clamp(2rem, 4vw, 2.75rem);
+  font-size: clamp(1.75rem, 3.4vw, 2.5rem);
   line-height: 1.05;
   margin: 0;
   color: var(--zz-finn);
@@ -90,38 +134,46 @@
   letter-spacing: 0;
 }
 
-.category-note {
-  margin-top: var(--space-sm);
-  font-family: var(--zz-display);
-  font-style: italic;
-  font-size: 1rem;
-  color: var(--zz-ink);
-  opacity: 0.75;
+/* The 3-column Estimated / Actual / Remaining block — equal weight, mono
+   labels stacked above italic display numbers, hairline separators between. */
+.category-amount { text-align: left; }
+
+.amount-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0;
 }
 
-.category-amount { text-align: right; }
+.amount-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0 var(--space-md);
+  border-right: 1px solid var(--zz-finn-20);
+}
+.amount-cell:first-child { padding-left: 0; }
+.amount-cell:last-child  { border-right: 0; padding-right: 0; }
 
-.amount-allocated {
+.amount-label {
+  font-family: var(--zz-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--zz-finn-60);
+  margin-bottom: 4px;
+}
+
+.amount-value {
   font-family: var(--zz-display);
   font-style: italic;
-  font-size: clamp(2.25rem, 4.5vw, 3.25rem);
+  font-size: clamp(1.5rem, 2.8vw, 2rem);
   line-height: 1;
   color: var(--zz-finn);
 }
 
-.amount-note {
-  margin-top: var(--space-xs);
-  font-family: var(--zz-mono);
-  font-size: 0.7rem;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--zz-finn-60);
-}
-
-/* Hairline progress bar — one notch above invisible. No "filled bar" gauge,
-   just a quiet indicator.                                                  */
+/* Hairline progress bar — quiet indicator, not a filled gauge. */
 .progress-bar {
-  margin-top: var(--space-sm);
+  margin-top: var(--space-md);
   height: 2px;
   background: var(--zz-finn-20);
   position: relative;
@@ -157,10 +209,7 @@
   font-size: 1.125rem;
   color: var(--zz-finn);
 }
-.line-name em {
-  font-style: italic;
-  font-weight: 500;
-}
+.line-name em { font-style: italic; font-weight: 500; }
 
 .line-vendor {
   font-family: var(--zz-display);
@@ -195,14 +244,31 @@
 .status-deposited { color: var(--zz-tobacco); }
 .status-upcoming  { color: var(--zz-smoky); }
 
-/* ── "Still to come" softer category ────────────────────────────────────── */
+/* ── Budget footnote — quiet caption matching the spreadsheet pattern ───── */
 
-.category--soft .category-amount { opacity: 0.85; }
-.line-items--summary li {
-  grid-template-columns: 1fr auto;
+.budget-footnote {
+  max-width: var(--content-max);
+  margin-inline: auto;
+  padding: var(--space-lg) var(--space-md);
+  border-top: 1px solid var(--zz-finn-20);
+  text-align: center;
+  font-family: var(--zz-display);
+  font-size: 0.95rem;
+  color: var(--zz-ink);
+  opacity: 0.85;
 }
+.budget-footnote em { font-style: italic; }
+.budget-footnote strong { font-weight: 500; color: var(--zz-finn); }
 
 /* ── Responsive ─────────────────────────────────────────────────────────── */
+
+@media (max-width: 900px) {
+  .category-header {
+    grid-template-columns: 1fr;
+    gap: var(--space-md);
+    align-items: flex-start;
+  }
+}
 
 @media (max-width: 760px) {
   .summary-stats {
@@ -215,11 +281,15 @@
   }
   .stat:last-child { border-bottom: 0; }
 
-  .category-header {
-    grid-template-columns: 1fr;
-    text-align: left;
+  .amount-row {
+    grid-template-columns: repeat(3, 1fr);
   }
-  .category-amount { text-align: left; }
+  .amount-cell {
+    padding: 0 var(--space-sm);
+  }
+  .amount-value {
+    font-size: 1.25rem;
+  }
 
   .line-items li {
     grid-template-columns: 1fr auto;
