@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include('partials/head', { couple, title: null, extraStyles: [] }) %>
+<body>
+
+  <%- include('partials/topbar', { couple, currentPage }) %>
+
+  <!-- ── Hero ────────────────────────────────────────────────────────────── -->
+  <section class="hero">
+    <div class="hero-photo" aria-hidden="true"></div>
+
+    <div class="hero-inner">
+      <div class="hero-venue">
+        <% if (couple.venue_name) { %>
+          <%= couple.venue_name %><% if (couple.venue_location) { %> · <%= couple.venue_location %><% } %>
+        <% } %>
+      </div>
+      <h1 class="hero-names"><%= couple.display_name %></h1>
+      <div class="hero-subtitle"><%= couple.hero_subtitle %></div>
+      <div class="hero-date"><%= formattedDate %></div>
+    </div>
+
+    <div class="hero-placeholder-note">
+      Couple photo → portal/app/public/hero/<%= couple.slug %>.jpg
+    </div>
+  </section>
+
+  <!-- ── Intro strip ─────────────────────────────────────────────────────── -->
+  <section class="intro">
+    <span class="label intro-label">Prepared for <%= couple.display_name %></span>
+    <% if (couple.intro_text) { %>
+      <p class="intro-text"><%= couple.intro_text %></p>
+    <% } %>
+    <% if (couple.intro_tagline) { %>
+      <p class="intro-tagline"><%= couple.intro_tagline %></p>
+    <% } %>
+  </section>
+
+  <%- include('partials/footer', { couple }) %>
+
+</body>
+</html>
