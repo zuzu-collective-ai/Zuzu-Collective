@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="en" data-couple="alicia-and-jack_2026">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Guest List, RSVP &amp; Seating — Alicia &amp; Jack — Zuzu Collective</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Fragment+Mono:ital@0;1&display=swap">
+
+  <link rel="stylesheet" href="styles/tokens.css">
+  <link rel="stylesheet" href="styles/base.css">
+  <link rel="stylesheet" href="styles/landing.css">
+  <link rel="stylesheet" href="styles/palette.css">
+  <link rel="stylesheet" href="styles/guest-list.css">
+</head>
+<body>
+
+  <!-- ── Top bar ─────────────────────────────────────────────────────────── -->
+  <header class="topbar">
+    <a href="landing.html" class="wordmark" aria-label="Zuzu Collective home">Zuzu</a>
+
+    <nav class="topnav" aria-label="Portal sections">
+      <a href="landing.html" class="topnav-link">Home</a>
+      <a href="palette.html" class="topnav-link">Palette</a>
+      <a href="vendors.html" class="topnav-link">Vendors</a>
+      <a href="checklist.html" class="topnav-link">Checklist</a>
+      <a href="budget.html" class="topnav-link">Budget</a>
+      <a href="timeline.html" class="topnav-link">Timeline</a>
+      <a href="#" class="topnav-link">Floor&nbsp;Plan</a>
+      <a href="guest-list.html" class="topnav-link is-current" aria-current="page">Guest&nbsp;List,&nbsp;RSVP,&nbsp;and&nbsp;Seating</a>
+    </nav>
+  </header>
+
+  <!-- ── Page header ─────────────────────────────────────────────────────── -->
+  <section class="page-header">
+    <span class="label page-eyebrow">Alicia &amp; Jack · Section 07</span>
+    <h1 class="page-title">Guest List, RSVP &amp; Seating</h1>
+    <p class="page-subtitle">
+      One source of truth for everyone invited — who said yes, who said no,
+      who's still thinking, and where they'll sit. Households are the unit;
+      seats are the count.
+    </p>
+  </section>
+
+  <!-- ── Summary stats ───────────────────────────────────────────────────── -->
+  <section class="section guest-summary">
+    <div class="summary-stats">
+      <div class="stat">
+        <div class="stat-label">Invited</div>
+        <div class="stat-number">124</div>
+        <div class="stat-note">52 households</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Accepted</div>
+        <div class="stat-number stat-number--accent">98</div>
+        <div class="stat-note">79% of invites</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Awaiting</div>
+        <div class="stat-number">12</div>
+        <div class="stat-note">Follow up this week</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Declined</div>
+        <div class="stat-number stat-number--decline">14</div>
+        <div class="stat-note">5 households</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Seated</div>
+        <div class="stat-number">84</div>
+        <div class="stat-note">14 still to place</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Filter strip ─────────────────────────────────────────────────────── -->
+  <div class="guest-filters" role="group" aria-label="Filter the guest list">
+    <span class="guest-filters-label">Filter</span>
+    <div class="guest-filters-list">
+      <button type="button" class="filter-chip is-active">All</button>
+      <button type="button" class="filter-chip">Bride's side</button>
+      <button type="button" class="filter-chip">Groom's side</button>
+      <button type="button" class="filter-chip">Both</button>
+      <button type="button" class="filter-chip">Bridal party</button>
+      <button type="button" class="filter-chip">Children</button>
+    </div>
+  </div>
+
+  <!-- ── RSVP — grouped by status ─────────────────────────────────────────── -->
+  <section class="rsvp">
+
+    <!-- ── Awaiting · the follow-up list ──────────────────────────────── -->
+    <article class="rsvp-group is-awaiting">
+      <header class="rsvp-group-head">
+        <h2 class="rsvp-group-title"><em>Awaiting reply</em></h2>
+        <span class="rsvp-group-count">5 households · 12 seats · follow up by May 9</span>
+      </header>
+      <ul class="households">
+
+        <li class="household">
+          <div class="household-meta">
+            <span class="label">Household</span>
+            <span class="household-side">Bride's side · cousin</span>
+          </div>
+          <div class="household-body">
+            <h3 class="household-name">The <em>Whitfields</em></h3>
+            <ul class="household-people">
+              <li>Catherine Whitfield</li>
+              <li>James Whitfield</li>
+              <li class="is-kid">Hazel Whitfield</li>
+              <li class="is-kid">Theo Whitfield</li>
+            </ul>
+            <p class="household-note">Save-the-date confirmed received; invitation mailed April 6.</p>
+          </div>
+          <div class="household-status">
+            <span class="household-pill pill-awaiting">Awaiting</span>
+          </div>
+        </li>
+
+        <li class="household">
+          <div class="household-meta">
+            <span class="label">Household</span>
+            <span class="household-side">Bride's side · aunt</span>
+          </div>
+          <div class="household-body">
+            <h3 class="household-name"><em>Ruth Bennett</em></h3>
+            <ul class="household-people">
+              <li>Ruth Bennett</li>
+              <li class="is-plus-one">Plus one — name TBC</li>
+            </ul>
+            <p class="household-note">Aunt Ruth left a voicemail — call her back this week.</p>
+          </div>
+          <div class="household-status">
+            <span class="household-pill pill-awaiting">Awaiting</span>
+          </div>
+        </li>
+
+        <li class="household">
+          <div class="household-meta">
+            <span class="label">Household</span>
+            <span class="household-side">Bride's side · second cousin</span>
+          </div>
+          <div class="household-body">
+            <h3 class="household-name">The <em>Norths</em></h3>
+            <ul class="household-people">
+              <li>Eli North</li>
+              <li>Sara North</li>
+            </ul>
+          </div>
+          <div class="household-status">
+            <span class="household-pill pill-awaiting">Awaiting</span>
+          </div>
+        </li>
+
+        <li class="household">
+          <div class="household-meta">
+            <span class="label">Household</span>
+            <span class="household-side">Groom's side · family friend</span>
+          </div>
+          <div class="household-body">
+            <h3 class="household-name">The <em>Ahmeds</em></h3>
+            <ul class="household-people">
+              <li>Imran Ahmed</li>
+              <li>Yasmin Ahmed</li>
+              <li>Layla Ahmed</li>
+            </ul>
+          </div>
+          <div class="household-status">
+            <span class="household-pill pill-awaiting">Awaiting</span>
+          </div>
+        </li>
+
+        <li class="household">
+          <div class="household-meta">
+            <span class="label">Household</span>
+            <span class="household-side">Groom's side · college</span>
+          </div>
+          <div class="household-body">
+            <h3 class="household-name"><em>Will Sutton</em></h3>
+            <ul class="household-people">
+              <li>Will Sutton</li>
+              <li class="is-plus-one">Plus one — name TBC</li>
+            </ul>
+            <p class="household-note">Travelling abroad through April; reply expected first week of May.</p>
+          </div>
+          <div class="household-status">
+            <span class="household-pill pill-awaiting">Awaiting</span>
+          </div>
+        </li>
+
+      </ul>
+    </article>
+
+    <!-- ── Accepted ─────────────────────────────────────────────────────── -->
+    <article class="rsvp-group is-accepted">
+      <header class="rsvp-group-head">
+        <h2 class="rsvp-group-title"><em>Accepted</em></h2>
+        <span class="rsvp-group-count">42 households · 98 seats</span>
+      </header>
+      <ul class="households">
+
+        <li class="household">
+          <div class="household-meta">
+            <span class="label">Household</span>
+            <span class="household-side">Bride's parents</span>
+          </div>
+          <div class="household-body">
+            <h3 class="household-name">The <em>Bennetts</em></h3>
+            <ul class="household-people">
+              <li>David Bennett</li>
+              <li>Helen Bennett</li>
+            </ul>
+            <p class="household-note">Father of the bride — welcome toast at 5:45.</p>
+          </div>
+          <div class="household-status">
+            <span class="household-table">
+              <span class="household-table-num">Table 01</span>
+              Cypress
+            </span>
+            <span class="household-pill pill-accepted">Accepted</span>
+          </div>
+        </li>
+
+        <li class="household">
+          <div class="household-meta">
+            <span class="label">Household</span>
+            <span class="household-side">Groom's parents</span>
+          </div>
+          <div class="household-body">
+            <h3 class="household-name">The <em>Cohens</em></h3>
+            <ul class="household-people">
+              <li>Robert Cohen</li>
+              <li>Susan Cohen</li>
+            </ul>
+            <p class="household-note">Mother-son dance immediately after the first dance.</p>
+          </div>
+          <div class="household-status">
+            <span class="household-table">
+              <span class="household-table-num">Table 01</span>
+              Cypress
+            </span>
+            <span class="household-pill pill-accepted">Accepted</span>
+          </div>
+        </li>
+
+        <li class="household">
+          <div class="household-meta">
+            <span class="label">Household</span>
+            <span class="household-side">Bride's grandmother</span>
+          </div>
+          <div class="household-body">
+            <h3 class="household-name"><em>Eleanor Bennett</em></h3>
+            <ul class="household-people">
+              <li>Eleanor Bennett</li>
+            </ul>
+            <p class="household-note">Mobility — needs aisle seat; car service to and from the hotel.</p>
+          </div>
+          <div class="household-status">
+            <span class="household-table">
+              <span class="household-table-num">Table 02</span>
+              Bay
+            </span>
+            <span class="household-pill pill-accepted">Accepted</span>
+          </div>
+        </li>
+
+        <li class="household">
+          <div class="household-meta">
+            <span class="label">Household</span>
+            <span class="household-side">Groom's grandparents</span>
+          </div>
+          <div class="household-body">
+            <h3 class="household-name">The <em>Marcheses</em></h3>
+            <ul class="household-people">
+              <li>Antonio Marchese</li>
+              <li>Rosa Marchese</li>
+            </ul>
+          </div>
+          <div class="household-status">
+            <span class="household-table">
+              <span class="household-table-num">Table 02</span>
+              Bay
+            </span>
+            <span class="household-pill pill-accepted">Accepted</span>
+          </div>
+        </li>
+
+        <li class="household">
+          <div class="household-meta">
+            <span class="label">Household</span>
+            <span class="household-side">Bride's side · sister · maid of honor's table</span>
+          </div>
+          <div class="household-body">
+            <h3 class="household-name"><em>Maya Bennett &amp; Carlos Vargas</em></h3>
+            <ul class="household-people">
+              <li>Maya Bennett</li>
+              <li>Carlos Vargas</li>
+            </ul>
+            <p class="household-note">Maya — sister of the bride, reading at the four-minute mark.</p>
+          </div>
+          <div class="household-status">
+            <span class="household-table">
+              <span class="household-table-num">Table 03</span>
+              Olive
+            </span>
+            <span class="household-pill pill-accepted">Accepted</span>
+          </div>
+        </li>
+
+        <li class="household">
+          <div class="household-meta">
+            <span class="label">Household</span>
+            <span class="household-side">Bridal party · maid of honor</span>
+          </div>
+          <div class="household-body">
+            <h3 class="household-name"><em>Nina Reyes</em></h3>
+            <ul class="household-people">
+              <li>Nina Reyes</li>
+              <li class="is-plus-one">Daniel Park</li>
+            </ul>
+            <p class="household-note">Maid-of-honor toast at 7:15.</p>
+          </div>
+          <div class="household-status">
+            <span class="household-table">
+              <span class="household-table-num">Table 03</span>
+              Olive
+            </span>
+            <span class="household-pill pill-accepted">Accepted</span>
+          </div>
+        </li>
+
+        <li class="household">
+          <div class="household-meta">
+            <span class="label">Household</span>
+            <span class="household-side">Groom's side · brother</span>
+          </div>
+          <div class="household-body">
+            <h3 class="household-name"><em>Theo Cohen &amp; Anna Park</em></h3>
+            <ul class="household-people">
+              <li>Theo Cohen</li>
+              <li>Anna Park</li>
+            </ul>
+          </div>
+          <div class="household-status">
+            <span class="household-table">
+              <span class="household-table-num">Table 03</span>
+              Olive
+            </span>
+            <span class="household-pill pill-accepted">Accepted</span>
+          </div>
+        </li>
+
+        <li class="household">
+          <div class="household-meta">
+            <span class="label">Household</span>
+            <span class="household-side">Bridal party · best man</span>
+          </div>
+          <div class="household-body">
+            <h3 class="household-name"><em>Daniel Vega</em></h3>
+            <ul class="household-people">
+              <li>Daniel Vega</li>
+              <li class="is-plus-one">Lily Foster</li>
+            </ul>
+            <p class="household-note">Best-man toast at 7:18.</p>
+          </div>
+          <div class="household-status">
+            <span class="household-table">
+              <span class="household-table-num">Table 03</span>
+              Olive
+            </span>
+            <span class="household-pill pill-accepted">Accepted</span>
+          </div>
+        </li>
+
+        <li class="household">
+          <div class="household-meta">
+            <span class="label">Household</span>
+            <span class="household-side">Both sides · family friends</span>
+          </div>
+          <div class="household-body">
+            <h3 class="household-name">The <em>Pattersons</em></h3>
+            <ul class="household-people">
+              <li>Mark Patterson</li>
+              <li>Janine Patterson</li>
+              <li class="is-kid">Ada Patterson</li>
+              <li class="is-kid">Owen Patterson</li>
+            </ul>
+            <p class="household-note">Two children's meals; high chair not required.</p>
+          </div>
+          <div class="household-status">
+            <span class="household-table">
+              <span class="household-table-num">Table 04</span>
+              Beach
+            </span>
+            <span class="household-pill pill-accepted">Accepted</span>
+          </div>
+        </li>
+
+        <li class="household">
+          <div class="household-meta">
+            <span class="label">Household</span>
+            <span class="household-side">Groom's side · college</span>
+          </div>
+          <div class="household-body">
+            <h3 class="household-name">The <em>Lees</em></h3>
+            <ul class="household-people">
+              <li>Hannah Lee</li>
+              <li>Sam Lee</li>
+            </ul>
+            <p class="household-note">Hannah — gluten-free meal preference noted with caterer.</p>
+          </div>
+          <div class="household-status">
+            <span class="household-table">
+              <span class="household-table-num">Table 04</span>
+              Beach
+            </span>
+            <span class="household-pill pill-accepted">Accepted</span>
+          </div>
+        </li>
+
+        <li class="household">
+          <div class="household-meta">
+            <span class="label">Household</span>
+            <span class="household-side">Bride's side · college</span>
+          </div>
+          <div class="household-body">
+            <h3 class="household-name"><em>Priya Mehta</em></h3>
+            <ul class="household-people">
+              <li>Priya Mehta</li>
+              <li class="is-plus-one">Plus one declined</li>
+            </ul>
+          </div>
+          <div class="household-status">
+            <span class="household-table">
+              <span class="household-table-num">Table 05</span>
+              Bougainvillea
+            </span>
+            <span class="household-pill pill-accepted">Accepted</span>
+          </div>
+        </li>
+
+        <li class="household">
+          <div class="household-meta">
+            <span class="label">Household</span>
+            <span class="household-side">Bride's side · college</span>
+          </div>
+          <div class="household-body">
+            <h3 class="household-name"><em>Aisha Cole &amp; Marcus Webb</em></h3>
+            <ul class="household-people">
+              <li>Aisha Cole</li>
+              <li>Marcus Webb</li>
+            </ul>
+          </div>
+          <div class="household-status">
+            <span class="household-table">
+              <span class="household-table-num">Table 05</span>
+              Bougainvillea
+            </span>
+            <span class="household-pill pill-accepted">Accepted</span>
+          </div>
+        </li>
+
+        <li class="household">
+          <div class="household-meta">
+            <span class="label">Household</span>
+            <span class="household-side">Bride's aunt &amp; uncle</span>
+          </div>
+          <div class="household-body">
+            <h3 class="household-name">The <em>Cabreras</em></h3>
+            <ul class="household-people">
+              <li>Jorge Cabrera</li>
+              <li>Marisol Cabrera</li>
+              <li>Elena Cabrera</li>
+            </ul>
+          </div>
+          <div class="household-status">
+            <span class="household-table">
+              <span class="household-table-num">Table 06</span>
+              Sage
+            </span>
+            <span class="household-pill pill-accepted">Accepted</span>
+          </div>
+        </li>
+
+        <li class="household">
+          <div class="household-meta">
+            <span class="label">Household</span>
+            <span class="household-side">Bride's side · work</span>
+          </div>
+          <div class="household-body">
+            <h3 class="household-name">The <em>Crawfords</em></h3>
+            <ul class="household-people">
+              <li>Beth Crawford</li>
+              <li>Tom Crawford</li>
+            </ul>
+            <p class="household-note">Recently engaged — may have a conflict with the rehearsal dinner.</p>
+          </div>
+          <div class="household-status">
+            <span class="household-table">
+              <span class="household-table-num">Table 09</span>
+              Manzanita
+            </span>
+            <span class="household-pill pill-accepted">Accepted</span>
+          </div>
+        </li>
+
+        <li class="household">
+          <div class="household-meta">
+            <span class="label">Household</span>
+            <span class="household-side">Groom's aunt &amp; uncle</span>
+          </div>
+          <div class="household-body">
+            <h3 class="household-name">The <em>Ortegas</em></h3>
+            <ul class="household-people">
+              <li>Pablo Ortega</li>
+              <li>Lucia Ortega</li>
+              <li>Mateo Ortega</li>
+            </ul>
+            <p class="household-note">Awaiting table assignment — Zoe to confirm Table 07 or 09.</p>
+          </div>
+          <div class="household-status">
+            <span class="household-table">
+              <span class="household-table-num">Unseated</span>
+              To assign
+            </span>
+            <span class="household-pill pill-accepted">Accepted</span>
+          </div>
+        </li>
+
+      </ul>
+    </article>
+
+    <!-- ── Declined ────────────────────────────────────────────────────── -->
+    <article class="rsvp-group is-declined">
+      <header class="rsvp-group-head">
+        <h2 class="rsvp-group-title"><em>With regrets</em></h2>
+        <span class="rsvp-group-count">5 households · 14 seats</span>
+      </header>
+      <ul class="households">
+
+        <li class="household is-declined">
+          <div class="household-meta">
+            <span class="label">Household</span>
+            <span class="household-side">Bride's side · cousin</span>
+          </div>
+          <div class="household-body">
+            <h3 class="household-name">The <em>Hartwells</em></h3>
+            <ul class="household-people">
+              <li>Greg Hartwell</li>
+              <li>Maria Hartwell</li>
+              <li class="is-kid">Sophie Hartwell</li>
+            </ul>
+            <p class="household-note">Out of the country in October — a thank-you note went out.</p>
+          </div>
+          <div class="household-status">
+            <span class="household-pill pill-declined">Declined</span>
+          </div>
+        </li>
+
+        <li class="household is-declined">
+          <div class="household-meta">
+            <span class="label">Household</span>
+            <span class="household-side">Groom's side · college</span>
+          </div>
+          <div class="household-body">
+            <h3 class="household-name">The <em>Suzukis</em></h3>
+            <ul class="household-people">
+              <li>Kenji Suzuki</li>
+              <li>Mei Suzuki</li>
+            </ul>
+            <p class="household-note">Conflicting wedding the same weekend.</p>
+          </div>
+          <div class="household-status">
+            <span class="household-pill pill-declined">Declined</span>
+          </div>
+        </li>
+
+        <li class="household is-declined">
+          <div class="household-meta">
+            <span class="label">Household</span>
+            <span class="household-side">Bride's side · family friend</span>
+          </div>
+          <div class="household-body">
+            <h3 class="household-name"><em>Margaret Hill</em></h3>
+            <ul class="household-people">
+              <li>Margaret Hill</li>
+            </ul>
+            <p class="household-note">Health — sending a gift in lieu.</p>
+          </div>
+          <div class="household-status">
+            <span class="household-pill pill-declined">Declined</span>
+          </div>
+        </li>
+
+        <li class="household is-declined">
+          <div class="household-meta">
+            <span class="label">Household</span>
+            <span class="household-side">Groom's side · cousin</span>
+          </div>
+          <div class="household-body">
+            <h3 class="household-name">The <em>Rios</em></h3>
+            <ul class="household-people">
+              <li>Tomas Rios</li>
+              <li>Daniela Rios</li>
+              <li class="is-kid">Felix Rios</li>
+              <li class="is-kid">Ines Rios</li>
+            </ul>
+          </div>
+          <div class="household-status">
+            <span class="household-pill pill-declined">Declined</span>
+          </div>
+        </li>
+
+        <li class="household is-declined">
+          <div class="household-meta">
+            <span class="label">Household</span>
+            <span class="household-side">Both sides · family friend</span>
+          </div>
+          <div class="household-body">
+            <h3 class="household-name">The <em>Friedmans</em></h3>
+            <ul class="household-people">
+              <li>Aaron Friedman</li>
+              <li>Rebecca Friedman</li>
+              <li class="is-kid">Noa Friedman</li>
+            </ul>
+          </div>
+          <div class="household-status">
+            <span class="household-pill pill-declined">Declined</span>
+          </div>
+        </li>
+
+      </ul>
+    </article>
+
+  </section>
+
+  <!-- ── Seating chart — table cards ───────────────────────────────────── -->
+  <section class="section">
+    <header class="section-head">
+      <span class="label">Seating · 10 tables</span>
+      <h2 class="section-title">The room, table by table.</h2>
+      <p class="section-description seating-intro">
+        Round tables of eight to ten in the Garden Ballroom. Each table is
+        named for a Carmel-coast plant or place. Drag to reseat in the
+        product — for now, this is a static read.
+      </p>
+    </header>
+
+    <div class="tables">
+
+      <article class="table-card is-head">
+        <header class="table-card-head">
+          <div>
+            <span class="table-card-num">Table 01 · Head</span>
+            <h3 class="table-card-name"><em>Cypress</em></h3>
+          </div>
+          <span class="table-card-capacity">8 of 8</span>
+        </header>
+        <p class="table-card-note">Parents and the couple. Closest to the dance floor.</p>
+        <ol class="seat-list">
+          <li>Alicia Bennett</li>
+          <li>Jack Cohen</li>
+          <li>David Bennett</li>
+          <li>Helen Bennett</li>
+          <li>Robert Cohen</li>
+          <li>Susan Cohen</li>
+          <li>Maya Bennett</li>
+          <li>Theo Cohen</li>
+        </ol>
+      </article>
+
+      <article class="table-card">
+        <header class="table-card-head">
+          <div>
+            <span class="table-card-num">Table 02</span>
+            <h3 class="table-card-name"><em>Bay</em></h3>
+          </div>
+          <span class="table-card-capacity">6 of 8</span>
+        </header>
+        <p class="table-card-note">Grandparents and elders — aisle seat reserved for Eleanor.</p>
+        <ol class="seat-list">
+          <li>Eleanor Bennett</li>
+          <li>Antonio Marchese</li>
+          <li>Rosa Marchese</li>
+          <li>George Bennett</li>
+          <li>Ana Cohen</li>
+          <li>Stuart Cohen</li>
+          <li class="is-empty">Open seat</li>
+          <li class="is-empty">Open seat</li>
+        </ol>
+      </article>
+
+      <article class="table-card">
+        <header class="table-card-head">
+          <div>
+            <span class="table-card-num">Table 03</span>
+            <h3 class="table-card-name"><em>Olive</em></h3>
+          </div>
+          <span class="table-card-capacity">8 of 8</span>
+        </header>
+        <p class="table-card-note">Wedding party and partners.</p>
+        <ol class="seat-list">
+          <li>Nina Reyes</li>
+          <li>Daniel Park</li>
+          <li>Daniel Vega</li>
+          <li>Lily Foster</li>
+          <li>Carlos Vargas</li>
+          <li>Anna Park</li>
+          <li>Sofia Reyes</li>
+          <li>Ben Cohen</li>
+        </ol>
+      </article>
+
+      <article class="table-card">
+        <header class="table-card-head">
+          <div>
+            <span class="table-card-num">Table 04</span>
+            <h3 class="table-card-name"><em>Beach</em></h3>
+          </div>
+          <span class="table-card-capacity">8 of 10</span>
+        </header>
+        <p class="table-card-note">Family friends with kids — seated near the courtyard exit.</p>
+        <ol class="seat-list">
+          <li>Mark Patterson</li>
+          <li>Janine Patterson</li>
+          <li>Ada Patterson</li>
+          <li>Owen Patterson</li>
+          <li>Hannah Lee</li>
+          <li>Sam Lee</li>
+          <li>Ruth Klein</li>
+          <li>David Klein</li>
+          <li class="is-empty">Open seat</li>
+          <li class="is-empty">Open seat</li>
+        </ol>
+      </article>
+
+      <article class="table-card">
+        <header class="table-card-head">
+          <div>
+            <span class="table-card-num">Table 05</span>
+            <h3 class="table-card-name"><em>Bougainvillea</em></h3>
+          </div>
+          <span class="table-card-capacity">10 of 10</span>
+        </header>
+        <p class="table-card-note">Bride's college circle.</p>
+        <ol class="seat-list">
+          <li>Priya Mehta</li>
+          <li>Aisha Cole</li>
+          <li>Marcus Webb</li>
+          <li>Jenna Park</li>
+          <li>Henry Park</li>
+          <li>Olivia Reyes</li>
+          <li>Wesley Reyes</li>
+          <li>Tara Lin</li>
+          <li>Wes Lin</li>
+          <li>Sam Bennett</li>
+        </ol>
+      </article>
+
+      <article class="table-card">
+        <header class="table-card-head">
+          <div>
+            <span class="table-card-num">Table 06</span>
+            <h3 class="table-card-name"><em>Sage</em></h3>
+          </div>
+          <span class="table-card-capacity">9 of 10</span>
+        </header>
+        <p class="table-card-note">Bride's extended family.</p>
+        <ol class="seat-list">
+          <li>Jorge Cabrera</li>
+          <li>Marisol Cabrera</li>
+          <li>Elena Cabrera</li>
+          <li>Phil Bennett</li>
+          <li>Cara Bennett</li>
+          <li>Ross Bennett</li>
+          <li>Ivy Bennett</li>
+          <li>Margot Bennett</li>
+          <li>Theo Bennett</li>
+          <li class="is-empty">Open seat</li>
+        </ol>
+      </article>
+
+      <article class="table-card">
+        <header class="table-card-head">
+          <div>
+            <span class="table-card-num">Table 07</span>
+            <h3 class="table-card-name"><em>Heather</em></h3>
+          </div>
+          <span class="table-card-capacity">7 of 10</span>
+        </header>
+        <p class="table-card-note">Groom's extended family.</p>
+        <ol class="seat-list">
+          <li>Daniel Cohen</li>
+          <li>Alma Cohen</li>
+          <li>Lev Cohen</li>
+          <li>Naomi Cohen</li>
+          <li>Eli Cohen</li>
+          <li>Mira Cohen</li>
+          <li>Aaron Cohen</li>
+          <li class="is-empty">Open seat</li>
+          <li class="is-empty">Open seat</li>
+          <li class="is-empty">Open seat</li>
+        </ol>
+      </article>
+
+      <article class="table-card">
+        <header class="table-card-head">
+          <div>
+            <span class="table-card-num">Table 08</span>
+            <h3 class="table-card-name"><em>Coral</em></h3>
+          </div>
+          <span class="table-card-capacity">10 of 10</span>
+        </header>
+        <p class="table-card-note">Groom's college circle.</p>
+        <ol class="seat-list">
+          <li>Jacob Liu</li>
+          <li>Mira Liu</li>
+          <li>Ben Stein</li>
+          <li>Eva Stein</li>
+          <li>Kyle Park</li>
+          <li>Maddie Park</li>
+          <li>Ravi Mehta</li>
+          <li>Sam Sutton</li>
+          <li>Eli Frank</li>
+          <li>Anika Frank</li>
+        </ol>
+      </article>
+
+      <article class="table-card">
+        <header class="table-card-head">
+          <div>
+            <span class="table-card-num">Table 09</span>
+            <h3 class="table-card-name"><em>Manzanita</em></h3>
+          </div>
+          <span class="table-card-capacity">6 of 10</span>
+        </header>
+        <p class="table-card-note">Bride's work circle.</p>
+        <ol class="seat-list">
+          <li>Beth Crawford</li>
+          <li>Tom Crawford</li>
+          <li>Diana Wu</li>
+          <li>Hugo Wu</li>
+          <li>Marina Foss</li>
+          <li>Reid Foss</li>
+          <li class="is-empty">Open seat</li>
+          <li class="is-empty">Open seat</li>
+          <li class="is-empty">Open seat</li>
+          <li class="is-empty">Open seat</li>
+        </ol>
+      </article>
+
+      <article class="table-card">
+        <header class="table-card-head">
+          <div>
+            <span class="table-card-num">Table 10</span>
+            <h3 class="table-card-name"><em>Driftwood</em></h3>
+          </div>
+          <span class="table-card-capacity">4 of 8 · kids</span>
+        </header>
+        <p class="table-card-note">Children's table — supervised by Patterson and Lee parents nearby. Crayons, paper menus, fries on standby.</p>
+        <ol class="seat-list">
+          <li>Ada Patterson</li>
+          <li>Owen Patterson</li>
+          <li>Charlie Reyes</li>
+          <li>June Reyes</li>
+          <li class="is-empty">Open seat</li>
+          <li class="is-empty">Open seat</li>
+          <li class="is-empty">Open seat</li>
+          <li class="is-empty">Open seat</li>
+        </ol>
+      </article>
+
+    </div>
+
+    <!-- ── Still to seat ─────────────────────────────────────────────── -->
+    <div class="unseated">
+      <header class="unseated-head">
+        <h3 class="unseated-title"><em>Still to seat</em></h3>
+        <span class="unseated-count">14 accepted · awaiting assignment</span>
+      </header>
+      <ul class="unseated-list">
+        <li>Pablo Ortega</li>
+        <li>Lucia Ortega</li>
+        <li>Mateo Ortega</li>
+        <li>Sasha Cohen</li>
+        <li>Mira Cohen</li>
+        <li>Liana Bennett</li>
+        <li>Ron Bennett</li>
+        <li>Tessa Marchese</li>
+        <li>Owen Marchese</li>
+        <li>Adelaide Park</li>
+        <li>Jamie Park</li>
+        <li>Connor Wu</li>
+        <li>Eve Wu</li>
+        <li>Felix Foss</li>
+      </ul>
+    </div>
+
+  </section>
+
+  <!-- ── Footer ──────────────────────────────────────────────────────────── -->
+  <footer class="footer">
+    <p class="footer-cta">
+      Have questions? <a href="mailto:info@zuzucollective.com">Let's chat.</a>
+    </p>
+
+    <div class="footer-signature">
+      <div class="name display">Zoe McDaniel</div>
+      <div class="title">Founder &amp; Creative Director</div>
+      <div class="mono" style="margin-top: .25rem;">Zuzu Collective</div>
+
+      <div class="footer-taglines">
+        Bespoke weddings &amp; events that escape the mundane.<br>
+        Story-driven design rooted in intention.
+      </div>
+    </div>
+
+    <div class="footer-meta">
+      Zuzu Collective · San Diego
+      <span class="footer-sep">·</span>
+      portal.zuzucollective.com / alicia-and-jack_2026
+    </div>
+  </footer>
+
+</body>
+</html>
