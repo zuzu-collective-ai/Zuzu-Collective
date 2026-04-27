@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include('partials/head', { couple, title: 'Timeline', extraStyles: ['palette.css', 'timeline.css'] }) %>
+<body>
+
+  <%- include('partials/topbar', { couple, currentPage }) %>
+
+  <!-- ── Page header ─────────────────────────────────────────────────────── -->
+  <section class="page-header">
+    <span class="label page-eyebrow"><%= couple.display_name %></span>
+    <h1 class="page-title">Timeline</h1>
+    <p class="page-subtitle">
+      The day, hour by hour. Six phases — getting ready, first look, ceremony,
+      cocktail hour, reception, send-off — built from the vendor contracts
+      and locked two weeks before October tenth.
+    </p>
+  </section>
+
+  <!-- ── Summary stats ───────────────────────────────────────────────────── -->
+  <section class="section timeline-summary">
+    <div class="summary-stats">
+      <div class="stat">
+        <div class="stat-label">Date</div>
+        <div class="stat-number">10.10</div>
+        <div class="stat-note">Saturday, October 2026</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Ceremony</div>
+        <div class="stat-number">4:00</div>
+        <div class="stat-note">Sunset 6:32 PM</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Events</div>
+        <div class="stat-number">30</div>
+        <div class="stat-note">Across 6 phases</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Last call</div>
+        <div class="stat-number">10:30</div>
+        <div class="stat-note">Sparkler send-off</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Phases ──────────────────────────────────────────────────────────── -->
+  <section class="phases">
+
+    <!-- ── Phase 01 · Getting Ready ─────────────────────────────────────── -->
+    <article class="phase">
+      <header class="phase-head">
+        <span class="phase-num">Phase 01</span>
+        <span class="phase-window">8:00 AM – 1:00 PM</span>
+        <span class="phase-count">6 events</span>
+        <h2 class="phase-title"><em>Getting ready</em></h2>
+        <p class="phase-note">
+          Bridal suite at La Playa. Hair and makeup for the bride, three
+          bridesmaids, and the mothers. Photographer arrives mid-morning for
+          details and getting-ready coverage.
+        </p>
+      </header>
+      <ul class="event-list">
+        <li class="event">
+          <span class="event-time">8:00<span class="event-time-meridiem">AM</span></span>
+          <div class="event-body">
+            <h3 class="event-title">Hair and makeup begins</h3>
+            <div class="event-meta">
+              <span class="event-meta-item"><span class="event-meta-label">Where</span><span class="event-meta-value">Bridal suite, La Playa</span></span>
+              <span class="event-meta-item"><span class="event-meta-label">Lead</span><span class="event-meta-value">Belle Âme Beauty · 5 stations</span></span>
+            </div>
+            <p class="event-note">Coffee, croissants, and water set in the suite by 7:45.</p>
+          </div>
+        </li>
+        <li class="event">
+          <span class="event-time">11:00<span class="event-time-meridiem">AM</span></span>
+          <div class="event-body">
+            <h3 class="event-title">Photographer arrives</h3>
+            <div class="event-meta">
+              <span class="event-meta-item"><span class="event-meta-label">Where</span><span class="event-meta-value">Bridal suite</span></span>
+              <span class="event-meta-item"><span class="event-meta-label">Lead</span><span class="event-meta-value">Iris &amp; Light Studio</span></span>
+            </div>
+          </div>
+        </li>
+        <li class="event">
+          <span class="event-time">11:30<span class="event-time-meridiem">AM</span></span>
+          <div class="event-body">
+            <h3 class="event-title">Detail photos — flat lay, dress, rings, invitation suite</h3>
+            <div class="event-meta">
+              <span class="event-meta-item"><span class="event-meta-label">Lead</span><span class="event-meta-value">Iris &amp; Light Studio</span></span>
+            </div>
+            <p class="event-note">Heirloom hairpin and grandmother's earrings staged with the rings.</p>
+          </div>
+        </li>
+        <li class="event">
+          <span class="event-time">12:00<span class="event-time-meridiem">PM</span></span>
+          <div class="event-body">
+            <h3 class="event-title">Bridesmaids dressed, getting-ready portraits</h3>
+            <div class="event-meta">
+              <span class="event-meta-item"><span class="event-meta-label">Lead</span><span class="event-meta-value">Iris &amp; Light Studio</span></span>
+            </div>
+          </div>
+        </li>
+        <li class="event">
+          <span class="event-time">12:30<span class="event-time-meridiem">PM</span></span>
+          <div class="event-body">
+            <h3 class="event-title">Light lunch delivered to suite</h3>
+            <div class="event-meta">
+              <span class="event-meta-item"><span class="event-meta-label">Where</span><span class="event-meta-value">Bridal suite</span></span>
+              <span class="event-meta-item"><span class="event-meta-label">Lead</span><span class="event-meta-value">La Playa Hotel</span></span>
+            </div>
+          </div>
+        </li>
+        <li class="event">
+          <span class="event-time">1:00<span class="event-time-meridiem">PM</span></span>
+          <div class="event-body">
+            <h3 class="event-title">Bride into the dress</h3>
+            <div class="event-meta">
+              <span class="event-meta-item"><span class="event-meta-label">With</span><span class="event-meta-value">Mom and maid of honor</span></span>
+              <span class="event-meta-item"><span class="event-meta-label">Lead</span><span class="event-meta-value">Iris &amp; Light Studio</span></span>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </article>
+
+    <!-- ── Phase 02 · First Look + Wedding Party ────────────────────────── -->
+    <article class="phase">
+      <header class="phase-head">
+        <span class="phase-num">Phase 02</span>
+        <span class="phase-window">1:30 PM – 3:30 PM</span>
+        <span class="phase-count">4 events</span>
+        <h2 class="phase-title"><em>First look &amp; portraits</em></h2>
+        <p class="phase-note">
+          A private moment on the terrace before the wedding party joins.
+          Family formals follow off the shot list pre-built with the planner —
+          quick, organized, no scrambling.
+        </p>
+      </header>
+      <ul class="event-list">
+        <li class="event">
+          <span class="event-time">1:30<span class="event-time-meridiem">PM</span></span>
+          <div class="event-body">
+            <h3 class="event-title">First look on the La Playa terrace</h3>
+            <div class="event-meta">
+              <span class="event-meta-item"><span class="event-meta-label">Where</span><span class="event-meta-value">South terrace, ocean side</span></span>
+              <span class="event-meta-item"><span class="event-meta-label">Lead</span><span class="event-meta-value">Iris &amp; Light Studio</span></span>
+            </div>
+            <p class="event-note">Terrace cleared of guests until 1:50.</p>
+          </div>
+        </li>
+        <li class="event">
+          <span class="event-time">2:00<span class="event-time-meridiem">PM</span></span>
+          <div class="event-body">
+            <h3 class="event-title">Wedding party portraits</h3>
+            <div class="event-meta">
+              <span class="event-meta-item"><span class="event-meta-label">Where</span><span class="event-meta-value">Garden walk &amp; courtyard</span></span>
+              <span class="event-meta-item"><span class="event-meta-label">Lead</span><span class="event-meta-value">Iris &amp; Light Studio</span></span>
+            </div>
+          </div>
+        </li>
+        <li class="event">
+          <span class="event-time">2:45<span class="event-time-meridiem">PM</span></span>
+          <div class="event-body">
+            <h3 class="event-title">Family formal portraits</h3>
+            <div class="event-meta">
+              <span class="event-meta-item"><span class="event-meta-label">Where</span><span class="event-meta-value">Courtyard fountain</span></span>
+              <span class="event-meta-item"><span class="event-meta-label">Lead</span><span class="event-meta-value">Zuzu Collective + Iris &amp; Light</span></span>
+            </div>
+            <p class="event-note">Pre-built shot list, called in groups by the planner.</p>
+          </div>
+        </li>
+        <li class="event">
+          <span class="event-time">3:30<span class="event-time-meridiem">PM</span></span>
+          <div class="event-body">
+            <h3 class="event-title">Couple tucked away, guests beginning to arrive</h3>
+            <div class="event-meta">
+              <span class="event-meta-item"><span class="event-meta-label">Where</span><span class="event-meta-value">Hidden suite off the lobby</span></span>
+              <span class="event-meta-item"><span class="event-meta-label">Lead</span><span class="event-meta-value">Zuzu Collective</span></span>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </article>
+
+    <!-- ── Phase 03 · Ceremony · highlighted ───────────────────────────── -->
+    <article class="phase phase--ceremony">
+      <header class="phase-head">
+        <span class="phase-num">Phase 03</span>
+        <span class="phase-window">3:30 PM – 4:30 PM</span>
+        <span class="phase-count">4 events</span>
+        <h2 class="phase-title"><em>The ceremony</em></h2>
+        <p class="phase-note">
+          On the lawn overlooking Carmel Bay. Forty-eight white folding
+          chairs, a chuppah of olive branches, and a confetti send-off
+          from the recessional aisle.
+        </p>
+      </header>
+      <ul class="event-list">
+        <li class="event">
+          <span class="event-time">3:30<span class="event-time-meridiem">PM</span></span>
+          <div class="event-body">
+            <h3 class="event-title">Guests seated, prelude music begins</h3>
+            <div class="event-meta">
+              <span class="event-meta-item"><span class="event-meta-label">Where</span><span class="event-meta-value">Ocean lawn</span></span>
+              <span class="event-meta-item"><span class="event-meta-label">Lead</span><span class="event-meta-value">West Coast Sound (DJ)</span></span>
+            </div>
+          </div>
+        </li>
+        <li class="event">
+          <span class="event-time">4:00<span class="event-time-meridiem">PM</span></span>
+          <div class="event-body">
+            <h3 class="event-title">Processional</h3>
+            <div class="event-meta">
+              <span class="event-meta-item"><span class="event-meta-label">Lead</span><span class="event-meta-value">Reverend Diane Marquez</span></span>
+            </div>
+            <p class="event-note">Order: officiant · grandparents · parents · wedding party · bride with father.</p>
+          </div>
+        </li>
+        <li class="event">
+          <span class="event-time">4:05<span class="event-time-meridiem">PM</span></span>
+          <div class="event-body">
+            <h3 class="event-title">Vows, ring exchange, pronouncement</h3>
+            <div class="event-meta">
+              <span class="event-meta-item"><span class="event-meta-label">Lead</span><span class="event-meta-value">Reverend Diane Marquez</span></span>
+            </div>
+            <p class="event-note">Reading by Alicia's sister at the four-minute mark.</p>
+          </div>
+        </li>
+        <li class="event">
+          <span class="event-time">4:25<span class="event-time-meridiem">PM</span></span>
+          <div class="event-body">
+            <h3 class="event-title">Recessional &amp; confetti send-off</h3>
+            <div class="event-meta">
+              <span class="event-meta-item"><span class="event-meta-label">Lead</span><span class="event-meta-value">Zuzu Collective</span></span>
+            </div>
+            <p class="event-note">Dried lavender confetti staged in linen pouches at every other chair.</p>
+          </div>
+        </li>
+      </ul>
+    </article>
+
+    <!-- ── Phase 04 · Cocktail Hour ────────────────────────────────────── -->
+    <article class="phase">
+      <header class="phase-head">
+        <span class="phase-num">Phase 04</span>
+        <span class="phase-window">4:30 PM – 5:30 PM</span>
+        <span class="phase-count">4 events</span>
+        <h2 class="phase-title"><em>Cocktail hour</em></h2>
+        <p class="phase-note">
+          Guests on the upper lawn while the couple slips away for golden
+          hour. Six passed hors d'oeuvres, two signature cocktails, and a
+          string trio under the bougainvillea.
+        </p>
+      </header>
+      <ul class="event-list">
+        <li class="event">
+          <span class="event-time">4:30<span class="event-time-meridiem">PM</span></span>
+          <div class="event-body">
+            <h3 class="event-title">Cocktail hour begins on the upper lawn</h3>
+            <div class="event-meta">
+              <span class="event-meta-item"><span class="event-meta-label">Where</span><span class="event-meta-value">Upper lawn &amp; loggia</span></span>
+              <span class="event-meta-item"><span class="event-meta-label">Lead</span><span class="event-meta-value">La Playa Catering</span></span>
+            </div>
+            <p class="event-note">Signatures: a Carmel mule and a sage gimlet.</p>
+          </div>
+        </li>
+        <li class="event">
+          <span class="event-time">4:30<span class="event-time-meridiem">PM</span></span>
+          <div class="event-body">
+            <h3 class="event-title">Couple sneaks away for golden hour portraits</h3>
+            <div class="event-meta">
+              <span class="event-meta-item"><span class="event-meta-label">Where</span><span class="event-meta-value">Cypress grove, beachside path</span></span>
+              <span class="event-meta-item"><span class="event-meta-label">Lead</span><span class="event-meta-value">Iris &amp; Light Studio</span></span>
+            </div>
+          </div>
+        </li>
+        <li class="event">
+          <span class="event-time">5:00<span class="event-time-meridiem">PM</span></span>
+          <div class="event-body">
+            <h3 class="event-title">String trio plays through cocktail hour</h3>
+            <div class="event-meta">
+              <span class="event-meta-item"><span class="event-meta-label">Lead</span><span class="event-meta-value">Carmel Strings</span></span>
+            </div>
+          </div>
+        </li>
+        <li class="event">
+          <span class="event-time">5:15<span class="event-time-meridiem">PM</span></span>
+          <div class="event-body">
+            <h3 class="event-title">Move guests to the reception room</h3>
+            <div class="event-meta">
+              <span class="event-meta-item"><span class="event-meta-label">Where</span><span class="event-meta-value">Garden ballroom</span></span>
+              <span class="event-meta-item"><span class="event-meta-label">Lead</span><span class="event-meta-value">Zuzu Collective</span></span>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </article>
+
+    <!-- ── Phase 05 · Reception ────────────────────────────────────────── -->
+    <article class="phase">
+      <header class="phase-head">
+        <span class="phase-num">Phase 05</span>
+        <span class="phase-window">5:30 PM – 10:30 PM</span>
+        <span class="phase-count">9 events</span>
+        <h2 class="phase-title"><em>Reception</em></h2>
+        <p class="phase-note">
+          Long candlelit tables under linen. Three-course plated dinner,
+          three toasts, parent dances, and a late-night carafes-and-bites
+          moment to keep the dance floor going.
+        </p>
+      </header>
+      <ul class="event-list">
+        <li class="event">
+          <span class="event-time">5:30<span class="event-time-meridiem">PM</span></span>
+          <div class="event-body">
+            <h3 class="event-title">Grand entrance into the reception</h3>
+            <div class="event-meta">
+              <span class="event-meta-item"><span class="event-meta-label">Lead</span><span class="event-meta-value">West Coast Sound (DJ)</span></span>
+            </div>
+            <p class="event-note">Entrance song: "At Last" — Etta James.</p>
+          </div>
+        </li>
+        <li class="event">
+          <span class="event-time">5:35<span class="event-time-meridiem">PM</span></span>
+          <div class="event-body">
+            <h3 class="event-title">First dance</h3>
+            <div class="event-meta">
+              <span class="event-meta-item"><span class="event-meta-label">Lead</span><span class="event-meta-value">West Coast Sound (DJ)</span></span>
+            </div>
+          </div>
+        </li>
+        <li class="event">
+          <span class="event-time">5:45<span class="event-time-meridiem">PM</span></span>
+          <div class="event-body">
+            <h3 class="event-title">Welcome toast — father of the bride</h3>
+            <div class="event-meta">
+              <span class="event-meta-item"><span class="event-meta-label">Lead</span><span class="event-meta-value">Zuzu Collective (mic cue)</span></span>
+            </div>
+          </div>
+        </li>
+        <li class="event">
+          <span class="event-time">5:55<span class="event-time-meridiem">PM</span></span>
+          <div class="event-body">
+            <h3 class="event-title">Dinner served — three-course plated</h3>
+            <div class="event-meta">
+              <span class="event-meta-item"><span class="event-meta-label">Lead</span><span class="event-meta-value">La Playa Catering</span></span>
+            </div>
+            <p class="event-note">First course poured with the burgundy; entrée with the cabernet.</p>
+          </div>
+        </li>
+        <li class="event">
+          <span class="event-time">7:15<span class="event-time-meridiem">PM</span></span>
+          <div class="event-body">
+            <h3 class="event-title">Toasts — maid of honor and best man</h3>
+            <div class="event-meta">
+              <span class="event-meta-item"><span class="event-meta-label">Lead</span><span class="event-meta-value">Zuzu Collective (mic cue)</span></span>
+            </div>
+          </div>
+        </li>
+        <li class="event">
+          <span class="event-time">7:45<span class="event-time-meridiem">PM</span></span>
+          <div class="event-body">
+            <h3 class="event-title">Cake cutting</h3>
+            <div class="event-meta">
+              <span class="event-meta-item"><span class="event-meta-label">Lead</span><span class="event-meta-value">West Coast Sound (DJ)</span></span>
+            </div>
+            <p class="event-note">Three-tier almond cake, fig &amp; honey filling.</p>
+          </div>
+        </li>
+        <li class="event">
+          <span class="event-time">8:00<span class="event-time-meridiem">PM</span></span>
+          <div class="event-body">
+            <h3 class="event-title">Parent dances — mother &amp; son, father &amp; daughter</h3>
+            <div class="event-meta">
+              <span class="event-meta-item"><span class="event-meta-label">Lead</span><span class="event-meta-value">West Coast Sound (DJ)</span></span>
+            </div>
+          </div>
+        </li>
+        <li class="event">
+          <span class="event-time">8:15<span class="event-time-meridiem">PM</span></span>
+          <div class="event-body">
+            <h3 class="event-title">Open dance floor</h3>
+            <div class="event-meta">
+              <span class="event-meta-item"><span class="event-meta-label">Lead</span><span class="event-meta-value">West Coast Sound (DJ)</span></span>
+            </div>
+          </div>
+        </li>
+        <li class="event">
+          <span class="event-time">9:30<span class="event-time-meridiem">PM</span></span>
+          <div class="event-body">
+            <h3 class="event-title">Late-night bites</h3>
+            <div class="event-meta">
+              <span class="event-meta-item"><span class="event-meta-label">Lead</span><span class="event-meta-value">La Playa Catering</span></span>
+            </div>
+            <p class="event-note">Truffle fries, sliders, and chilled rosé carafes set on the bar.</p>
+          </div>
+        </li>
+      </ul>
+    </article>
+
+    <!-- ── Phase 06 · Send-off · celebratory close ─────────────────────── -->
+    <article class="phase phase--sendoff">
+      <header class="phase-head">
+        <span class="phase-num">Phase 06</span>
+        <span class="phase-window">10:25 PM – 10:45 PM</span>
+        <span class="phase-count">3 events</span>
+        <h2 class="phase-title"><em>Send-off</em></h2>
+        <p class="phase-note">
+          Sparklers down the front drive, then the vintage town car waiting
+          at the porte-cochère.
+        </p>
+      </header>
+      <ul class="event-list">
+        <li class="event">
+          <span class="event-time">10:25<span class="event-time-meridiem">PM</span></span>
+          <div class="event-body">
+            <h3 class="event-title">Last call at the bar</h3>
+            <div class="event-meta">
+              <span class="event-meta-item"><span class="event-meta-label">Lead</span><span class="event-meta-value">La Playa Catering</span></span>
+            </div>
+          </div>
+        </li>
+        <li class="event">
+          <span class="event-time">10:30<span class="event-time-meridiem">PM</span></span>
+          <div class="event-body">
+            <h3 class="event-title">Sparkler send-off down the drive</h3>
+            <div class="event-meta">
+              <span class="event-meta-item"><span class="event-meta-label">Where</span><span class="event-meta-value">Front porte-cochère</span></span>
+              <span class="event-meta-item"><span class="event-meta-label">Lead</span><span class="event-meta-value">Zuzu Collective</span></span>
+            </div>
+          </div>
+        </li>
+        <li class="event">
+          <span class="event-time">10:45<span class="event-time-meridiem">PM</span></span>
+          <div class="event-body">
+            <h3 class="event-title">Couple departs in vintage town car</h3>
+            <div class="event-meta">
+              <span class="event-meta-item"><span class="event-meta-label">Lead</span><span class="event-meta-value">Carmel Coast Transportation</span></span>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </article>
+
+  </section>
+
+
+  <%- include('partials/footer', { couple }) %>
+
+</body>
+</html>

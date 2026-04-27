@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include('partials/head', { couple, title: 'Design', extraStyles: ['palette.css'] }) %>
+<body>
+
+  <%- include('partials/topbar', { couple, currentPage }) %>
+
+  <!-- ── Page header ─────────────────────────────────────────────────────── -->
+  <section class="page-header">
+    <span class="label page-eyebrow"><%= couple.display_name %></span>
+    <h1 class="page-title">Design</h1>
+    <p class="page-subtitle">
+      Ivory-forward with soft green accents. Warm, coastal, and grounded —
+      everything we're building draws from these four colors and the mood
+      they hold together.
+    </p>
+  </section>
+
+  <!-- ── Primary palette — pulled from the couples row ────────────────────── -->
+  <section class="section palette-primary">
+    <div class="section-head">
+      <span class="label">The palette</span>
+      <h2 class="section-title">Four colors, one mood.</h2>
+    </div>
+
+    <div class="circle-swatches">
+      <% [1, 2, 3, 4].forEach(n => { %>
+        <div class="circle-swatch">
+          <div class="circle-swatch-disc" style="background: <%= couple[`palette_color_${n}`] %>; <% if (n === 3) { %>border-color: var(--zz-finn-20);<% } %>"></div>
+          <div class="circle-swatch-name"><%= couple[`palette_color_${n}_name`] || '' %></div>
+          <div class="circle-swatch-hex"><%= couple[`palette_color_${n}`].toUpperCase() %></div>
+        </div>
+      <% }) %>
+    </div>
+  </section>
+
+  <!-- ── Tone & Feeling ──────────────────────────────────────────────────── -->
+  <section class="section tone-section">
+    <div class="section-head">
+      <span class="label">Tone &amp; Feeling</span>
+      <h2 class="section-title">Intimate and considered. Nothing overdone.</h2>
+    </div>
+
+    <p class="tone-keywords"><%= couple.tone_keywords %></p>
+    <p class="tone-statement"><%= couple.tone_statement %></p>
+  </section>
+
+  <!-- ── Inspiration intro ───────────────────────────────────────────────── -->
+  <section class="section">
+    <div class="section-head">
+      <span class="label">Inspiration</span>
+      <h2 class="section-title">Moments we're designing toward.</h2>
+      <p class="section-description">
+        Six categories. Each one carries a hero reference and four supporting
+        frames. Photos land at <code>portal/app/public/inspo/<%= couple.slug %>/</code>
+        as we shoot and source them.
+      </p>
+    </div>
+  </section>
+
+  <%
+    // Inspiration galleries — kept inline for now so the design page is
+    // self-contained. Phase 3 will move these into a per-couple
+    // `inspiration_galleries` + `inspiration_tiles` table so Zoe can
+    // edit titles and reorder tiles in admin.
+    const galleries = [
+      {
+        eyebrow: 'Ceremony',
+        title: 'An olive-branch arch over the aisle.',
+        description: 'On the Ocean Lawn — forty-eight white folding chairs, the Pacific behind, a chuppah of olive branches and ivory ribbon.',
+        tiles: [
+          { label: 'Hero',         title: 'An olive-branch arch over the aisle.',         note: 'img → ceremony / hero', hero: true },
+          { label: 'Aisle',        title: 'Bud vases lining every other row.',            note: 'img → ceremony / 02' },
+          { label: 'Recessional',  title: 'The aisle dressed for the walk back.',         note: 'img → ceremony / 03' },
+          { label: 'Send-off',     title: 'Linen pouches of dried lavender on every other chair.', note: 'img → ceremony / 04' },
+          { label: 'Altar',        title: 'A single brass candle, lit at four.',          note: 'img → ceremony / 05' },
+        ],
+      },
+      {
+        eyebrow: 'Florals',
+        title: 'Ivory roses, peonies, anthurium.',
+        description: 'Soft greens, never bright. Olive, dusty miller, and sage carry the chartreuse note through the room.',
+        tiles: [
+          { label: 'Hero',          title: 'Ivory roses, peonies, anthurium.',             note: 'img → florals / hero', hero: true },
+          { label: 'Centerpieces',  title: 'Olive branches in low ivory urns.',            note: 'img → florals / 02' },
+          { label: 'Head table',    title: 'Calla lilies trailing the length.',            note: 'img → florals / 03' },
+          { label: 'Bouquet',       title: 'Loose stems, hand-tied with silk ribbon.',     note: 'img → florals / 04' },
+          { label: 'Boutonnières',  title: 'Sage and dusty miller, no statement bloom.',   note: 'img → florals / 05' },
+        ],
+      },
+      {
+        eyebrow: 'Tablescape',
+        title: 'Linen, candlelight, hand-blown glass.',
+        description: 'Long, low, candlelit. Polished silver flatware, ivory linen runners, and bud vases instead of statement arrangements.',
+        tiles: [
+          { label: 'Hero',          title: 'Candlelit length, ivory linen, soft green accents.', note: 'img → tablescape / hero', hero: true },
+          { label: 'Tapers',        title: 'Tall candles in polished silver holders.',     note: 'img → tablescape / 02' },
+          { label: 'Glassware',     title: 'Hand-blown, no stems, slight imperfection.',   note: 'img → tablescape / 03' },
+          { label: 'Napkins',       title: 'Folded with a pressed wax seal.',              note: 'img → tablescape / 04' },
+          { label: 'Place setting', title: 'Custom menu at every plate.',                  note: 'img → tablescape / 05' },
+        ],
+      },
+      {
+        eyebrow: 'Stationery & Signage',
+        title: 'Letterpressed, hand-lettered, weighted.',
+        description: 'Ivory cotton paper, soft chartreuse ink, brass and wax. Every printed thing is something you\'d want to keep.',
+        tiles: [
+          { label: 'Hero',             title: 'The full invitation suite — letterpressed.', note: 'img → stationery / hero', hero: true },
+          { label: 'Place card',       title: 'Tied with chartreuse silk ribbon.',          note: 'img → stationery / 02' },
+          { label: 'Welcome sign',     title: 'Hand-painted, at the porte-cochère.',        note: 'img → stationery / 03' },
+          { label: 'Table names',      title: 'Cypress, Bay, Olive — hand-lettered cards.', note: 'img → stationery / 04' },
+          { label: 'Order of service', title: 'Ivory and gold leaf, deckled edge.',         note: 'img → stationery / 05' },
+        ],
+      },
+      {
+        eyebrow: 'Reception',
+        title: 'The Garden Ballroom by candlelight.',
+        description: 'String lights low, dance floor in the middle, the head table watching over it. No spotlights, no logos, no rented signage.',
+        tiles: [
+          { label: 'Hero',           title: 'The Garden Ballroom by candlelight.',           note: 'img → reception / hero', hero: true },
+          { label: 'Dance floor',    title: 'String lights low, parquet underfoot.',         note: 'img → reception / 02' },
+          { label: 'Head table',     title: 'Cypress — the cake just to one side.',          note: 'img → reception / 03' },
+          { label: 'Cocktail hour',  title: 'High-tops on the upper lawn, signature pour bar.', note: 'img → reception / 04' },
+          { label: 'Entry',          title: 'Place cards on a brass rod, linen ribbon.',     note: 'img → reception / 05' },
+        ],
+      },
+      {
+        eyebrow: 'Lighting',
+        title: 'All warmth reliant on candlelight.',
+        description: 'No overheads after sundown. Hurricanes, tapers, lanterns, bistro strings — every glow comes from a flame or its imitation.',
+        tiles: [
+          { label: 'Hero',        title: 'Tapers and pillars down the length of the table.', note: 'img → lighting / hero', hero: true },
+          { label: 'Hurricanes',  title: 'Clear glass, brass base.',                         note: 'img → lighting / 02' },
+          { label: 'Path',        title: 'Lanterns lining the way to the ballroom.',         note: 'img → lighting / 03' },
+          { label: 'Altar',       title: 'A pillar candlestand at the arch.',                note: 'img → lighting / 04' },
+          { label: 'Overhead',    title: 'Bistro strings draped low over the dance floor.',  note: 'img → lighting / 05' },
+        ],
+      },
+    ];
+  %>
+
+  <% galleries.forEach(g => { %>
+    <section class="section">
+      <div class="section-head">
+        <span class="label"><%= g.eyebrow %></span>
+        <h2 class="section-title"><em><%= g.title %></em></h2>
+        <p class="section-description"><%= g.description %></p>
+      </div>
+
+      <div class="inspiration-grid">
+        <% g.tiles.forEach(tile => { %>
+          <div class="inspo-tile<%= tile.hero ? ' is-tall is-wide' : '' %>">
+            <div class="inspo-tile-note"><%= tile.note %></div>
+            <span class="inspo-tile-label"><%= tile.label %></span>
+            <span class="inspo-tile-title"><%= tile.title %></span>
+          </div>
+        <% }) %>
+      </div>
+    </section>
+  <% }) %>
+
+  <!-- ── Materials detail ────────────────────────────────────────────────── -->
+  <section class="section">
+    <div class="section-head">
+      <span class="label">Metals &amp; Finishes</span>
+      <h2 class="section-title">Polished silver. Matte white. Clear glass.</h2>
+      <p class="section-description">All warmth reliant on candlelight.</p>
+    </div>
+
+    <div class="materials-grid">
+      <div class="material">
+        <div class="material-swatch" style="background: linear-gradient(135deg, #d9d7d3 0%, #b8b6b2 50%, #d9d7d3 100%);"></div>
+        <div class="material-title">Polished silver</div>
+        <div class="material-note">Flatware · candle holders · table numbers</div>
+      </div>
+      <div class="material">
+        <div class="material-swatch" style="background: var(--couple-3);"></div>
+        <div class="material-title">Matte white</div>
+        <div class="material-note">Plates · menus · stationery</div>
+      </div>
+      <div class="material">
+        <div class="material-swatch" style="background: linear-gradient(135deg, #eee 0%, #ccc 50%, #eee 100%); opacity: 0.7;"></div>
+        <div class="material-title">Clear glass</div>
+        <div class="material-note">Glassware · vessels · hurricanes</div>
+      </div>
+    </div>
+  </section>
+
+  <%- include('partials/footer', { couple }) %>
+
+</body>
+</html>
