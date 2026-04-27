@@ -23,7 +23,7 @@
 
     <nav class="topnav" aria-label="Portal sections">
       <a href="landing.html" class="topnav-link">Home</a>
-      <a href="palette.html" class="topnav-link">Palette</a>
+      <a href="design.html" class="topnav-link">Design</a>
       <a href="vendors.html" class="topnav-link">Vendors</a>
       <a href="checklist.html" class="topnav-link">Checklist</a>
       <a href="budget.html" class="topnav-link">Budget</a>
@@ -35,7 +35,7 @@
 
   <!-- ── Page header ─────────────────────────────────────────────────────── -->
   <section class="page-header">
-    <span class="label page-eyebrow">Alicia &amp; Jack · Section 08</span>
+    <span class="label page-eyebrow">Alicia &amp; Jack</span>
     <h1 class="page-title">Floor Plan</h1>
     <p class="page-subtitle">
       The room, top down. Three venue spaces — the Ocean Lawn for the
@@ -244,9 +244,10 @@
           Signature pour
         </div>
 
-        <!-- Path doorway to reception -->
-        <div class="zone is-door is-bottom-edge" style="bottom: 0; left: 44%; width: 12%; height: 6%;">
-          To Garden Ballroom
+        <!-- Path doorway to reception — inset 1% so the dashed marker
+             reads cleanly above the schematic border. -->
+        <div class="zone is-door is-bottom-edge" style="bottom: 1%; left: 44%; width: 12%; height: 5%;">
+          To reception
         </div>
 
       </div>
@@ -316,17 +317,15 @@
         <span class="compass">N&nbsp;↑</span>
         <span class="scale-bar">10 ft</span>
 
-        <span class="edge-label is-top">Catering doors · back of house</span>
-        <span class="edge-label is-bottom">Lobby · porte-cochère</span>
-
-        <!-- Catering doors -->
-        <div class="zone is-door" style="top: 0; left: 70%; width: 16%; height: 5%;">
-          Catering ingress
+        <!-- Catering doors — kept inset 1% so the dashed edge marker
+             doesn't compete with the schematic border itself. -->
+        <div class="zone is-door" style="top: 1%; left: 70%; width: 16%; height: 4%;">
+          Catering
         </div>
 
-        <!-- DJ booth — top center -->
+        <!-- DJ booth — top center, short label so it fits the 12% width -->
         <div class="zone is-stage" style="top: 10%; left: 44%; width: 12%; height: 7%;">
-          DJ · West Coast Sound
+          DJ
         </div>
 
         <!-- Bar — left edge -->
@@ -335,62 +334,43 @@
         </div>
 
         <!-- Cake / sweets table — right corner -->
-        <div class="zone is-service" style="top: 12%; left: 88%; width: 9%; height: 12%;">
-          Cake table
+        <div class="zone is-service" style="top: 12%; left: 86%; width: 11%; height: 12%;">
+          Cake
         </div>
 
         <!-- Dance floor — center -->
         <div class="zone is-dance" style="top: 38%; left: 40%; width: 22%; height: 24%;">
-          Dance floor
+          Dance
         </div>
 
-        <!-- Round tables, 10 of them, named -->
-        <!-- Top row : T02 Bay, T03 Olive (above dance floor left), T04 Beach, T05 Bougainvillea (above dance floor right) -->
-        <div class="zone is-table" style="top: 22%; left: 16%; width: 11%; aspect-ratio: 1;">
-          <span class="zone-num">02</span> Bay
-        </div>
-        <div class="zone is-table" style="top: 22%; left: 30%; width: 11%; aspect-ratio: 1;">
-          <span class="zone-num">03</span> Olive
-        </div>
-        <div class="zone is-table" style="top: 22%; left: 60%; width: 11%; aspect-ratio: 1;">
-          <span class="zone-num">04</span> Beach
-        </div>
-        <div class="zone is-table" style="top: 22%; left: 74%; width: 11%; aspect-ratio: 1;">
-          <span class="zone-num">05</span> Bougainvillea
-        </div>
+        <!-- Round tables — only the number inside; names live in the key
+             so the small circles don't have to fit two pieces of text. -->
+        <!-- Top row -->
+        <div class="zone is-table" style="top: 22%; left: 16%; width: 11%; aspect-ratio: 1;">02</div>
+        <div class="zone is-table" style="top: 22%; left: 30%; width: 11%; aspect-ratio: 1;">03</div>
+        <div class="zone is-table" style="top: 22%; left: 60%; width: 11%; aspect-ratio: 1;">04</div>
+        <div class="zone is-table" style="top: 22%; left: 74%; width: 11%; aspect-ratio: 1;">05</div>
 
-        <!-- Middle row : T06 Sage (left), T07 Heather (right) -->
-        <div class="zone is-table" style="top: 42%; left: 18%; width: 11%; aspect-ratio: 1;">
-          <span class="zone-num">06</span> Sage
-        </div>
-        <div class="zone is-table" style="top: 42%; left: 71%; width: 11%; aspect-ratio: 1;">
-          <span class="zone-num">07</span> Heather
-        </div>
+        <!-- Middle row -->
+        <div class="zone is-table" style="top: 42%; left: 18%; width: 11%; aspect-ratio: 1;">06</div>
+        <div class="zone is-table" style="top: 42%; left: 71%; width: 11%; aspect-ratio: 1;">07</div>
 
-        <!-- Head table — directly in front of the dance floor, oval -->
-        <div class="zone is-head-table" style="top: 66%; left: 36%; width: 30%; height: 8%;">
-          <span class="zone-num">01</span> Head · Cypress
-        </div>
+        <!-- Head table — oval, just the number -->
+        <div class="zone is-head-table" style="top: 66%; left: 36%; width: 30%; height: 8%;">01</div>
 
-        <!-- Bottom row : T08 Coral (left), T09 Manzanita (right), T10 Driftwood far left -->
-        <div class="zone is-table" style="top: 78%; left: 18%; width: 11%; aspect-ratio: 1;">
-          <span class="zone-num">08</span> Coral
-        </div>
-        <div class="zone is-table" style="top: 78%; left: 71%; width: 11%; aspect-ratio: 1;">
-          <span class="zone-num">09</span> Manzanita
-        </div>
-        <div class="zone is-table" style="top: 78%; left: 4%; width: 11%; aspect-ratio: 1;">
-          <span class="zone-num">10</span> Driftwood
-        </div>
+        <!-- Bottom row -->
+        <div class="zone is-table" style="top: 78%; left: 18%; width: 11%; aspect-ratio: 1;">08</div>
+        <div class="zone is-table" style="top: 78%; left: 71%; width: 11%; aspect-ratio: 1;">09</div>
+        <div class="zone is-table" style="top: 78%; left: 4%; width: 11%; aspect-ratio: 1;">10</div>
 
-        <!-- Restroom indicator (right edge) -->
-        <div class="zone is-service" style="top: 50%; right: 0; width: 4%; height: 16%;">
+        <!-- Restroom — pulled inset 1% so the edge label doesn't crowd it -->
+        <div class="zone is-service" style="top: 50%; right: 1%; width: 4%; height: 16%;">
           WC
         </div>
 
         <!-- Guest entrance from cocktail path -->
-        <div class="zone is-door is-bottom-edge" style="bottom: 0; left: 42%; width: 16%; height: 5%;">
-          Guest entrance
+        <div class="zone is-door is-bottom-edge" style="bottom: 1%; left: 42%; width: 16%; height: 4%;">
+          Entrance
         </div>
 
       </div>
