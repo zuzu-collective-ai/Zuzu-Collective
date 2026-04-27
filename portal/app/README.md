@@ -9,7 +9,8 @@ the same pages with that data interpolated.
 - `couples` table backing the landing page
 - `GET /p/:slug` renders `landing.ejs` from a couple row
 - Idempotent `schema.sql` + `seed.sql` run automatically at startup
-- Render-ready (`render.yaml` provisions web + db on first deploy)
+- Render-ready (`/render.yaml` at the repo root provisions web + db on
+  first deploy)
 - Static stylesheets served from `../mockup/styles/` so design changes
   in the mockup land in the dynamic app for free
 
@@ -20,8 +21,8 @@ build on this foundation.
 
 1. Sign in at <https://render.com> with GitHub.
 2. **New + → Blueprint** → pick `zuzu-collective-ai/Zuzu-Collective`.
-3. Render reads `portal/app/render.yaml`, provisions the web service
-   and the database, and links them. Click **Apply**.
+3. Render reads `/render.yaml` at the repo root, provisions the web
+   service and the database, and links them. Click **Apply**.
 4. First deploy takes ~3 minutes. When it's green, the app is live at
    `https://zuzu-portal.onrender.com/p/alicia-and-jack-2026`.
 
