@@ -331,6 +331,74 @@ code {
   cursor: not-allowed;
 }
 
+/* ── Sub-tabs for nested sections (Households / Tables) ─────────────────── */
+
+.admin-subtabs {
+  display: flex;
+  gap: 0.25rem;
+  margin: -1rem 0 1.5rem;
+  font-family: var(--zz-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+.admin-subtab {
+  padding: 0.4rem 0.75rem;
+  color: var(--zz-finn-60);
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+  transition: color 160ms ease, border-color 160ms ease;
+}
+.admin-subtab:hover { color: var(--zz-finn); }
+.admin-subtab.is-current {
+  color: var(--zz-finn);
+  border-bottom-color: var(--zz-finn);
+}
+
+/* ── Inline guest rows on the household form ────────────────────────────── */
+
+.admin-guest-rows {
+  display: grid;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.admin-guest-row {
+  display: grid;
+  grid-template-columns: 1.5fr 0.7fr 1.5fr auto;
+  gap: 0.5rem;
+  align-items: end;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid var(--zz-finn-20);
+  border-radius: 2px;
+}
+
+.admin-field--inline {
+  margin: 0;
+  gap: 0.25rem;
+}
+.admin-field--inline .admin-field-label {
+  font-size: 0.6rem;
+  letter-spacing: 0.16em;
+}
+.admin-field--inline input,
+.admin-field--inline select {
+  padding: 0.4rem 0.6rem;
+  font-size: 0.95rem;
+}
+
+.admin-btn--small {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.65rem;
+}
+
+@media (max-width: 760px) {
+  .admin-guest-row {
+    grid-template-columns: 1fr;
+  }
+}
+
 .admin-field-help {
   font-size: 0.85rem;
   color: var(--zz-tobacco);

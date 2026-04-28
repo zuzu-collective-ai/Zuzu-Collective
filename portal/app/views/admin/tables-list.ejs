@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include('partials/head', { title: `${couple.display_name} — Tables` }) %>
+<body class="admin-body">
+
+  <%- include('partials/sidebar', { currentSection: 'couples' }) %>
+
+  <main class="admin-main">
+    <header class="admin-header">
+      <div>
+        <a href="/admin" class="admin-back">← All couples</a>
+        <h1 class="admin-title"><%= couple.display_name %></h1>
+        <p class="admin-subtitle">
+          <a href="/p/<%= couple.slug %>/guest-list" target="_blank" rel="noopener">View live portal ↗</a>
+        </p>
+      </div>
+      <a href="/admin/couples/<%= couple.id %>/tables/new" class="admin-btn admin-btn--primary">+ Add table</a>
+    </header>
+
+    <%- include('partials/couple-tabs', { couple, currentTab: 'guests' }) %>
+
+    <nav class="admin-subtabs" aria-label="Guest list sub-sections">
+      <a href="/admin/couples/<%= couple.id %>/guests" class="admin-subtab">Households</a>
+      <a href="/admin/couples/<%= couple.id %>/tables" class="admin-subtab is-current" aria-current="page">Tables</a>
+    </nav>
+
+    <%- include('partials/flash', { flash }) %>
+
+    <% if (tables.length === 0) { %>
+      <p class="admin-empty">
+        No tables yet for <%= couple.display_name %>.
+        <a href="/admin/couples/<%= couple.id %>/tables/new">Add the first one</a>.
+      </p>
+    <% } else { %>
+      <% const ROLE_LABEL = { standard: 'Standard', head: 'Head table', kids: "Kids' table" }; %>
+      <ul class="admin-list">
+        <% tables.forEach(t => {
+          const num = String(t.table_number).padStart(2, '0');
+        %>
+          <li class="admin-list-item">
+            <a href="/admin/couples/<%= couple.id %>/tables/<%= t.id %>" class="admin-list-link">
+              <div class="admin-list-name">
+                Table <%= num %><% if (t.table_name) { %> · <em><%= t.table_name %></em><% } %>
+              </div>
+              <div class="admin-list-meta">
+                <span><%= ROLE_LABEL[t.role] || t.role %></span>
+                <span><%= t.filled %> of <%= t.capacity %> seats</span>
+                <% if (t.note) { %><span><%= t.note %></span><% } %>
+              </div>
+            </a>
+          </li>
+        <% }) %>
+      </ul>
+    <% } %>
+  </main>
+
+</body>
+</html>

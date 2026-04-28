@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include('partials/head', { title: `${couple.display_name} — Guest list` }) %>
+<body class="admin-body">
+
+  <%- include('partials/sidebar', { currentSection: 'couples' }) %>
+
+  <main class="admin-main">
+    <header class="admin-header">
+      <div>
+        <a href="/admin" class="admin-back">← All couples</a>
+        <h1 class="admin-title"><%= couple.display_name %></h1>
+        <p class="admin-subtitle">
+          <a href="/p/<%= couple.slug %>/guest-list" target="_blank" rel="noopener">View live portal ↗</a>
+        </p>
+      </div>
+      <a href="/admin/couples/<%= couple.id %>/guests/new" class="admin-btn admin-btn--primary">+ Add household</a>
+    </header>
+
+    <%- include('partials/couple-tabs', { couple, currentTab: 'guests' }) %>
+
+    <nav class="admin-subtabs" aria-label="Guest list sub-sections">
+      <a href="/admin/couples/<%= couple.id %>/guests" class="admin-subtab is-current" aria-current="page">Households</a>
+      <a href="/admin/couples/<%= couple.id %>/tables" class="admin-subtab">Tables</a>
+    </nav>
+
+    <%- include('partials/flash', { flash }) %>
+
+    <% if (households.length === 0) { %>
+      <p class="admin-empty">
+        No households yet. <a href="/admin/couples/<%= couple.id %>/guests/new">Add the first one</a>.
+      </p>
+    <% } else { %>
+      <% const STATUS = { accepted: 'Accepted', awaiting: 'Awaiting', declined: 'Declined' }; %>
+      <ul class="admin-list">
+        <% households.forEach(h => { %>
+          <li class="admin-list-item">
+            <a href="/admin/couples/<%= couple.id %>/guests/<%= h.id %>" class="admin-list-link">
+              <div class="admin-list-name"><%= h.display_name %></div>
+              <div class="admin-list-meta">
+                <span><%= STATUS[h.status] || h.status %></span>
+                <span><%= h.guest_count %> guest<%= h.guest_count === 1 ? '' : 's' %></span>
+                <% if (h.side) { %><span><%= h.side %></span><% } %>
+              </div>
+            </a>
+          </li>
+        <% }) %>
+      </ul>
+    <% } %>
+  </main>
+
+</body>
+</html>

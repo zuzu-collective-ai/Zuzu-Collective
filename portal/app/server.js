@@ -37,7 +37,10 @@ app.use(
         styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
         fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
         imgSrc: ["'self'", 'data:'],
-        scriptSrc: ["'self'"],
+        // Inline scripts are limited to admin form helpers (add/remove
+        // guest rows). Move to external files + nonces if the admin
+        // ever needs anything more substantial.
+        scriptSrc: ["'self'", "'unsafe-inline'"],
       },
     },
   }),
