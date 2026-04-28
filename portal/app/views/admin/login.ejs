@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include('partials/head', { title: 'Sign in' }) %>
+<body class="admin-body admin-login-body">
+
+  <main class="admin-login">
+    <h1 class="admin-login-title">Zuzu · Admin</h1>
+    <p class="admin-login-sub">Sign in to manage couple portals.</p>
+
+    <%- include('partials/flash', { flash }) %>
+
+    <% if (error) { %>
+      <div class="admin-flash admin-flash--error" role="alert"><%= error %></div>
+    <% } %>
+
+    <form action="/admin/login" method="post" class="admin-form admin-login-form">
+      <input type="hidden" name="next" value="<%= next %>">
+      <label class="admin-field">
+        <span class="admin-field-label">Password</span>
+        <input type="password" name="password" autocomplete="current-password" required autofocus>
+      </label>
+      <button type="submit" class="admin-btn admin-btn--primary">Sign in</button>
+    </form>
+  </main>
+
+</body>
+</html>

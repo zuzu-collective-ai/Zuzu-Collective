@@ -1,0 +1,20 @@
+<%#
+  Shared <head> for the admin tool. Reuses the brand fonts and
+  tokens.css so admin matches the portal's typography, but loads its
+  own admin.css for the form-dense UI.
+
+  Locals:
+    - title  page title fragment (e.g. "Couples")
+%>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title ? `${title} — ` : '' %>Admin · Zuzu Collective</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Fragment+Mono:ital@0;1&display=swap">
+
+  <link rel="stylesheet" href="/styles/tokens.css">
+  <link rel="stylesheet" href="/admin.css">
+</head>

@@ -20,6 +20,15 @@ services:
         fromDatabase:
           name: zuzu-portal-db
           property: connectionString
+      # Signing secret for admin session cookies. Render generates once
+      # at provision time and never rotates on its own.
+      - key: SESSION_SECRET
+        generateValue: true
+      # Single admin password. `sync: false` means Render won't put this
+      # in the blueprint — it prompts in the dashboard on first deploy.
+      # Change anytime via Settings → Environment.
+      - key: ADMIN_PASSWORD
+        sync: false
 
 databases:
   - name: zuzu-portal-db

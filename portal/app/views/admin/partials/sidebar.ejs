@@ -1,0 +1,17 @@
+<%#
+  Admin sidebar — current section is plain `currentSection` string.
+%>
+<aside class="admin-sidebar">
+  <a href="/admin" class="admin-wordmark">Zuzu · Admin</a>
+
+  <nav class="admin-nav" aria-label="Admin sections">
+    <a href="/admin"
+       class="admin-nav-link<%= currentSection === 'couples' ? ' is-current' : '' %>">
+      Couples
+    </a>
+  </nav>
+
+  <form action="/admin/logout" method="post" class="admin-logout">
+    <button type="submit" class="admin-logout-btn">Sign out</button>
+  </form>
+</aside>

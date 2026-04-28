@@ -4,18 +4,38 @@ Express + Postgres + EJS. The static mockup at `../mockup/` is the design
 source of truth; this app reads couple data from Postgres and renders
 the same pages with that data interpolated.
 
-## What's in Phase 1
+## What's built
 
-- `couples` table backing the landing page
-- `GET /p/:slug` renders `landing.ejs` from a couple row
-- Idempotent `schema.sql` + `seed.sql` run automatically at startup
-- Render-ready (`/render.yaml` at the repo root provisions web + db on
-  first deploy)
-- Static stylesheets served from `../mockup/styles/` so design changes
-  in the mockup land in the dynamic app for free
+- **Phase 1** — Express + Postgres scaffold. `couples` table backs the
+  landing page. Idempotent schema/seed runs automatically at startup.
+  Render-ready (`/render.yaml` at the repo root).
+- **Phase 2** — All eight portal pages render off `/p/:slug/...`.
+  Design page is fully data-driven for palette + tone; the other five
+  inherit dynamic palette but keep their list content (vendors, budget
+  rows, etc.) hardcoded as the seeded starting state.
+- **Phase 3a** — Admin tool at `/admin`. Login (single password),
+  couples list, full CRUD on couple basics — name, slug, date, venue,
+  palette, tone, landing copy. Zoe can spin up a new couple's portal
+  end-to-end without raw SQL.
 
-Phases 2–5 (couple pages, admin, AI allocator, floor plan editor)
-build on this foundation.
+Still ahead: 3b–3g move vendors / guests / budget / checklist /
+timeline / inspiration into their own tables and admin forms; Phase 4
+is the floor-plan editor.
+
+## Admin
+
+After deploying:
+
+1. Open `https://zuzu-portal.onrender.com/admin/login`.
+2. Sign in with the password you set as `ADMIN_PASSWORD` on Render
+   (Settings → Environment).
+3. Couples list shows everyone in the database. Click one to edit its
+   basics, or **+ New couple** to create a portal from scratch.
+4. Saving redirects to the edit screen with a flash banner; the live
+   couple portal updates on the next page load.
+
+The admin password is plain text in env. Change it anytime in the
+Render dashboard — the next deploy picks up the new value.
 
 ## Deploy to Render
 
