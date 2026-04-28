@@ -220,6 +220,193 @@ router.post('/couples/:id', async (req, res, next) => {
   }
 });
 
+// ── Vendors (per couple) ──────────────────────────────────────────────
+
+// Helper — confirm a couple exists for the given id, return it or null.
+async function findCoupleById(id) {
+  const { rows } = await pool.query('select * from couples where id = $1', [id]);
+  return rows[0] ?? null;
+}
+
+const VENDOR_FIELDS = [
+  'vendor_type',
+  'display_name',
+  'contact_name',
+  'phone',
+  'email',
+  'address',
+  'status',
+  'note',
+  'position',
+];
+
+const VENDOR_STATUSES = ['booked', 'shortlist', 'pending', 'na'];
+
+const COMMON_VENDOR_TYPES = [
+  'Venue', 'Caterer', 'Photographer', 'Videographer', 'Florist', 'DJ',
+  'Band', 'Wedding Planner', 'Officiant', 'Hair Stylist', 'Makeup Artist',
+  'Transportation', 'Baker / Cake', 'Hotel (Room Block)',
+  'Rehearsal Dinner Venue', 'Honeymoon Hotel', 'Honeymoon Airline',
+];
+
+function pickVendorFields(body) {
+  const out = {};
+  for (const f of VENDOR_FIELDS) {
+    let v = body[f];
+    if (f === 'position') {
+      v = parseInt(v, 10);
+      if (Number.isNaN(v)) v = 0;
+    } else {
+      v = v === '' || v === undefined ? null : v;
+    }
+    out[f] = v;
+  }
+  if (!VENDOR_STATUSES.includes(out.status)) out.status = 'pending';
+  return out;
+}
+
+// List vendors for a couple
+router.get('/couples/:id/vendors', async (req, res, next) => {
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+
+    const { rows: vendors } = await pool.query(
+      'select * from vendors where couple_id = $1 order by position asc, vendor_type asc',
+      [couple.id],
+    );
+    res.render('admin/vendors-list', {
+      couple,
+      vendors,
+      flash: consumeFlash(req),
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// New vendor form
+router.get('/couples/:id/vendors/new', async (req, res, next) => {
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+
+    res.render('admin/vendor-form', {
+      couple,
+      vendor: null,
+      formAction: `/admin/couples/${couple.id}/vendors`,
+      vendorTypes: COMMON_VENDOR_TYPES,
+      statuses: VENDOR_STATUSES,
+      error: null,
+      flash: consumeFlash(req),
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Create vendor
+router.post('/couples/:id/vendors', async (req, res, next) => {
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+
+    const data = pickVendorFields(req.body);
+    if (!data.vendor_type) {
+      return res.status(400).render('admin/vendor-form', {
+        couple,
+        vendor: { ...data },
+        formAction: `/admin/couples/${couple.id}/vendors`,
+        vendorTypes: COMMON_VENDOR_TYPES,
+        statuses: VENDOR_STATUSES,
+        error: 'Vendor type is required.',
+        flash: null,
+      });
+    }
+
+    const cols = ['couple_id', ...VENDOR_FIELDS];
+    const values = [couple.id, ...VENDOR_FIELDS.map(f => data[f])];
+    const placeholders = cols.map((_, i) => `$${i + 1}`).join(', ');
+
+    await pool.query(
+      `insert into vendors (${cols.join(', ')}) values (${placeholders})`,
+      values,
+    );
+    setFlash(req, 'success', `Added ${data.display_name || data.vendor_type}.`);
+    res.redirect(`/admin/couples/${couple.id}/vendors`);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Edit vendor form
+router.get('/couples/:id/vendors/:vid', async (req, res, next) => {
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+
+    const { rows } = await pool.query(
+      'select * from vendors where id = $1 and couple_id = $2',
+      [req.params.vid, couple.id],
+    );
+    if (!rows[0]) return res.status(404).send('Vendor not found.');
+
+    res.render('admin/vendor-form', {
+      couple,
+      vendor: rows[0],
+      formAction: `/admin/couples/${couple.id}/vendors/${rows[0].id}`,
+      vendorTypes: COMMON_VENDOR_TYPES,
+      statuses: VENDOR_STATUSES,
+      error: null,
+      flash: consumeFlash(req),
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Update vendor
+router.post('/couples/:id/vendors/:vid', async (req, res, next) => {
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+
+    const data = pickVendorFields(req.body);
+    const setClause = VENDOR_FIELDS.map((f, i) => `${f} = $${i + 1}`).join(', ');
+    const values = [...VENDOR_FIELDS.map(f => data[f]), req.params.vid, couple.id];
+
+    const { rowCount } = await pool.query(
+      `update vendors set ${setClause}, updated_at = now() where id = $${VENDOR_FIELDS.length + 1} and couple_id = $${VENDOR_FIELDS.length + 2}`,
+      values,
+    );
+    if (rowCount === 0) return res.status(404).send('Vendor not found.');
+
+    setFlash(req, 'success', `Saved changes to ${data.display_name || data.vendor_type}.`);
+    res.redirect(`/admin/couples/${couple.id}/vendors`);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Delete vendor
+router.post('/couples/:id/vendors/:vid/delete', async (req, res, next) => {
+  try {
+    const { rows } = await pool.query(
+      'delete from vendors where id = $1 and couple_id = $2 returning vendor_type, display_name',
+      [req.params.vid, req.params.id],
+    );
+    if (rows[0]) {
+      const label = rows[0].display_name || rows[0].vendor_type;
+      setFlash(req, 'success', `Removed ${label}.`);
+    }
+    res.redirect(`/admin/couples/${req.params.id}/vendors`);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ── Couple delete (kept at the bottom so vendor routes match first) ───
+
 // Delete couple
 router.post('/couples/:id/delete', async (req, res, next) => {
   try {

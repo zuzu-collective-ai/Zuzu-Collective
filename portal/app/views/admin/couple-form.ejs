@@ -22,6 +22,10 @@
       </div>
     </header>
 
+    <% if (couple) { %>
+      <%- include('partials/couple-tabs', { couple, currentTab: 'basics' }) %>
+    <% } %>
+
     <%- include('partials/flash', { flash }) %>
 
     <% if (error) { %>

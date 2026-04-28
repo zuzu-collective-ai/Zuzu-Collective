@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include('partials/head', { title: `${couple.display_name} — ${vendor ? vendor.vendor_type : 'New vendor'}` }) %>
+<body class="admin-body">
+
+  <%- include('partials/sidebar', { currentSection: 'couples' }) %>
+
+  <main class="admin-main">
+    <header class="admin-header">
+      <div>
+        <a href="/admin/couples/<%= couple.id %>/vendors" class="admin-back">← <%= couple.display_name %> · vendors</a>
+        <h1 class="admin-title">
+          <%= vendor ? (vendor.display_name || vendor.vendor_type) : 'New vendor' %>
+        </h1>
+      </div>
+    </header>
+
+    <%- include('partials/couple-tabs', { couple, currentTab: 'vendors' }) %>
+
+    <%- include('partials/flash', { flash }) %>
+
+    <% if (error) { %>
+      <div class="admin-flash admin-flash--error" role="alert"><%= error %></div>
+    <% } %>
+
+    <form action="<%= formAction %>" method="post" class="admin-form">
+
+      <fieldset class="admin-fieldset">
+        <legend class="admin-legend">The basics</legend>
+
+        <label class="admin-field">
+          <span class="admin-field-label">Vendor type *</span>
+          <input type="text" name="vendor_type" list="vendor-types"
+                 value="<%= vendor?.vendor_type || '' %>" required>
+          <datalist id="vendor-types">
+            <% vendorTypes.forEach(t => { %>
+              <option value="<%= t %>"></option>
+            <% }) %>
+          </datalist>
+          <span class="admin-field-help">e.g. Venue, Photographer, Florist. Free text — pick any of the suggestions or type your own.</span>
+        </label>
+
+        <label class="admin-field">
+          <span class="admin-field-label">Display name</span>
+          <input type="text" name="display_name" value="<%= vendor?.display_name || '' %>" placeholder="La Playa Hotel">
+          <span class="admin-field-help">Leave blank for a TBC slot — fill in the note below to describe what's being looked for.</span>
+        </label>
+
+        <div class="admin-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <label class="admin-field">
+            <span class="admin-field-label">Status *</span>
+            <select name="status">
+              <% const STATUS_LABELS = { booked: 'Booked', shortlist: 'Shortlisting', pending: 'Pending', na: 'N / A' }; %>
+              <% statuses.forEach(s => { %>
+                <option value="<%= s %>" <%= vendor?.status === s ? 'selected' : '' %>><%= STATUS_LABELS[s] || s %></option>
+              <% }) %>
+            </select>
+          </label>
+
+          <label class="admin-field">
+            <span class="admin-field-label">Position</span>
+            <input type="number" name="position" value="<%= vendor?.position ?? 0 %>" min="0">
+            <span class="admin-field-help">Order on the public page (low to high).</span>
+          </label>
+        </div>
+      </fieldset>
+
+      <fieldset class="admin-fieldset">
+        <legend class="admin-legend">Contact</legend>
+
+        <label class="admin-field">
+          <span class="admin-field-label">Contact name</span>
+          <input type="text" name="contact_name" value="<%= vendor?.contact_name || '' %>">
+        </label>
+        <label class="admin-field">
+          <span class="admin-field-label">Phone</span>
+          <input type="text" name="phone" value="<%= vendor?.phone || '' %>" placeholder="(831) 624-6476">
+        </label>
+        <label class="admin-field">
+          <span class="admin-field-label">Email</span>
+          <input type="email" name="email" value="<%= vendor?.email || '' %>">
+        </label>
+        <label class="admin-field">
+          <span class="admin-field-label">Address</span>
+          <input type="text" name="address" value="<%= vendor?.address || '' %>">
+        </label>
+      </fieldset>
+
+      <fieldset class="admin-fieldset">
+        <legend class="admin-legend">Note</legend>
+        <label class="admin-field">
+          <span class="admin-field-label">Free-text note</span>
+          <textarea name="note" rows="3"><%= vendor?.note || '' %></textarea>
+          <span class="admin-field-help">For booked vendors: a short qualifier (e.g. "in-house"). For TBC vendors: what's being looked for. Renders as italic text on the public page.</span>
+        </label>
+      </fieldset>
+
+      <div class="admin-form-actions">
+        <button type="submit" class="admin-btn admin-btn--primary">
+          <%= vendor ? 'Save changes' : 'Add vendor' %>
+        </button>
+        <a href="/admin/couples/<%= couple.id %>/vendors" class="admin-btn admin-btn--ghost">Cancel</a>
+      </div>
+    </form>
+
+    <% if (vendor) { %>
+      <div class="admin-danger-zone">
+        <h2 class="admin-legend">Danger zone</h2>
+        <p>Permanently remove this vendor from <%= couple.display_name %>'s portal.</p>
+        <form action="/admin/couples/<%= couple.id %>/vendors/<%= vendor.id %>/delete" method="post"
+              onsubmit="return confirm('Remove <%= vendor.display_name || vendor.vendor_type %>? This cannot be undone.');">
+          <button type="submit" class="admin-btn admin-btn--danger">Remove vendor</button>
+        </form>
+      </div>
+    <% } %>
+  </main>
+
+</body>
+</html>

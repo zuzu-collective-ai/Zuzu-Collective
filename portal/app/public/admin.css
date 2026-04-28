@@ -266,8 +266,11 @@ code {
 }
 
 .admin-field input[type="text"],
+.admin-field input[type="email"],
+.admin-field input[type="number"],
 .admin-field input[type="password"],
 .admin-field input[type="date"],
+.admin-field select,
 .admin-field textarea {
   font-family: var(--zz-display);
   font-size: 1rem;
@@ -281,9 +284,51 @@ code {
 }
 
 .admin-field input:focus,
+.admin-field select:focus,
 .admin-field textarea:focus {
   outline: none;
   border-color: var(--zz-finn);
+}
+
+/* ── Couple section tabs ────────────────────────────────────────────────── */
+
+.admin-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  border-bottom: 1px solid var(--zz-finn-20);
+  margin-bottom: 1.5rem;
+  padding-bottom: 0;
+}
+
+.admin-tab {
+  font-family: var(--zz-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  padding: 0.6rem 0.9rem;
+  color: var(--zz-finn-60);
+  text-decoration: none;
+  border: 1px solid transparent;
+  border-bottom: 0;
+  border-radius: 2px 2px 0 0;
+  transition: color 160ms ease, background 160ms ease;
+  margin-bottom: -1px;
+}
+
+.admin-tab:hover { color: var(--zz-finn); background: rgba(65, 39, 51, 0.04); }
+
+.admin-tab.is-current {
+  color: var(--zz-finn);
+  background: var(--zz-moonlight);
+  border-color: var(--zz-finn-20);
+  border-bottom-color: var(--zz-moonlight);
+}
+
+.admin-tab--disabled {
+  color: var(--zz-finn-60);
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .admin-field-help {

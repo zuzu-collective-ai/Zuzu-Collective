@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include('partials/head', { title: `${couple.display_name} — Vendors` }) %>
+<body class="admin-body">
+
+  <%- include('partials/sidebar', { currentSection: 'couples' }) %>
+
+  <main class="admin-main">
+    <header class="admin-header">
+      <div>
+        <a href="/admin" class="admin-back">← All couples</a>
+        <h1 class="admin-title"><%= couple.display_name %></h1>
+        <p class="admin-subtitle">
+          <a href="/p/<%= couple.slug %>/vendors" target="_blank" rel="noopener">View live portal ↗</a>
+        </p>
+      </div>
+      <a href="/admin/couples/<%= couple.id %>/vendors/new" class="admin-btn admin-btn--primary">+ Add vendor</a>
+    </header>
+
+    <%- include('partials/couple-tabs', { couple, currentTab: 'vendors' }) %>
+
+    <%- include('partials/flash', { flash }) %>
+
+    <% if (vendors.length === 0) { %>
+      <p class="admin-empty">
+        No vendors yet for <%= couple.display_name %>.
+        <a href="/admin/couples/<%= couple.id %>/vendors/new">Add the first one</a>.
+      </p>
+    <% } else { %>
+      <%
+        const STATUS = {
+          booked:    'Booked',
+          shortlist: 'Shortlisting',
+          pending:   'Pending',
+          na:        'N / A',
+        };
+      %>
+      <ul class="admin-list">
+        <% vendors.forEach(v => { %>
+          <li class="admin-list-item">
+            <a href="/admin/couples/<%= couple.id %>/vendors/<%= v.id %>" class="admin-list-link">
+              <div class="admin-list-name">
+                <%= v.display_name || `${v.vendor_type} — TBC` %>
+              </div>
+              <div class="admin-list-meta">
+                <span><%= v.vendor_type %></span>
+                <span><%= STATUS[v.status] || v.status %></span>
+                <% if (v.contact_name) { %><span><%= v.contact_name %></span><% } %>
+                <% if (v.email) { %><span><%= v.email %></span><% } %>
+              </div>
+            </a>
+          </li>
+        <% }) %>
+      </ul>
+    <% } %>
+  </main>
+
+</body>
+</html>

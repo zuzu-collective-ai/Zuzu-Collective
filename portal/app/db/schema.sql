@@ -44,3 +44,38 @@ create table if not exists couples (
 );
 
 create index if not exists couples_slug_idx on couples(slug);
+
+-- ── Vendors ──────────────────────────────────────────────────────────────
+--
+-- One row per vendor *slot* per couple. The 17 vendor types from Zoe's
+-- spreadsheet (Venue, Caterer, Photographer, Videographer, Florist, DJ,
+-- Band, Wedding Planner, Officiant, Hair Stylist, Makeup Artist,
+-- Transportation, Baker/Cake, Hotel Room Block, Rehearsal Dinner Venue,
+-- Honeymoon Hotel, Honeymoon Airline) all live in the same table; the
+-- type is just a string so Zoe can rename or add new types without
+-- touching the schema.
+--
+-- A vendor with display_name = null and status = 'pending' is a TBC slot
+-- with the `note` field describing what's being looked for.
+
+create table if not exists vendors (
+  id            uuid primary key default gen_random_uuid(),
+  couple_id     uuid not null references couples(id) on delete cascade,
+
+  vendor_type   text not null,                -- "Venue" / "Photographer" / ...
+  display_name  text,                          -- "La Playa Hotel"; null when TBC
+  contact_name  text,
+  phone         text,
+  email         text,
+  address       text,
+
+  status        text not null default 'pending',  -- booked | shortlist | pending | n/a
+  note          text,                              -- TBC blurb, or follow-up reminder
+
+  position      integer not null default 0,        -- ordering within the list
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now()
+);
+
+create index if not exists vendors_couple_id_idx on vendors(couple_id);
+create index if not exists vendors_couple_position_idx on vendors(couple_id, position);

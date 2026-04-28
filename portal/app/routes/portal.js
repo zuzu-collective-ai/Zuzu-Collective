@@ -59,9 +59,34 @@ router.get('/p/:slug/design', (_req, res) =>
   res.render('design', { currentPage: 'design' }),
 );
 
-router.get('/p/:slug/vendors', (_req, res) =>
-  res.render('vendors', { currentPage: 'vendors' }),
-);
+router.get('/p/:slug/vendors', async (req, res, next) => {
+  try {
+    const { rows: vendors } = await pool.query(
+      'select * from vendors where couple_id = $1 order by position asc, vendor_type asc',
+      [res.locals.couple.id],
+    );
+
+    // Aggregate counts for the summary stats strip at the top of the
+    // vendors page. Done in JS rather than SQL so the page can show
+    // every status bucket the schema allows.
+    const counts = vendors.reduce(
+      (acc, v) => {
+        acc.total += 1;
+        acc[v.status] = (acc[v.status] || 0) + 1;
+        return acc;
+      },
+      { total: 0 },
+    );
+
+    res.render('vendors', {
+      currentPage: 'vendors',
+      vendors,
+      counts,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
 
 router.get('/p/:slug/checklist', (_req, res) =>
   res.render('checklist', { currentPage: 'checklist' }),
