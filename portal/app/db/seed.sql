@@ -75,7 +75,10 @@ begin
   select exists(select 1 from tables where couple_id = aj_id) into has_seating;
   if has_seating then return; end if;
 
-  -- Tables
+  -- Tables. Render's Postgres has plpgsql.extra_errors=too_many_rows on,
+  -- which makes RETURNING ... INTO from a multi-row INSERT a hard error
+  -- (P0003). We do the bulk INSERT first, then look each id up by
+  -- (couple_id, table_number) which is uniquely indexed.
   insert into tables (couple_id, table_number, table_name, capacity, role, note, position) values
     (aj_id, 1, 'Cypress',       8,  'head',     'Parents and the couple. Closest to the dance floor.',                          1),
     (aj_id, 2, 'Bay',           8,  'standard', 'Grandparents and elders — aisle seat reserved for Eleanor.',                   2),
@@ -86,11 +89,9 @@ begin
     (aj_id, 7, 'Heather',       10, 'standard', 'Groom''s extended family.',                                                    7),
     (aj_id, 8, 'Coral',         10, 'standard', 'Groom''s college circle.',                                                     8),
     (aj_id, 9, 'Manzanita',     10, 'standard', 'Bride''s work circle.',                                                        9),
-    (aj_id, 10,'Driftwood',     8,  'kids',     'Children''s table — supervised by Patterson and Lee parents nearby. Crayons, paper menus, fries on standby.', 10)
-  returning id into t01;
+    (aj_id, 10,'Driftwood',     8,  'kids',     'Children''s table — supervised by Patterson and Lee parents nearby. Crayons, paper menus, fries on standby.', 10);
 
-  -- Re-fetch the IDs we just inserted (RETURNING from a multi-row INSERT
-  -- only gives the last; pull them by table_number).
+  -- Capture each table's id by its unique (couple_id, table_number).
   select id into t01 from tables where couple_id = aj_id and table_number = 1;
   select id into t02 from tables where couple_id = aj_id and table_number = 2;
   select id into t03 from tables where couple_id = aj_id and table_number = 3;
