@@ -44,7 +44,19 @@ const COUPLE_FIELDS = [
   'hero_subtitle',
   'intro_text',
   'intro_tagline',
+  'budget_total_cents',
 ];
+
+// Currency parsing — admin enters dollars (e.g. "120000", "$120,000",
+// "1234.56"); database stores integer cents. Empty / unparseable input
+// resolves to 0 so the not-null default holds.
+function dollarsToCents(input) {
+  if (input === '' || input === null || input === undefined) return 0;
+  const cleaned = String(input).replace(/[^0-9.\-]/g, '');
+  const n = parseFloat(cleaned);
+  if (Number.isNaN(n)) return 0;
+  return Math.round(n * 100);
+}
 
 // Coerce empty strings on optional fields back to null so the database
 // keeps its NULLs honest. Required fields (slug, display_name,
@@ -53,7 +65,11 @@ function pickCoupleFields(body) {
   const out = {};
   for (const f of COUPLE_FIELDS) {
     const v = body[f];
-    out[f] = v === '' || v === undefined ? null : v;
+    if (f === 'budget_total_cents') {
+      out[f] = dollarsToCents(v);
+    } else {
+      out[f] = v === '' || v === undefined ? null : v;
+    }
   }
   return out;
 }
@@ -778,6 +794,268 @@ router.post('/couples/:id/guests/:hid/delete', async (req, res, next) => {
     );
     if (rows[0]) setFlash(req, 'success', `Removed ${rows[0].display_name}.`);
     res.redirect(`/admin/couples/${req.params.id}/guests`);
+  } catch (err) { next(err); }
+});
+
+// ── Budget (per couple — categories with inline line items) ───────────
+
+const BUDGET_STATUS_KINDS = ['paid', 'deposited', 'upcoming'];
+
+// Body shape from the category form:
+//   category_number, title, title_emphasis, estimated_cents (as dollars), position
+//   lines[i] = { id?, name, vendor_label, amount_cents (dollars),
+//                paid_cents (dollars), status_kind, status_label, position }
+// Empty rows (no name) are dropped.
+function parseLinesFromBody(body) {
+  const raw = body.lines || {};
+  const indices = Object.keys(raw)
+    .map(Number)
+    .filter(n => !Number.isNaN(n))
+    .sort((a, b) => a - b);
+  return indices
+    .map(i => raw[i])
+    .filter(l => l && l.name && l.name.trim().length > 0)
+    .map((l, idx) => ({
+      id: l.id || null,
+      name: l.name.trim(),
+      vendor_label: l.vendor_label?.trim() || null,
+      amount_cents: dollarsToCents(l.amount_cents),
+      paid_cents: dollarsToCents(l.paid_cents),
+      status_kind: BUDGET_STATUS_KINDS.includes(l.status_kind) ? l.status_kind : 'upcoming',
+      status_label: l.status_label?.trim() || null,
+      position: idx + 1,
+    }));
+}
+
+// List categories — the budget tab's index page for a couple.
+router.get('/couples/:id/budget', async (req, res, next) => {
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+
+    const { rows: categories } = await pool.query(
+      `select c.*,
+              coalesce(sums.line_count, 0)::int as line_count,
+              coalesce(sums.actual_cents, 0)::int as actual_cents
+         from budget_categories c
+         left join (
+           select category_id,
+                  count(*) as line_count,
+                  sum(paid_cents) as actual_cents
+             from budget_line_items
+            group by category_id
+         ) sums on sums.category_id = c.id
+        where c.couple_id = $1
+        order by c.position asc, c.category_number asc`,
+      [couple.id],
+    );
+    res.render('admin/budget-categories-list', {
+      couple,
+      categories,
+      flash: consumeFlash(req),
+    });
+  } catch (err) { next(err); }
+});
+
+// New category form
+router.get('/couples/:id/budget/new', async (req, res, next) => {
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+
+    // Suggest the next available category number so Zoe doesn't have
+    // to look up where the list ends.
+    const { rows } = await pool.query(
+      'select coalesce(max(category_number), 0) + 1 as next_num from budget_categories where couple_id = $1',
+      [couple.id],
+    );
+
+    res.render('admin/budget-category-form', {
+      couple,
+      category: null,
+      lines: [],
+      suggestedNumber: rows[0].next_num,
+      formAction: `/admin/couples/${couple.id}/budget`,
+      statusKinds: BUDGET_STATUS_KINDS,
+      error: null,
+      flash: consumeFlash(req),
+    });
+  } catch (err) { next(err); }
+});
+
+// Edit category form
+router.get('/couples/:id/budget/:cid', async (req, res, next) => {
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+
+    const { rows: catRows } = await pool.query(
+      'select * from budget_categories where id = $1 and couple_id = $2',
+      [req.params.cid, couple.id],
+    );
+    if (!catRows[0]) return res.status(404).send('Category not found.');
+
+    const { rows: lines } = await pool.query(
+      'select * from budget_line_items where category_id = $1 order by position asc',
+      [catRows[0].id],
+    );
+
+    res.render('admin/budget-category-form', {
+      couple,
+      category: catRows[0],
+      lines,
+      suggestedNumber: catRows[0].category_number,
+      formAction: `/admin/couples/${couple.id}/budget/${catRows[0].id}`,
+      statusKinds: BUDGET_STATUS_KINDS,
+      error: null,
+      flash: consumeFlash(req),
+    });
+  } catch (err) { next(err); }
+});
+
+// Create category (with inline line items)
+router.post('/couples/:id/budget', async (req, res, next) => {
+  const client = await pool.connect();
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+
+    const categoryData = {
+      category_number: parseInt(req.body.category_number, 10),
+      title: req.body.title?.trim() || '',
+      title_emphasis: req.body.title_emphasis?.trim() || null,
+      estimated_cents: dollarsToCents(req.body.estimated_cents),
+      position: parseInt(req.body.position, 10) || 0,
+    };
+    const lines = parseLinesFromBody(req.body);
+
+    if (!categoryData.title || !categoryData.category_number) {
+      return res.status(400).render('admin/budget-category-form', {
+        couple,
+        category: categoryData,
+        lines,
+        suggestedNumber: categoryData.category_number || 1,
+        formAction: `/admin/couples/${couple.id}/budget`,
+        statusKinds: BUDGET_STATUS_KINDS,
+        error: 'Category number and title are required.',
+        flash: null,
+      });
+    }
+
+    await client.query('begin');
+    const { rows } = await client.query(
+      `insert into budget_categories
+         (couple_id, category_number, title, title_emphasis, estimated_cents, position)
+       values ($1, $2, $3, $4, $5, $6)
+       returning id`,
+      [couple.id, categoryData.category_number, categoryData.title,
+       categoryData.title_emphasis, categoryData.estimated_cents, categoryData.position],
+    );
+    const categoryId = rows[0].id;
+
+    for (const l of lines) {
+      await client.query(
+        `insert into budget_line_items
+           (category_id, name, vendor_label, amount_cents, paid_cents,
+            status_kind, status_label, position)
+         values ($1, $2, $3, $4, $5, $6, $7, $8)`,
+        [categoryId, l.name, l.vendor_label, l.amount_cents, l.paid_cents,
+         l.status_kind, l.status_label, l.position],
+      );
+    }
+    await client.query('commit');
+
+    setFlash(req, 'success', `Added ${categoryData.title} (${lines.length} line item${lines.length === 1 ? '' : 's'}).`);
+    res.redirect(`/admin/couples/${couple.id}/budget`);
+  } catch (err) {
+    await client.query('rollback').catch(() => {});
+    if (err.code === '23505') {
+      return res.status(400).render('admin/budget-category-form', {
+        couple: await findCoupleById(req.params.id),
+        category: { ...req.body, estimated_cents: dollarsToCents(req.body.estimated_cents) },
+        lines: parseLinesFromBody(req.body),
+        suggestedNumber: parseInt(req.body.category_number, 10) || 1,
+        formAction: `/admin/couples/${req.params.id}/budget`,
+        statusKinds: BUDGET_STATUS_KINDS,
+        error: 'That category number is already in use for this couple.',
+        flash: null,
+      });
+    }
+    next(err);
+  } finally {
+    client.release();
+  }
+});
+
+// Update category (replace line items wholesale — same approach as households)
+router.post('/couples/:id/budget/:cid', async (req, res, next) => {
+  const client = await pool.connect();
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+
+    const categoryData = {
+      category_number: parseInt(req.body.category_number, 10),
+      title: req.body.title?.trim() || '',
+      title_emphasis: req.body.title_emphasis?.trim() || null,
+      estimated_cents: dollarsToCents(req.body.estimated_cents),
+      position: parseInt(req.body.position, 10) || 0,
+    };
+    const lines = parseLinesFromBody(req.body);
+
+    if (!categoryData.title || !categoryData.category_number) {
+      return res.status(400).redirect(`/admin/couples/${couple.id}/budget/${req.params.cid}`);
+    }
+
+    await client.query('begin');
+    const { rowCount } = await client.query(
+      `update budget_categories set
+         category_number = $1, title = $2, title_emphasis = $3,
+         estimated_cents = $4, position = $5, updated_at = now()
+       where id = $6 and couple_id = $7`,
+      [categoryData.category_number, categoryData.title, categoryData.title_emphasis,
+       categoryData.estimated_cents, categoryData.position, req.params.cid, couple.id],
+    );
+    if (rowCount === 0) {
+      await client.query('rollback');
+      return res.status(404).send('Category not found.');
+    }
+
+    await client.query('delete from budget_line_items where category_id = $1', [req.params.cid]);
+    for (const l of lines) {
+      await client.query(
+        `insert into budget_line_items
+           (category_id, name, vendor_label, amount_cents, paid_cents,
+            status_kind, status_label, position)
+         values ($1, $2, $3, $4, $5, $6, $7, $8)`,
+        [req.params.cid, l.name, l.vendor_label, l.amount_cents, l.paid_cents,
+         l.status_kind, l.status_label, l.position],
+      );
+    }
+    await client.query('commit');
+
+    setFlash(req, 'success', `Saved ${categoryData.title}.`);
+    res.redirect(`/admin/couples/${couple.id}/budget`);
+  } catch (err) {
+    await client.query('rollback').catch(() => {});
+    if (err.code === '23505') {
+      setFlash(req, 'error', 'That category number is already in use for this couple.');
+      return res.redirect(`/admin/couples/${req.params.id}/budget/${req.params.cid}`);
+    }
+    next(err);
+  } finally {
+    client.release();
+  }
+});
+
+router.post('/couples/:id/budget/:cid/delete', async (req, res, next) => {
+  try {
+    const { rows } = await pool.query(
+      'delete from budget_categories where id = $1 and couple_id = $2 returning title',
+      [req.params.cid, req.params.id],
+    );
+    if (rows[0]) setFlash(req, 'success', `Removed ${rows[0].title}.`);
+    res.redirect(`/admin/couples/${req.params.id}/budget`);
   } catch (err) { next(err); }
 });
 

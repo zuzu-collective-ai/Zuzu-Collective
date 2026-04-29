@@ -56,6 +56,21 @@
       </fieldset>
 
       <fieldset class="admin-fieldset">
+        <legend class="admin-legend">Budget headline</legend>
+        <label class="admin-field">
+          <span class="admin-field-label">Total budget (USD)</span>
+          <input type="text" name="budget_total_cents"
+                 value="<%= couple?.budget_total_cents ? (couple.budget_total_cents / 100).toFixed(couple.budget_total_cents % 100 === 0 ? 0 : 2) : '' %>"
+                 placeholder="120000"
+                 inputmode="decimal">
+          <span class="admin-field-help">
+            The headline number on the budget page. Enter dollars — commas and a "$" are fine.
+            Per-category targets and per-line amounts live on the budget tab.
+          </span>
+        </label>
+      </fieldset>
+
+      <fieldset class="admin-fieldset">
         <legend class="admin-legend">Venue</legend>
         <label class="admin-field">
           <span class="admin-field-label">Venue name</span>

@@ -10,16 +10,24 @@ insert into couples (
   wedding_date,
   venue_name,
   venue_location,
-  intro_text
+  intro_text,
+  budget_total_cents
 ) values (
   'alicia-and-jack-2026',
   'Alicia & Jack',
   '2026-10-10',
   'La Playa',
   'Carmel-by-the-Sea',
-  'Every vendor, every detail, every intentional choice adding up to October tenth — gathered here as we build it together.'
+  'Every vendor, every detail, every intentional choice adding up to October tenth — gathered here as we build it together.',
+  12000000  -- $120,000.00
 )
 on conflict (slug) do nothing;
+
+-- For couples that existed before budget_total_cents shipped, lift the
+-- demo couple to its $120k headline so /budget renders correctly on
+-- already-deployed databases.
+update couples set budget_total_cents = 12000000
+ where slug = 'alicia-and-jack-2026' and budget_total_cents = 0;
 
 -- ── Vendors — 17-row Alicia & Jack roster ──────────────────────────────
 do $$
@@ -274,4 +282,160 @@ begin
     (h_friedmans, 'Aaron Friedman',      'adult', 1),
     (h_friedmans, 'Rebecca Friedman',    'adult', 2),
     (h_friedmans, 'Noa Friedman',        'child', 3);
+end $$;
+
+-- ── Budget — Alicia & Jack's 19-category breakdown ─────────────────────
+--
+-- Mirrors the static mockup. Amounts are stored as integer cents. We
+-- INSERT all categories first (single bulk INSERT — same multi-row
+-- RETURNING constraint applies as for tables), then look each one up by
+-- (couple_id, category_number) which is uniquely indexed.
+
+do $$
+declare
+  aj_id uuid;
+  has_budget boolean;
+
+  c_venue uuid; c_catering uuid; c_photo uuid; c_video uuid; c_florals uuid;
+  c_rentals uuid; c_dress uuid; c_groom uuid; c_cake uuid; c_music uuid;
+  c_hairmakeup uuid; c_transport uuid; c_officiant uuid; c_stationery uuid;
+  c_rings uuid; c_favors uuid; c_rehearsal uuid; c_planner uuid; c_misc uuid;
+begin
+  select id into aj_id from couples where slug = 'alicia-and-jack-2026';
+  if aj_id is null then return; end if;
+
+  select exists(select 1 from budget_categories where couple_id = aj_id) into has_budget;
+  if has_budget then return; end if;
+
+  insert into budget_categories (couple_id, category_number, title, title_emphasis, estimated_cents, position) values
+    (aj_id,  1, 'Venue',             null,             3000000,  1),
+    (aj_id,  2, 'Catering',          '(food & bar)',   3500000,  2),
+    (aj_id,  3, 'Photography',       null,              650000,  3),
+    (aj_id,  4, 'Videography',       null,              350000,  4),
+    (aj_id,  5, 'Florals &',         'Decor',          1200000,  5),
+    (aj_id,  6, 'Rentals',           null,              500000,  6),
+    (aj_id,  7, 'Wedding Dress &',   'Accessories',     400000,  7),
+    (aj_id,  8, 'Groom Attire',      null,               80000,  8),
+    (aj_id,  9, 'Wedding Cake &',    'Desserts',        120000,  9),
+    (aj_id, 10, 'Music &',           'Sound',           400000, 10),
+    (aj_id, 11, 'Hair &',            'Makeup',          180000, 11),
+    (aj_id, 12, 'Transportation',    null,              120000, 12),
+    (aj_id, 13, 'Officiant',         null,               75000, 13),
+    (aj_id, 14, 'Invitations &',     'Stationery',      250000, 14),
+    (aj_id, 15, 'Wedding Rings',     null,              350000, 15),
+    (aj_id, 16, 'Wedding Favors',    null,               50000, 16),
+    (aj_id, 17, 'Rehearsal',         'Dinner',          250000, 17),
+    (aj_id, 18, 'Wedding Planner',   null,              350000, 18),
+    (aj_id, 19, 'Miscellaneous',     null,              175000, 19);
+
+  -- Capture each category's id for the line-item inserts.
+  select id into c_venue       from budget_categories where couple_id = aj_id and category_number = 1;
+  select id into c_catering    from budget_categories where couple_id = aj_id and category_number = 2;
+  select id into c_photo       from budget_categories where couple_id = aj_id and category_number = 3;
+  select id into c_video       from budget_categories where couple_id = aj_id and category_number = 4;
+  select id into c_florals     from budget_categories where couple_id = aj_id and category_number = 5;
+  select id into c_rentals     from budget_categories where couple_id = aj_id and category_number = 6;
+  select id into c_dress       from budget_categories where couple_id = aj_id and category_number = 7;
+  select id into c_groom       from budget_categories where couple_id = aj_id and category_number = 8;
+  select id into c_cake        from budget_categories where couple_id = aj_id and category_number = 9;
+  select id into c_music       from budget_categories where couple_id = aj_id and category_number = 10;
+  select id into c_hairmakeup  from budget_categories where couple_id = aj_id and category_number = 11;
+  select id into c_transport   from budget_categories where couple_id = aj_id and category_number = 12;
+  select id into c_officiant   from budget_categories where couple_id = aj_id and category_number = 13;
+  select id into c_stationery  from budget_categories where couple_id = aj_id and category_number = 14;
+  select id into c_rings       from budget_categories where couple_id = aj_id and category_number = 15;
+  select id into c_favors      from budget_categories where couple_id = aj_id and category_number = 16;
+  select id into c_rehearsal   from budget_categories where couple_id = aj_id and category_number = 17;
+  select id into c_planner     from budget_categories where couple_id = aj_id and category_number = 18;
+  select id into c_misc        from budget_categories where couple_id = aj_id and category_number = 19;
+
+  -- 01 · Venue
+  insert into budget_line_items (category_id, name, vendor_label, amount_cents, paid_cents, status_kind, status_label, position) values
+    (c_venue, 'La Playa Hotel', 'Ceremony & reception fee · Carmel by the Sea', 3000000, 3000000, 'paid', 'Paid in full', 1);
+
+  -- 02 · Catering
+  insert into budget_line_items (category_id, name, vendor_label, amount_cents, paid_cents, status_kind, status_label, position) values
+    (c_catering, 'Plated dinner',         '100 guests · La Playa catering',                     2500000, 1000000, 'deposited', '$10,000 deposit',     1),
+    (c_catering, 'Bar service',           'Open bar · 5 hours · wine, beer, signature cocktails', 800000,       0, 'upcoming',  'Due 60 days out',    2),
+    (c_catering, 'Service & gratuity',    '22% on food and beverage',                              200000,       0, 'upcoming',  'Final invoice',      3);
+
+  -- 03 · Photography
+  insert into budget_line_items (category_id, name, vendor_label, amount_cents, paid_cents, status_kind, status_label, position) values
+    (c_photo, 'Wedding-day coverage',   '8 hours · two shooters',           550000, 275000, 'deposited', '50% deposit',  1),
+    (c_photo, 'Engagement session',     '2-hour session · digital delivery', 100000, 100000, 'paid',      'Paid in full', 2);
+
+  -- 04 · Videography
+  insert into budget_line_items (category_id, name, vendor_label, amount_cents, paid_cents, status_kind, status_label, position) values
+    (c_video, 'Highlight film', 'Ceremony full coverage · 4-minute highlight reel', 350000, 175000, 'deposited', '50% deposit', 1);
+
+  -- 05 · Florals & Decor
+  insert into budget_line_items (category_id, name, vendor_label, amount_cents, paid_cents, status_kind, status_label, position) values
+    (c_florals, 'Florist · TBC',          'Bridal bouquet, ceremony, tablescape florals',         850000, 300000, 'deposited', '$3,000 retainer',  1),
+    (c_florals, 'Custom installations',   'Zuzu design studio · arch & ceiling draping',          250000,      0, 'upcoming',  'Due 30 days out', 2),
+    (c_florals, 'Candles & vessels',      'Tapers, pillars, hurricanes, glass vessels',           100000,      0, 'upcoming',  'Due 14 days out', 3);
+
+  -- 06 · Rentals
+  insert into budget_line_items (category_id, name, vendor_label, amount_cents, paid_cents, status_kind, status_label, position) values
+    (c_rentals, 'Chairs & tables',        '100 chiavari chairs · 12 farm tables',           220000, 0, 'upcoming', 'Quote requested', 1),
+    (c_rentals, 'Linens',                 'Ivory matte satin lamour · sheer linen runners', 140000, 0, 'upcoming', 'Quote requested', 2),
+    (c_rentals, 'Glassware & flatware',   'Polished silver flatware · clear glass',         140000, 0, 'upcoming', 'Quote requested', 3);
+
+  -- 07 · Wedding Dress & Accessories
+  insert into budget_line_items (category_id, name, vendor_label, amount_cents, paid_cents, status_kind, status_label, position) values
+    (c_dress, 'Gown',               'Silk slip · Carmel boutique',           280000, 280000, 'paid',      'Paid in full',       1),
+    (c_dress, 'Alterations',        'Three fittings · hem, bust, bustle',     60000,      0, 'upcoming',  'Due final fitting', 2),
+    (c_dress, 'Veil & accessories', 'Cathedral veil · earrings · shoes',      60000,  40000, 'deposited', '$400 spent',         3);
+
+  -- 08 · Groom Attire
+  insert into budget_line_items (category_id, name, vendor_label, amount_cents, paid_cents, status_kind, status_label, position) values
+    (c_groom, 'Tuxedo, shirt, shoes', 'Black-tie · custom suit + accessories', 80000, 0, 'upcoming', 'Fitting scheduled', 1);
+
+  -- 09 · Wedding Cake & Desserts
+  insert into budget_line_items (category_id, name, vendor_label, amount_cents, paid_cents, status_kind, status_label, position) values
+    (c_cake, 'Wedding cake', 'Three-tier · ivory buttercream · cutting cake', 120000, 0, 'upcoming', 'Tasting scheduled', 1);
+
+  -- 10 · Music & Sound
+  insert into budget_line_items (category_id, name, vendor_label, amount_cents, paid_cents, status_kind, status_label, position) values
+    (c_music, 'Ceremony quartet', 'Strings · processional + cocktail hour', 150000, 150000, 'paid',      'Paid in full',  1),
+    (c_music, 'Reception DJ',     '5 hours · sound system + lighting',       250000,  50000, 'deposited', '$500 deposit',  2);
+
+  -- 11 · Hair & Makeup
+  insert into budget_line_items (category_id, name, vendor_label, amount_cents, paid_cents, status_kind, status_label, position) values
+    (c_hairmakeup, 'Bride · hair & makeup', 'Wedding-day glam + trial', 100000, 30000, 'deposited', 'Trial paid', 1),
+    (c_hairmakeup, 'Bridesmaids',           '4 bridesmaids · hair & makeup', 80000,    0, 'upcoming',  'Due day-of', 2);
+
+  -- 12 · Transportation
+  insert into budget_line_items (category_id, name, vendor_label, amount_cents, paid_cents, status_kind, status_label, position) values
+    (c_transport, 'Bridal party shuttle', 'Hotel to venue · 14-passenger sprinter', 80000, 0, 'upcoming', 'Quote requested', 1),
+    (c_transport, 'Getaway car',          'Vintage sedan · 1-hour',                 40000, 0, 'upcoming', 'Quote requested', 2);
+
+  -- 13 · Officiant
+  insert into budget_line_items (category_id, name, vendor_label, amount_cents, paid_cents, status_kind, status_label, position) values
+    (c_officiant, 'Officiant fee', 'Ceremony + rehearsal · custom vows session', 75000, 25000, 'deposited', '$250 booking fee', 1);
+
+  -- 14 · Invitations & Stationery
+  insert into budget_line_items (category_id, name, vendor_label, amount_cents, paid_cents, status_kind, status_label, position) values
+    (c_stationery, 'Save-the-dates & invitations', 'Letterpress · ivory cotton stock · custom envelopes', 180000, 180000, 'paid', 'Paid in full', 1),
+    (c_stationery, 'Day-of suite',                 'Menus, place cards, signage, programs',                70000,  70000, 'paid', 'Paid in full', 2);
+
+  -- 15 · Wedding Rings
+  insert into budget_line_items (category_id, name, vendor_label, amount_cents, paid_cents, status_kind, status_label, position) values
+    (c_rings, 'Bride''s band', 'Eternity band · pavé diamond',           220000, 220000, 'paid', 'Paid in full', 1),
+    (c_rings, 'Groom''s band', 'Brushed platinum · custom inscription',  130000, 130000, 'paid', 'Paid in full', 2);
+
+  -- 16 · Wedding Favors
+  insert into budget_line_items (category_id, name, vendor_label, amount_cents, paid_cents, status_kind, status_label, position) values
+    (c_favors, 'Custom favors · TBC', '100 guest favors · still selecting', 50000, 0, 'upcoming', 'In design', 1);
+
+  -- 17 · Rehearsal Dinner
+  insert into budget_line_items (category_id, name, vendor_label, amount_cents, paid_cents, status_kind, status_label, position) values
+    (c_rehearsal, 'Private dinner', '25 guests · coastal restaurant · prix-fixe', 250000, 0, 'upcoming', 'Venue selection', 1);
+
+  -- 18 · Wedding Planner
+  insert into budget_line_items (category_id, name, vendor_label, amount_cents, paid_cents, status_kind, status_label, position) values
+    (c_planner, 'Zuzu Collective', 'Full-service planning & design', 350000, 175000, 'deposited', '50% deposit', 1);
+
+  -- 19 · Miscellaneous
+  insert into budget_line_items (category_id, name, vendor_label, amount_cents, paid_cents, status_kind, status_label, position) values
+    (c_misc, 'Buffer & tips', 'Vendor tips · marriage license · contingency', 175000, 0, 'upcoming', 'Held in reserve', 1);
 end $$;

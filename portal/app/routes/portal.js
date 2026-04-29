@@ -92,9 +92,82 @@ router.get('/p/:slug/checklist', (_req, res) =>
   res.render('checklist', { currentPage: 'checklist' }),
 );
 
-router.get('/p/:slug/budget', (_req, res) =>
-  res.render('budget', { currentPage: 'budget' }),
-);
+router.get('/p/:slug/budget', async (req, res, next) => {
+  try {
+    const coupleId = res.locals.couple.id;
+
+    // One round-trip per relation; categories first so empty categories
+    // still render with their estimated number and progress bar.
+    const [catsRes, linesRes] = await Promise.all([
+      pool.query(
+        'select * from budget_categories where couple_id = $1 order by position asc, category_number asc',
+        [coupleId],
+      ),
+      pool.query(
+        `select l.*
+           from budget_line_items l
+           join budget_categories c on c.id = l.category_id
+          where c.couple_id = $1
+          order by l.position asc`,
+        [coupleId],
+      ),
+    ]);
+
+    const categories = catsRes.rows;
+    const lines = linesRes.rows;
+
+    // Group lines by category for inline rendering.
+    const linesByCategory = new Map();
+    for (const l of lines) {
+      const list = linesByCategory.get(l.category_id) || [];
+      list.push(l);
+      linesByCategory.set(l.category_id, list);
+    }
+
+    // Derive each category's actual + remaining from its line items so
+    // the page is always honest about what's been paid. Categories with
+    // no lines fall back to actual=0.
+    const categoryStats = new Map();
+    for (const c of categories) {
+      const catLines = linesByCategory.get(c.id) || [];
+      const actual = catLines.reduce((s, l) => s + (l.paid_cents || 0), 0);
+      const estimated = c.estimated_cents || 0;
+      const remaining = Math.max(0, estimated - actual);
+      const pct = estimated > 0
+        ? Math.min(100, Math.round((actual / estimated) * 1000) / 10)
+        : 0;
+      categoryStats.set(c.id, { estimated, actual, remaining, pct });
+    }
+
+    // Page-level summary stats.
+    const totalBudget = res.locals.couple.budget_total_cents || 0;
+    const totalSpent = Array.from(categoryStats.values())
+      .reduce((s, x) => s + x.actual, 0);
+    const totalRemaining = Math.max(0, totalBudget - totalSpent);
+    const pctOfTotal = totalBudget > 0
+      ? Math.round((totalSpent / totalBudget) * 100)
+      : 0;
+    const openCategories = Array.from(categoryStats.values())
+      .filter(x => x.estimated > 0 && x.actual < x.estimated).length;
+
+    res.render('budget', {
+      currentPage: 'budget',
+      categories,
+      linesByCategory,
+      categoryStats,
+      summary: {
+        totalBudget,
+        totalSpent,
+        totalRemaining,
+        pctOfTotal,
+        openCategories,
+        categoryCount: categories.length,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
 
 router.get('/p/:slug/timeline', (_req, res) =>
   res.render('timeline', { currentPage: 'timeline' }),

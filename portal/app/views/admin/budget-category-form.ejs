@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include('partials/head', { title: `${couple.display_name} — ${category ? category.title : 'New category'}` }) %>
+<body class="admin-body">
+
+  <%- include('partials/sidebar', { currentSection: 'couples' }) %>
+
+  <main class="admin-main">
+    <header class="admin-header">
+      <div>
+        <a href="/admin/couples/<%= couple.id %>/budget" class="admin-back">← <%= couple.display_name %> · budget</a>
+        <h1 class="admin-title">
+          <%= category ? category.title : 'New category' %>
+        </h1>
+      </div>
+    </header>
+
+    <%- include('partials/couple-tabs', { couple, currentTab: 'budget' }) %>
+
+    <%- include('partials/flash', { flash }) %>
+
+    <% if (error) { %>
+      <div class="admin-flash admin-flash--error" role="alert"><%= error %></div>
+    <% } %>
+
+    <%
+      // Helpers — render cents as a plain dollar value for the form
+      // (no leading $, no commas, two decimals only when non-zero).
+      function dollarsValue(cents) {
+        if (cents === null || cents === undefined || cents === '') return '';
+        const n = Number(cents) / 100;
+        if (Number.isNaN(n)) return '';
+        return n.toFixed(n % 1 === 0 ? 0 : 2);
+      }
+      const STATUS_LABELS = { paid: 'Paid', deposited: 'Deposited', upcoming: 'Upcoming' };
+    %>
+
+    <form action="<%= formAction %>" method="post" class="admin-form">
+      <fieldset class="admin-fieldset">
+        <legend class="admin-legend">Category</legend>
+
+        <div class="admin-row" style="display: grid; grid-template-columns: 110px 1fr 1fr; gap: 1rem;">
+          <label class="admin-field">
+            <span class="admin-field-label">Number *</span>
+            <input type="number" name="category_number" min="1"
+                   value="<%= category?.category_number ?? suggestedNumber %>" required>
+            <span class="admin-field-help">Position in the editorial sequence (01, 02, ...).</span>
+          </label>
+
+          <label class="admin-field">
+            <span class="admin-field-label">Title *</span>
+            <input type="text" name="title" required
+                   value="<%= category?.title || '' %>" placeholder="Catering">
+            <span class="admin-field-help">The plain part of the title.</span>
+          </label>
+
+          <label class="admin-field">
+            <span class="admin-field-label">Italic suffix</span>
+            <input type="text" name="title_emphasis"
+                   value="<%= category?.title_emphasis || '' %>" placeholder="(food &amp; bar)">
+            <span class="admin-field-help">Optional. Shown in italic next to the title.</span>
+          </label>
+        </div>
+
+        <div class="admin-row" style="display: grid; grid-template-columns: 1fr 110px; gap: 1rem;">
+          <label class="admin-field">
+            <span class="admin-field-label">Estimated total (USD)</span>
+            <input type="text" name="estimated_cents" inputmode="decimal"
+                   value="<%= dollarsValue(category?.estimated_cents) %>" placeholder="35000">
+            <span class="admin-field-help">
+              The category's target. The "Actual" number on the public page is computed
+              automatically as the sum of the line items' paid amounts below.
+            </span>
+          </label>
+
+          <label class="admin-field">
+            <span class="admin-field-label">Position</span>
+            <input type="number" name="position" min="0" value="<%= category?.position ?? 0 %>">
+          </label>
+        </div>
+      </fieldset>
+
+      <fieldset class="admin-fieldset">
+        <legend class="admin-legend">Line items</legend>
+        <p class="admin-fieldset-note">
+          One row per spend line. <em>Amount</em> is what the line costs; <em>Paid</em> is
+          what's been paid so far. Status drives the colored pill on the public page;
+          the label is the free-text caption inside it ("$10,000 deposit", "Paid in full",
+          "Quote requested", etc.).
+        </p>
+
+        <div id="line-rows" class="admin-line-rows">
+          <%
+            const initial = (lines && lines.length) ? lines : [
+              { name: '', vendor_label: '', amount_cents: 0, paid_cents: 0, status_kind: 'upcoming', status_label: '', position: 1 },
+            ];
+          %>
+          <% initial.forEach((l, i) => { %>
+            <div class="admin-line-row" data-row>
+              <input type="hidden" name="lines[<%= i %>][id]" value="<%= l.id || '' %>">
+              <label class="admin-field admin-field--inline">
+                <span class="admin-field-label">Name</span>
+                <input type="text" name="lines[<%= i %>][name]" value="<%= l.name || '' %>" placeholder="Plated dinner">
+              </label>
+              <label class="admin-field admin-field--inline">
+                <span class="admin-field-label">Vendor / detail</span>
+                <input type="text" name="lines[<%= i %>][vendor_label]" value="<%= l.vendor_label || '' %>" placeholder="100 guests · La Playa">
+              </label>
+              <label class="admin-field admin-field--inline">
+                <span class="admin-field-label">Amount</span>
+                <input type="text" name="lines[<%= i %>][amount_cents]" inputmode="decimal" value="<%= dollarsValue(l.amount_cents) %>" placeholder="25000">
+              </label>
+              <label class="admin-field admin-field--inline">
+                <span class="admin-field-label">Paid</span>
+                <input type="text" name="lines[<%= i %>][paid_cents]" inputmode="decimal" value="<%= dollarsValue(l.paid_cents) %>" placeholder="10000">
+              </label>
+              <label class="admin-field admin-field--inline">
+                <span class="admin-field-label">Status</span>
+                <select name="lines[<%= i %>][status_kind]">
+                  <% statusKinds.forEach(s => { %>
+                    <option value="<%= s %>" <%= l.status_kind === s ? 'selected' : '' %>><%= STATUS_LABELS[s] || s %></option>
+                  <% }) %>
+                </select>
+              </label>
+              <label class="admin-field admin-field--inline">
+                <span class="admin-field-label">Status label</span>
+                <input type="text" name="lines[<%= i %>][status_label]" value="<%= l.status_label || '' %>" placeholder="$10,000 deposit">
+              </label>
+              <button type="button" class="admin-btn admin-btn--ghost admin-btn--small" data-remove>Remove</button>
+            </div>
+          <% }) %>
+        </div>
+
+        <button type="button" id="add-line" class="admin-btn admin-btn--ghost">+ Add line item</button>
+      </fieldset>
+
+      <div class="admin-form-actions">
+        <button type="submit" class="admin-btn admin-btn--primary">
+          <%= category ? 'Save changes' : 'Add category' %>
+        </button>
+        <a href="/admin/couples/<%= couple.id %>/budget" class="admin-btn admin-btn--ghost">Cancel</a>
+      </div>
+    </form>
+
+    <% if (category) { %>
+      <div class="admin-danger-zone">
+        <h2 class="admin-legend">Danger zone</h2>
+        <p>Remove this category and all of its line items from <%= couple.display_name %>'s budget.</p>
+        <form action="/admin/couples/<%= couple.id %>/budget/<%= category.id %>/delete" method="post"
+              onsubmit="return confirm('Remove <%= category.title %>? This cannot be undone.');">
+          <button type="submit" class="admin-btn admin-btn--danger">Remove category</button>
+        </form>
+      </div>
+    <% } %>
+  </main>
+
+  <script>
+    (function () {
+      const container = document.getElementById('line-rows');
+      const addBtn = document.getElementById('add-line');
+      if (!container || !addBtn) return;
+
+      function nextIndex() {
+        return container.querySelectorAll('[data-row]').length;
+      }
+
+      function newRow() {
+        const i = nextIndex();
+        const row = document.createElement('div');
+        row.className = 'admin-line-row';
+        row.setAttribute('data-row', '');
+        row.innerHTML = `
+          <input type="hidden" name="lines[${i}][id]" value="">
+          <label class="admin-field admin-field--inline">
+            <span class="admin-field-label">Name</span>
+            <input type="text" name="lines[${i}][name]" placeholder="Line name">
+          </label>
+          <label class="admin-field admin-field--inline">
+            <span class="admin-field-label">Vendor / detail</span>
+            <input type="text" name="lines[${i}][vendor_label]" placeholder="">
+          </label>
+          <label class="admin-field admin-field--inline">
+            <span class="admin-field-label">Amount</span>
+            <input type="text" name="lines[${i}][amount_cents]" inputmode="decimal" placeholder="0">
+          </label>
+          <label class="admin-field admin-field--inline">
+            <span class="admin-field-label">Paid</span>
+            <input type="text" name="lines[${i}][paid_cents]" inputmode="decimal" placeholder="0">
+          </label>
+          <label class="admin-field admin-field--inline">
+            <span class="admin-field-label">Status</span>
+            <select name="lines[${i}][status_kind]">
+              <option value="upcoming">Upcoming</option>
+              <option value="deposited">Deposited</option>
+              <option value="paid">Paid</option>
+            </select>
+          </label>
+          <label class="admin-field admin-field--inline">
+            <span class="admin-field-label">Status label</span>
+            <input type="text" name="lines[${i}][status_label]" placeholder="">
+          </label>
+          <button type="button" class="admin-btn admin-btn--ghost admin-btn--small" data-remove>Remove</button>
+        `;
+        container.appendChild(row);
+      }
+
+      addBtn.addEventListener('click', newRow);
+      container.addEventListener('click', (e) => {
+        if (e.target.matches('[data-remove]')) {
+          const row = e.target.closest('[data-row]');
+          if (row) row.remove();
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

@@ -5,6 +5,19 @@
 
   <%- include('partials/topbar', { couple, currentPage }) %>
 
+  <%
+    // Helper — render integer cents as "$30,000" (no decimals when whole;
+    // shows ".50" only if needed). Centralized here so every number on
+    // the page formats identically.
+    function fmtCurrency(cents) {
+      const dollars = (cents || 0) / 100;
+      const opts = Number.isInteger(dollars)
+        ? { maximumFractionDigits: 0 }
+        : { minimumFractionDigits: 2, maximumFractionDigits: 2 };
+      return '$' + dollars.toLocaleString('en-US', opts);
+    }
+  %>
+
   <!-- ── Page header ─────────────────────────────────────────────────────── -->
   <section class="page-header">
     <span class="label page-eyebrow"><%= couple.display_name %></span>
@@ -20,18 +33,18 @@
     <div class="summary-stats">
       <div class="stat">
         <div class="stat-label">Total budget</div>
-        <div class="stat-number">$120,000</div>
-        <div class="stat-note">Set October 2025</div>
+        <div class="stat-number"><%= fmtCurrency(summary.totalBudget) %></div>
+        <div class="stat-note">Across <%= summary.categoryCount %> categor<%= summary.categoryCount === 1 ? 'y' : 'ies' %></div>
       </div>
       <div class="stat">
         <div class="stat-label">Spent &amp; committed</div>
-        <div class="stat-number stat-number--accent">$58,000</div>
-        <div class="stat-note">48% of total</div>
+        <div class="stat-number stat-number--accent"><%= fmtCurrency(summary.totalSpent) %></div>
+        <div class="stat-note"><%= summary.pctOfTotal %>% of total</div>
       </div>
       <div class="stat">
         <div class="stat-label">Remaining</div>
-        <div class="stat-number">$62,000</div>
-        <div class="stat-note">Across 16 open categories</div>
+        <div class="stat-number"><%= fmtCurrency(summary.totalRemaining) %></div>
+        <div class="stat-note">Across <%= summary.openCategories %> open categor<%= summary.openCategories === 1 ? 'y' : 'ies' %></div>
       </div>
     </div>
 
@@ -48,593 +61,56 @@
     </div>
   </section>
 
-  <!-- ── Category 01 · Venue ─────────────────────────────────────────────── -->
-  <section class="section category">
-    <div class="category-header">
-      <div class="category-meta">
-        <span class="label">Category 01</span>
-        <h2 class="category-title">Venue</h2>
-      </div>
-      <div class="category-amount">
-        <div class="amount-row">
-          <div class="amount-cell"><span class="amount-label">Estimated</span><span class="amount-value">$30,000</span></div>
-          <div class="amount-cell"><span class="amount-label">Actual</span><span class="amount-value">$30,000</span></div>
-          <div class="amount-cell"><span class="amount-label">Remaining</span><span class="amount-value">$0</span></div>
+  <!-- ── Categories ──────────────────────────────────────────────────────── -->
+  <% categories.forEach(cat => {
+       const stats = categoryStats.get(cat.id) || { estimated: 0, actual: 0, remaining: 0, pct: 0 };
+       const lines = linesByCategory.get(cat.id) || [];
+  %>
+    <section class="section category">
+      <div class="category-header">
+        <div class="category-meta">
+          <span class="label">Category <%= String(cat.category_number).padStart(2, '0') %></span>
+          <h2 class="category-title">
+            <%= cat.title %><% if (cat.title_emphasis) { %> <em><%= cat.title_emphasis %></em><% } %>
+          </h2>
         </div>
-        <div class="progress-bar"><span style="width: 100%;"></span></div>
+        <div class="category-amount">
+          <div class="amount-row">
+            <div class="amount-cell"><span class="amount-label">Estimated</span><span class="amount-value"><%= fmtCurrency(stats.estimated) %></span></div>
+            <div class="amount-cell"><span class="amount-label">Actual</span><span class="amount-value"><%= fmtCurrency(stats.actual) %></span></div>
+            <div class="amount-cell"><span class="amount-label">Remaining</span><span class="amount-value"><%= fmtCurrency(stats.remaining) %></span></div>
+          </div>
+          <div class="progress-bar"><span style="width: <%= stats.pct %>%;"></span></div>
+        </div>
       </div>
-    </div>
-    <ul class="line-items">
-      <li>
-        <div class="line-name"><em>La Playa Hotel</em></div>
-        <div class="line-vendor">Ceremony &amp; reception fee · Carmel by the Sea</div>
-        <div class="line-amount">$30,000</div>
-        <div class="line-status status-paid">Paid in full</div>
-      </li>
-    </ul>
-  </section>
 
-  <!-- ── Category 02 · Catering ──────────────────────────────────────────── -->
-  <section class="section category">
-    <div class="category-header">
-      <div class="category-meta">
-        <span class="label">Category 02</span>
-        <h2 class="category-title">Catering <em>(food &amp; bar)</em></h2>
-      </div>
-      <div class="category-amount">
-        <div class="amount-row">
-          <div class="amount-cell"><span class="amount-label">Estimated</span><span class="amount-value">$35,000</span></div>
-          <div class="amount-cell"><span class="amount-label">Actual</span><span class="amount-value">$10,000</span></div>
-          <div class="amount-cell"><span class="amount-label">Remaining</span><span class="amount-value">$25,000</span></div>
-        </div>
-        <div class="progress-bar"><span style="width: 28.6%;"></span></div>
-      </div>
-    </div>
-    <ul class="line-items">
-      <li>
-        <div class="line-name"><em>Plated dinner</em></div>
-        <div class="line-vendor">100 guests · La Playa catering</div>
-        <div class="line-amount">$25,000</div>
-        <div class="line-status status-deposited">$10,000 deposit</div>
-      </li>
-      <li>
-        <div class="line-name"><em>Bar service</em></div>
-        <div class="line-vendor">Open bar · 5 hours · wine, beer, signature cocktails</div>
-        <div class="line-amount">$8,000</div>
-        <div class="line-status status-upcoming">Due 60 days out</div>
-      </li>
-      <li>
-        <div class="line-name"><em>Service &amp; gratuity</em></div>
-        <div class="line-vendor">22% on food and beverage</div>
-        <div class="line-amount">$2,000</div>
-        <div class="line-status status-upcoming">Final invoice</div>
-      </li>
-    </ul>
-  </section>
-
-  <!-- ── Category 03 · Photography ───────────────────────────────────────── -->
-  <section class="section category">
-    <div class="category-header">
-      <div class="category-meta">
-        <span class="label">Category 03</span>
-        <h2 class="category-title">Photography</h2>
-      </div>
-      <div class="category-amount">
-        <div class="amount-row">
-          <div class="amount-cell"><span class="amount-label">Estimated</span><span class="amount-value">$6,500</span></div>
-          <div class="amount-cell"><span class="amount-label">Actual</span><span class="amount-value">$3,250</span></div>
-          <div class="amount-cell"><span class="amount-label">Remaining</span><span class="amount-value">$3,250</span></div>
-        </div>
-        <div class="progress-bar"><span style="width: 50%;"></span></div>
-      </div>
-    </div>
-    <ul class="line-items">
-      <li>
-        <div class="line-name"><em>Wedding-day coverage</em></div>
-        <div class="line-vendor">8 hours · two shooters</div>
-        <div class="line-amount">$5,500</div>
-        <div class="line-status status-deposited">50% deposit</div>
-      </li>
-      <li>
-        <div class="line-name"><em>Engagement session</em></div>
-        <div class="line-vendor">2-hour session · digital delivery</div>
-        <div class="line-amount">$1,000</div>
-        <div class="line-status status-paid">Paid in full</div>
-      </li>
-    </ul>
-  </section>
-
-  <!-- ── Category 04 · Videography ───────────────────────────────────────── -->
-  <section class="section category">
-    <div class="category-header">
-      <div class="category-meta">
-        <span class="label">Category 04</span>
-        <h2 class="category-title">Videography</h2>
-      </div>
-      <div class="category-amount">
-        <div class="amount-row">
-          <div class="amount-cell"><span class="amount-label">Estimated</span><span class="amount-value">$3,500</span></div>
-          <div class="amount-cell"><span class="amount-label">Actual</span><span class="amount-value">$1,750</span></div>
-          <div class="amount-cell"><span class="amount-label">Remaining</span><span class="amount-value">$1,750</span></div>
-        </div>
-        <div class="progress-bar"><span style="width: 50%;"></span></div>
-      </div>
-    </div>
-    <ul class="line-items">
-      <li>
-        <div class="line-name"><em>Highlight film</em></div>
-        <div class="line-vendor">Ceremony full coverage · 4-minute highlight reel</div>
-        <div class="line-amount">$3,500</div>
-        <div class="line-status status-deposited">50% deposit</div>
-      </li>
-    </ul>
-  </section>
-
-  <!-- ── Category 05 · Florals & Decor ───────────────────────────────────── -->
-  <section class="section category">
-    <div class="category-header">
-      <div class="category-meta">
-        <span class="label">Category 05</span>
-        <h2 class="category-title">Florals &amp; <em>Decor</em></h2>
-      </div>
-      <div class="category-amount">
-        <div class="amount-row">
-          <div class="amount-cell"><span class="amount-label">Estimated</span><span class="amount-value">$12,000</span></div>
-          <div class="amount-cell"><span class="amount-label">Actual</span><span class="amount-value">$3,000</span></div>
-          <div class="amount-cell"><span class="amount-label">Remaining</span><span class="amount-value">$9,000</span></div>
-        </div>
-        <div class="progress-bar"><span style="width: 25%;"></span></div>
-      </div>
-    </div>
-    <ul class="line-items">
-      <li>
-        <div class="line-name"><em>Florist · TBC</em></div>
-        <div class="line-vendor">Bridal bouquet, ceremony, tablescape florals</div>
-        <div class="line-amount">$8,500</div>
-        <div class="line-status status-deposited">$3,000 retainer</div>
-      </li>
-      <li>
-        <div class="line-name"><em>Custom installations</em></div>
-        <div class="line-vendor">Zuzu design studio · arch &amp; ceiling draping</div>
-        <div class="line-amount">$2,500</div>
-        <div class="line-status status-upcoming">Due 30 days out</div>
-      </li>
-      <li>
-        <div class="line-name"><em>Candles &amp; vessels</em></div>
-        <div class="line-vendor">Tapers, pillars, hurricanes, glass vessels</div>
-        <div class="line-amount">$1,000</div>
-        <div class="line-status status-upcoming">Due 14 days out</div>
-      </li>
-    </ul>
-  </section>
-
-  <!-- ── Category 06 · Rentals ───────────────────────────────────────────── -->
-  <section class="section category">
-    <div class="category-header">
-      <div class="category-meta">
-        <span class="label">Category 06</span>
-        <h2 class="category-title">Rentals</h2>
-      </div>
-      <div class="category-amount">
-        <div class="amount-row">
-          <div class="amount-cell"><span class="amount-label">Estimated</span><span class="amount-value">$5,000</span></div>
-          <div class="amount-cell"><span class="amount-label">Actual</span><span class="amount-value">$0</span></div>
-          <div class="amount-cell"><span class="amount-label">Remaining</span><span class="amount-value">$5,000</span></div>
-        </div>
-        <div class="progress-bar"><span style="width: 0%;"></span></div>
-      </div>
-    </div>
-    <ul class="line-items">
-      <li>
-        <div class="line-name"><em>Chairs &amp; tables</em></div>
-        <div class="line-vendor">100 chiavari chairs · 12 farm tables</div>
-        <div class="line-amount">$2,200</div>
-        <div class="line-status status-upcoming">Quote requested</div>
-      </li>
-      <li>
-        <div class="line-name"><em>Linens</em></div>
-        <div class="line-vendor">Ivory matte satin lamour · sheer linen runners</div>
-        <div class="line-amount">$1,400</div>
-        <div class="line-status status-upcoming">Quote requested</div>
-      </li>
-      <li>
-        <div class="line-name"><em>Glassware &amp; flatware</em></div>
-        <div class="line-vendor">Polished silver flatware · clear glass</div>
-        <div class="line-amount">$1,400</div>
-        <div class="line-status status-upcoming">Quote requested</div>
-      </li>
-    </ul>
-  </section>
-
-  <!-- ── Category 07 · Wedding Dress & Accessories ───────────────────────── -->
-  <section class="section category">
-    <div class="category-header">
-      <div class="category-meta">
-        <span class="label">Category 07</span>
-        <h2 class="category-title">Wedding Dress &amp; <em>Accessories</em></h2>
-      </div>
-      <div class="category-amount">
-        <div class="amount-row">
-          <div class="amount-cell"><span class="amount-label">Estimated</span><span class="amount-value">$4,000</span></div>
-          <div class="amount-cell"><span class="amount-label">Actual</span><span class="amount-value">$3,200</span></div>
-          <div class="amount-cell"><span class="amount-label">Remaining</span><span class="amount-value">$800</span></div>
-        </div>
-        <div class="progress-bar"><span style="width: 80%;"></span></div>
-      </div>
-    </div>
-    <ul class="line-items">
-      <li>
-        <div class="line-name"><em>Gown</em></div>
-        <div class="line-vendor">Silk slip · Carmel boutique</div>
-        <div class="line-amount">$2,800</div>
-        <div class="line-status status-paid">Paid in full</div>
-      </li>
-      <li>
-        <div class="line-name"><em>Alterations</em></div>
-        <div class="line-vendor">Three fittings · hem, bust, bustle</div>
-        <div class="line-amount">$600</div>
-        <div class="line-status status-upcoming">Due final fitting</div>
-      </li>
-      <li>
-        <div class="line-name"><em>Veil &amp; accessories</em></div>
-        <div class="line-vendor">Cathedral veil · earrings · shoes</div>
-        <div class="line-amount">$600</div>
-        <div class="line-status status-deposited">$400 spent</div>
-      </li>
-    </ul>
-  </section>
-
-  <!-- ── Category 08 · Groom Attire ──────────────────────────────────────── -->
-  <section class="section category">
-    <div class="category-header">
-      <div class="category-meta">
-        <span class="label">Category 08</span>
-        <h2 class="category-title">Groom Attire</h2>
-      </div>
-      <div class="category-amount">
-        <div class="amount-row">
-          <div class="amount-cell"><span class="amount-label">Estimated</span><span class="amount-value">$800</span></div>
-          <div class="amount-cell"><span class="amount-label">Actual</span><span class="amount-value">$0</span></div>
-          <div class="amount-cell"><span class="amount-label">Remaining</span><span class="amount-value">$800</span></div>
-        </div>
-        <div class="progress-bar"><span style="width: 0%;"></span></div>
-      </div>
-    </div>
-    <ul class="line-items">
-      <li>
-        <div class="line-name"><em>Tuxedo, shirt, shoes</em></div>
-        <div class="line-vendor">Black-tie · custom suit + accessories</div>
-        <div class="line-amount">$800</div>
-        <div class="line-status status-upcoming">Fitting scheduled</div>
-      </li>
-    </ul>
-  </section>
-
-  <!-- ── Category 09 · Wedding Cake / Desserts ───────────────────────────── -->
-  <section class="section category">
-    <div class="category-header">
-      <div class="category-meta">
-        <span class="label">Category 09</span>
-        <h2 class="category-title">Wedding Cake &amp; <em>Desserts</em></h2>
-      </div>
-      <div class="category-amount">
-        <div class="amount-row">
-          <div class="amount-cell"><span class="amount-label">Estimated</span><span class="amount-value">$1,200</span></div>
-          <div class="amount-cell"><span class="amount-label">Actual</span><span class="amount-value">$0</span></div>
-          <div class="amount-cell"><span class="amount-label">Remaining</span><span class="amount-value">$1,200</span></div>
-        </div>
-        <div class="progress-bar"><span style="width: 0%;"></span></div>
-      </div>
-    </div>
-    <ul class="line-items">
-      <li>
-        <div class="line-name"><em>Wedding cake</em></div>
-        <div class="line-vendor">Three-tier · ivory buttercream · cutting cake</div>
-        <div class="line-amount">$1,200</div>
-        <div class="line-status status-upcoming">Tasting scheduled</div>
-      </li>
-    </ul>
-  </section>
-
-  <!-- ── Category 10 · Music & Sound ─────────────────────────────────────── -->
-  <section class="section category">
-    <div class="category-header">
-      <div class="category-meta">
-        <span class="label">Category 10</span>
-        <h2 class="category-title">Music &amp; <em>Sound</em></h2>
-      </div>
-      <div class="category-amount">
-        <div class="amount-row">
-          <div class="amount-cell"><span class="amount-label">Estimated</span><span class="amount-value">$4,000</span></div>
-          <div class="amount-cell"><span class="amount-label">Actual</span><span class="amount-value">$2,000</span></div>
-          <div class="amount-cell"><span class="amount-label">Remaining</span><span class="amount-value">$2,000</span></div>
-        </div>
-        <div class="progress-bar"><span style="width: 50%;"></span></div>
-      </div>
-    </div>
-    <ul class="line-items">
-      <li>
-        <div class="line-name"><em>Ceremony quartet</em></div>
-        <div class="line-vendor">Strings · processional + cocktail hour</div>
-        <div class="line-amount">$1,500</div>
-        <div class="line-status status-paid">Paid in full</div>
-      </li>
-      <li>
-        <div class="line-name"><em>Reception DJ</em></div>
-        <div class="line-vendor">5 hours · sound system + lighting</div>
-        <div class="line-amount">$2,500</div>
-        <div class="line-status status-deposited">$500 deposit</div>
-      </li>
-    </ul>
-  </section>
-
-  <!-- ── Category 11 · Hair & Makeup ─────────────────────────────────────── -->
-  <section class="section category">
-    <div class="category-header">
-      <div class="category-meta">
-        <span class="label">Category 11</span>
-        <h2 class="category-title">Hair &amp; <em>Makeup</em></h2>
-      </div>
-      <div class="category-amount">
-        <div class="amount-row">
-          <div class="amount-cell"><span class="amount-label">Estimated</span><span class="amount-value">$1,800</span></div>
-          <div class="amount-cell"><span class="amount-label">Actual</span><span class="amount-value">$300</span></div>
-          <div class="amount-cell"><span class="amount-label">Remaining</span><span class="amount-value">$1,500</span></div>
-        </div>
-        <div class="progress-bar"><span style="width: 16.7%;"></span></div>
-      </div>
-    </div>
-    <ul class="line-items">
-      <li>
-        <div class="line-name"><em>Bride · hair &amp; makeup</em></div>
-        <div class="line-vendor">Wedding-day glam + trial</div>
-        <div class="line-amount">$1,000</div>
-        <div class="line-status status-deposited">Trial paid</div>
-      </li>
-      <li>
-        <div class="line-name"><em>Bridesmaids</em></div>
-        <div class="line-vendor">4 bridesmaids · hair &amp; makeup</div>
-        <div class="line-amount">$800</div>
-        <div class="line-status status-upcoming">Due day-of</div>
-      </li>
-    </ul>
-  </section>
-
-  <!-- ── Category 12 · Transportation ────────────────────────────────────── -->
-  <section class="section category">
-    <div class="category-header">
-      <div class="category-meta">
-        <span class="label">Category 12</span>
-        <h2 class="category-title">Transportation</h2>
-      </div>
-      <div class="category-amount">
-        <div class="amount-row">
-          <div class="amount-cell"><span class="amount-label">Estimated</span><span class="amount-value">$1,200</span></div>
-          <div class="amount-cell"><span class="amount-label">Actual</span><span class="amount-value">$0</span></div>
-          <div class="amount-cell"><span class="amount-label">Remaining</span><span class="amount-value">$1,200</span></div>
-        </div>
-        <div class="progress-bar"><span style="width: 0%;"></span></div>
-      </div>
-    </div>
-    <ul class="line-items">
-      <li>
-        <div class="line-name"><em>Bridal party shuttle</em></div>
-        <div class="line-vendor">Hotel to venue · 14-passenger sprinter</div>
-        <div class="line-amount">$800</div>
-        <div class="line-status status-upcoming">Quote requested</div>
-      </li>
-      <li>
-        <div class="line-name"><em>Getaway car</em></div>
-        <div class="line-vendor">Vintage sedan · 1-hour</div>
-        <div class="line-amount">$400</div>
-        <div class="line-status status-upcoming">Quote requested</div>
-      </li>
-    </ul>
-  </section>
-
-  <!-- ── Category 13 · Officiant ─────────────────────────────────────────── -->
-  <section class="section category">
-    <div class="category-header">
-      <div class="category-meta">
-        <span class="label">Category 13</span>
-        <h2 class="category-title">Officiant</h2>
-      </div>
-      <div class="category-amount">
-        <div class="amount-row">
-          <div class="amount-cell"><span class="amount-label">Estimated</span><span class="amount-value">$750</span></div>
-          <div class="amount-cell"><span class="amount-label">Actual</span><span class="amount-value">$250</span></div>
-          <div class="amount-cell"><span class="amount-label">Remaining</span><span class="amount-value">$500</span></div>
-        </div>
-        <div class="progress-bar"><span style="width: 33.3%;"></span></div>
-      </div>
-    </div>
-    <ul class="line-items">
-      <li>
-        <div class="line-name"><em>Officiant fee</em></div>
-        <div class="line-vendor">Ceremony + rehearsal · custom vows session</div>
-        <div class="line-amount">$750</div>
-        <div class="line-status status-deposited">$250 booking fee</div>
-      </li>
-    </ul>
-  </section>
-
-  <!-- ── Category 14 · Invitations & Stationery ──────────────────────────── -->
-  <section class="section category">
-    <div class="category-header">
-      <div class="category-meta">
-        <span class="label">Category 14</span>
-        <h2 class="category-title">Invitations &amp; <em>Stationery</em></h2>
-      </div>
-      <div class="category-amount">
-        <div class="amount-row">
-          <div class="amount-cell"><span class="amount-label">Estimated</span><span class="amount-value">$2,500</span></div>
-          <div class="amount-cell"><span class="amount-label">Actual</span><span class="amount-value">$2,500</span></div>
-          <div class="amount-cell"><span class="amount-label">Remaining</span><span class="amount-value">$0</span></div>
-        </div>
-        <div class="progress-bar"><span style="width: 100%;"></span></div>
-      </div>
-    </div>
-    <ul class="line-items">
-      <li>
-        <div class="line-name"><em>Save-the-dates &amp; invitations</em></div>
-        <div class="line-vendor">Letterpress · ivory cotton stock · custom envelopes</div>
-        <div class="line-amount">$1,800</div>
-        <div class="line-status status-paid">Paid in full</div>
-      </li>
-      <li>
-        <div class="line-name"><em>Day-of suite</em></div>
-        <div class="line-vendor">Menus, place cards, signage, programs</div>
-        <div class="line-amount">$700</div>
-        <div class="line-status status-paid">Paid in full</div>
-      </li>
-    </ul>
-  </section>
-
-  <!-- ── Category 15 · Wedding Rings ─────────────────────────────────────── -->
-  <section class="section category">
-    <div class="category-header">
-      <div class="category-meta">
-        <span class="label">Category 15</span>
-        <h2 class="category-title">Wedding Rings</h2>
-      </div>
-      <div class="category-amount">
-        <div class="amount-row">
-          <div class="amount-cell"><span class="amount-label">Estimated</span><span class="amount-value">$3,500</span></div>
-          <div class="amount-cell"><span class="amount-label">Actual</span><span class="amount-value">$3,500</span></div>
-          <div class="amount-cell"><span class="amount-label">Remaining</span><span class="amount-value">$0</span></div>
-        </div>
-        <div class="progress-bar"><span style="width: 100%;"></span></div>
-      </div>
-    </div>
-    <ul class="line-items">
-      <li>
-        <div class="line-name"><em>Bride's band</em></div>
-        <div class="line-vendor">Eternity band · pavé diamond</div>
-        <div class="line-amount">$2,200</div>
-        <div class="line-status status-paid">Paid in full</div>
-      </li>
-      <li>
-        <div class="line-name"><em>Groom's band</em></div>
-        <div class="line-vendor">Brushed platinum · custom inscription</div>
-        <div class="line-amount">$1,300</div>
-        <div class="line-status status-paid">Paid in full</div>
-      </li>
-    </ul>
-  </section>
-
-  <!-- ── Category 16 · Wedding Favors ────────────────────────────────────── -->
-  <section class="section category">
-    <div class="category-header">
-      <div class="category-meta">
-        <span class="label">Category 16</span>
-        <h2 class="category-title">Wedding Favors</h2>
-      </div>
-      <div class="category-amount">
-        <div class="amount-row">
-          <div class="amount-cell"><span class="amount-label">Estimated</span><span class="amount-value">$500</span></div>
-          <div class="amount-cell"><span class="amount-label">Actual</span><span class="amount-value">$0</span></div>
-          <div class="amount-cell"><span class="amount-label">Remaining</span><span class="amount-value">$500</span></div>
-        </div>
-        <div class="progress-bar"><span style="width: 0%;"></span></div>
-      </div>
-    </div>
-    <ul class="line-items">
-      <li>
-        <div class="line-name"><em>Custom favors · TBC</em></div>
-        <div class="line-vendor">100 guest favors · still selecting</div>
-        <div class="line-amount">$500</div>
-        <div class="line-status status-upcoming">In design</div>
-      </li>
-    </ul>
-  </section>
-
-  <!-- ── Category 17 · Rehearsal Dinner ──────────────────────────────────── -->
-  <section class="section category">
-    <div class="category-header">
-      <div class="category-meta">
-        <span class="label">Category 17</span>
-        <h2 class="category-title">Rehearsal <em>Dinner</em></h2>
-      </div>
-      <div class="category-amount">
-        <div class="amount-row">
-          <div class="amount-cell"><span class="amount-label">Estimated</span><span class="amount-value">$2,500</span></div>
-          <div class="amount-cell"><span class="amount-label">Actual</span><span class="amount-value">$0</span></div>
-          <div class="amount-cell"><span class="amount-label">Remaining</span><span class="amount-value">$2,500</span></div>
-        </div>
-        <div class="progress-bar"><span style="width: 0%;"></span></div>
-      </div>
-    </div>
-    <ul class="line-items">
-      <li>
-        <div class="line-name"><em>Private dinner</em></div>
-        <div class="line-vendor">25 guests · coastal restaurant · prix-fixe</div>
-        <div class="line-amount">$2,500</div>
-        <div class="line-status status-upcoming">Venue selection</div>
-      </li>
-    </ul>
-  </section>
-
-  <!-- ── Category 18 · Wedding Planner ───────────────────────────────────── -->
-  <section class="section category">
-    <div class="category-header">
-      <div class="category-meta">
-        <span class="label">Category 18</span>
-        <h2 class="category-title">Wedding Planner</h2>
-      </div>
-      <div class="category-amount">
-        <div class="amount-row">
-          <div class="amount-cell"><span class="amount-label">Estimated</span><span class="amount-value">$3,500</span></div>
-          <div class="amount-cell"><span class="amount-label">Actual</span><span class="amount-value">$1,750</span></div>
-          <div class="amount-cell"><span class="amount-label">Remaining</span><span class="amount-value">$1,750</span></div>
-        </div>
-        <div class="progress-bar"><span style="width: 50%;"></span></div>
-      </div>
-    </div>
-    <ul class="line-items">
-      <li>
-        <div class="line-name"><em>Zuzu Collective</em></div>
-        <div class="line-vendor">Full-service planning &amp; design</div>
-        <div class="line-amount">$3,500</div>
-        <div class="line-status status-deposited">50% deposit</div>
-      </li>
-    </ul>
-  </section>
-
-  <!-- ── Category 19 · Miscellaneous ─────────────────────────────────────── -->
-  <section class="section category">
-    <div class="category-header">
-      <div class="category-meta">
-        <span class="label">Category 19</span>
-        <h2 class="category-title">Miscellaneous</h2>
-      </div>
-      <div class="category-amount">
-        <div class="amount-row">
-          <div class="amount-cell"><span class="amount-label">Estimated</span><span class="amount-value">$1,750</span></div>
-          <div class="amount-cell"><span class="amount-label">Actual</span><span class="amount-value">$0</span></div>
-          <div class="amount-cell"><span class="amount-label">Remaining</span><span class="amount-value">$1,750</span></div>
-        </div>
-        <div class="progress-bar"><span style="width: 0%;"></span></div>
-      </div>
-    </div>
-    <ul class="line-items">
-      <li>
-        <div class="line-name"><em>Buffer &amp; tips</em></div>
-        <div class="line-vendor">Vendor tips · marriage license · contingency</div>
-        <div class="line-amount">$1,750</div>
-        <div class="line-status status-upcoming">Held in reserve</div>
-      </li>
-    </ul>
-  </section>
+      <% if (lines.length > 0) { %>
+        <ul class="line-items">
+          <% lines.forEach(line => {
+               const statusClass = `status-${(line.status_kind || 'upcoming').replace(/[^a-z]/g, '')}`;
+          %>
+            <li>
+              <div class="line-name"><em><%= line.name %></em></div>
+              <div class="line-vendor"><%= line.vendor_label || '' %></div>
+              <div class="line-amount"><%= fmtCurrency(line.amount_cents) %></div>
+              <div class="line-status <%= statusClass %>"><%= line.status_label || '' %></div>
+            </li>
+          <% }) %>
+        </ul>
+      <% } %>
+    </section>
+  <% }) %>
 
   <!-- ── Footnote ────────────────────────────────────────────────────────── -->
-  <section class="section budget-footnote">
-    <p>
-      <em>Total budget: $120,000.</em> Confirmed: <strong>Venue</strong>,
-      <strong>Catering</strong>, <strong>Wedding Planner</strong>. All other
-      figures are suggested allocations and adjust as vendors are booked and
-      contracts signed.
-    </p>
-  </section>
+  <% if (summary.totalBudget > 0) { %>
+    <section class="section budget-footnote">
+      <p>
+        <em>Total budget: <%= fmtCurrency(summary.totalBudget) %>.</em>
+        Categories adjust as vendors are booked, deposits are paid, and final
+        balances come due.
+      </p>
+    </section>
+  <% } %>
 
 
   <%- include('partials/footer', { couple }) %>

@@ -39,9 +39,20 @@ create table if not exists couples (
   intro_text      text,
   intro_tagline   text default 'escape the mundane.',
 
+  -- Budget total — top-of-page number on /budget, in *cents* so all
+  -- arithmetic is integer. Zoe enters dollars on the admin form; the
+  -- pick function converts before storing.
+  budget_total_cents integer not null default 0,
+
   created_at      timestamptz not null default now(),
   updated_at      timestamptz not null default now()
 );
+
+-- Older Postgres rows that existed before this column was added need the
+-- default to be backfilled — `add column if not exists` skips the column
+-- entirely on re-run, so we make sure the column is here for fresh
+-- installs and add it to existing tables on Render.
+alter table couples add column if not exists budget_total_cents integer not null default 0;
 
 create index if not exists couples_slug_idx on couples(slug);
 
@@ -152,3 +163,66 @@ create table if not exists guests (
 
 create index if not exists guests_household_id_idx on guests(household_id);
 create index if not exists guests_table_id_idx on guests(table_id);
+
+-- ── Budget categories ────────────────────────────────────────────────────
+--
+-- Editorial categories on /budget — one row per "Category 01 · Venue",
+-- "Category 02 · Catering" etc. The numbered eyebrow on the public page
+-- comes from `category_number`, which is unique per couple so Zoe can
+-- reorder by changing positions without renumbering.
+--
+-- `title_emphasis` is the optional italic suffix used in the typography
+-- (e.g. "Catering" + "(food & bar)"; "Florals & " + "Decor"). Keeping
+-- it as a separate column is simpler than parsing markup, and preserves
+-- the magazine-style title rendering across both static and dynamic.
+--
+-- `estimated_cents` is the couple's target for the whole category. The
+-- "Actual" number on the page is computed live as SUM(line.paid_cents).
+
+create table if not exists budget_categories (
+  id              uuid primary key default gen_random_uuid(),
+  couple_id       uuid not null references couples(id) on delete cascade,
+
+  category_number integer not null,            -- 1, 2, 3...; surfaces as "01"
+  title           text not null,               -- "Catering"
+  title_emphasis  text,                         -- "(food & bar)" — italic on render
+
+  estimated_cents integer not null default 0,
+
+  position        integer not null default 0,
+  created_at      timestamptz not null default now(),
+  updated_at      timestamptz not null default now()
+);
+
+create index if not exists budget_categories_couple_id_idx on budget_categories(couple_id);
+create unique index if not exists budget_categories_couple_number_uq on budget_categories(couple_id, category_number);
+
+-- ── Budget line items ────────────────────────────────────────────────────
+--
+-- One row per line under a category. `amount_cents` is the line total
+-- (e.g. $5,500 for "Wedding-day coverage"); `paid_cents` is how much of
+-- that has been paid so far. Status is split in two:
+--   • `status_kind` drives the colored pill on the public page
+--     (paid / deposited / upcoming).
+--   • `status_label` is the free-text caption inside that pill
+--     ("Paid in full", "$10,000 deposit", "Quote requested", etc.)
+-- so Zoe can write whatever's most accurate without us inventing labels.
+
+create table if not exists budget_line_items (
+  id            uuid primary key default gen_random_uuid(),
+  category_id   uuid not null references budget_categories(id) on delete cascade,
+
+  name          text not null,                  -- "Plated dinner"
+  vendor_label  text,                            -- "100 guests · La Playa catering"
+  amount_cents  integer not null default 0,
+  paid_cents    integer not null default 0,
+
+  status_kind   text not null default 'upcoming',  -- paid | deposited | upcoming
+  status_label  text,                              -- "$10,000 deposit"
+
+  position      integer not null default 0,
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now()
+);
+
+create index if not exists budget_line_items_category_id_idx on budget_line_items(category_id);
