@@ -101,6 +101,24 @@
       </fieldset>
 
       <fieldset class="admin-fieldset">
+        <legend class="admin-legend">Floor plan headline</legend>
+        <p class="admin-fieldset-note">
+          The "Walkthrough" stat-note at the top of <code>/floor-plan</code>. Venue, Spaces,
+          and Footprint are derived from the venue fields and floorplan rows.
+        </p>
+        <div class="admin-row" style="display: grid; grid-template-columns: 110px 1fr; gap: 1rem;">
+          <label class="admin-field">
+            <span class="admin-field-label">Walkthrough date</span>
+            <input type="text" name="floorplan_walkthrough_date" value="<%= couple?.floorplan_walkthrough_date || '' %>" placeholder="9.26">
+          </label>
+          <label class="admin-field">
+            <span class="admin-field-label">Walkthrough note</span>
+            <input type="text" name="floorplan_walkthrough_note" value="<%= couple?.floorplan_walkthrough_note || '' %>" placeholder="Final at 10 AM">
+          </label>
+        </div>
+      </fieldset>
+
+      <fieldset class="admin-fieldset">
         <legend class="admin-legend">Venue</legend>
         <label class="admin-field">
           <span class="admin-field-label">Venue name</span>

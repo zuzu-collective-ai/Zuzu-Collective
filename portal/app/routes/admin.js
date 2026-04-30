@@ -49,6 +49,8 @@ const COUPLE_FIELDS = [
   'timeline_ceremony_note',
   'timeline_lastcall_time',
   'timeline_lastcall_note',
+  'floorplan_walkthrough_date',
+  'floorplan_walkthrough_note',
 ];
 
 // Currency parsing — admin enters dollars (e.g. "120000", "$120,000",
@@ -1523,6 +1525,295 @@ router.post('/couples/:id/timeline/:pid/delete', async (req, res, next) => {
     );
     if (rows[0]) setFlash(req, 'success', `Removed ${rows[0].title}.`);
     res.redirect(`/admin/couples/${req.params.id}/timeline`);
+  } catch (err) { next(err); }
+});
+
+// ── Floor plan (per couple — spaces with inline zones + key items) ────
+
+const FLOORPLAN_ZONE_KINDS = [
+  'arch', 'stage', 'chairs', 'aisle', 'service',
+  'bar', 'hightop', 'dance', 'table', 'head-table', 'door',
+];
+const FLOORPLAN_EDGE_ANCHORS = ['', 'bottom-edge'];
+
+function nullIfEmpty(s) {
+  return (s === undefined || s === null || s === '') ? null : String(s).trim() || null;
+}
+
+function intOrNull(s) {
+  if (s === undefined || s === null || s === '') return null;
+  const n = parseInt(String(s).replace(/[^\d-]/g, ''), 10);
+  return Number.isNaN(n) ? null : n;
+}
+
+function parseFpZonesFromBody(body) {
+  const raw = body.zones || {};
+  const indices = Object.keys(raw)
+    .map(Number)
+    .filter(n => !Number.isNaN(n))
+    .sort((a, b) => a - b);
+  return indices
+    .map(i => raw[i])
+    .filter(z => z && (z.kind || z.label))
+    .map((z, idx) => ({
+      id: z.id || null,
+      kind: FLOORPLAN_ZONE_KINDS.includes(z.kind) ? z.kind : 'service',
+      label: nullIfEmpty(z.label),
+      position_top:    nullIfEmpty(z.position_top),
+      position_left:   nullIfEmpty(z.position_left),
+      position_right:  nullIfEmpty(z.position_right),
+      position_bottom: nullIfEmpty(z.position_bottom),
+      size_width:      nullIfEmpty(z.size_width),
+      size_height:     nullIfEmpty(z.size_height),
+      is_circle: !!(z.is_circle && z.is_circle !== '' && z.is_circle !== 'false'),
+      edge_anchor: z.edge_anchor && FLOORPLAN_EDGE_ANCHORS.includes(z.edge_anchor) && z.edge_anchor !== ''
+                   ? z.edge_anchor : null,
+      position: idx + 1,
+    }));
+}
+
+function parseFpKeysFromBody(body) {
+  const raw = body.keys || {};
+  const indices = Object.keys(raw)
+    .map(Number)
+    .filter(n => !Number.isNaN(n))
+    .sort((a, b) => a - b);
+  return indices
+    .map(i => raw[i])
+    .filter(k => k && k.name && k.name.trim().length > 0)
+    .map((k, idx) => ({
+      id: k.id || null,
+      name: k.name.trim(),
+      detail: nullIfEmpty(k.detail),
+      position: idx + 1,
+    }));
+}
+
+router.get('/couples/:id/floor-plan', async (req, res, next) => {
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+
+    const { rows: spaces } = await pool.query(
+      `select s.*,
+              coalesce((select count(*) from floorplan_zones z where z.space_id = s.id), 0)::int     as zone_count,
+              coalesce((select count(*) from floorplan_key_items k where k.space_id = s.id), 0)::int as key_count
+         from floorplan_spaces s
+        where s.couple_id = $1
+        order by s.position asc`,
+      [couple.id],
+    );
+    res.render('admin/floorplan-spaces-list', {
+      couple,
+      spaces,
+      flash: consumeFlash(req),
+    });
+  } catch (err) { next(err); }
+});
+
+router.get('/couples/:id/floor-plan/new', async (req, res, next) => {
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+
+    const { rows } = await pool.query(
+      'select coalesce(max(position), 0) + 1 as next_pos from floorplan_spaces where couple_id = $1',
+      [couple.id],
+    );
+
+    res.render('admin/floorplan-space-form', {
+      couple,
+      space: null,
+      zones: [],
+      keys: [],
+      suggestedPosition: rows[0].next_pos,
+      formAction: `/admin/couples/${couple.id}/floor-plan`,
+      zoneKinds: FLOORPLAN_ZONE_KINDS,
+      error: null,
+      flash: consumeFlash(req),
+    });
+  } catch (err) { next(err); }
+});
+
+router.get('/couples/:id/floor-plan/:sid', async (req, res, next) => {
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+
+    const { rows: spaceRows } = await pool.query(
+      'select * from floorplan_spaces where id = $1 and couple_id = $2',
+      [req.params.sid, couple.id],
+    );
+    if (!spaceRows[0]) return res.status(404).send('Space not found.');
+
+    const [{ rows: zones }, { rows: keys }] = await Promise.all([
+      pool.query('select * from floorplan_zones where space_id = $1 order by position asc', [spaceRows[0].id]),
+      pool.query('select * from floorplan_key_items where space_id = $1 order by position asc', [spaceRows[0].id]),
+    ]);
+
+    res.render('admin/floorplan-space-form', {
+      couple,
+      space: spaceRows[0],
+      zones,
+      keys,
+      suggestedPosition: spaceRows[0].position,
+      formAction: `/admin/couples/${couple.id}/floor-plan/${spaceRows[0].id}`,
+      zoneKinds: FLOORPLAN_ZONE_KINDS,
+      error: null,
+      flash: consumeFlash(req),
+    });
+  } catch (err) { next(err); }
+});
+
+router.post('/couples/:id/floor-plan', async (req, res, next) => {
+  const client = await pool.connect();
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+
+    const spaceData = {
+      eyebrow: nullIfEmpty(req.body.eyebrow),
+      title: req.body.title?.trim() || '',
+      capacity: intOrNull(req.body.capacity),
+      square_feet: intOrNull(req.body.square_feet),
+      location_label: nullIfEmpty(req.body.location_label),
+      edge_top_label: nullIfEmpty(req.body.edge_top_label),
+      position: parseInt(req.body.position, 10) || 0,
+    };
+    const zones = parseFpZonesFromBody(req.body);
+    const keys  = parseFpKeysFromBody(req.body);
+
+    if (!spaceData.title) {
+      return res.status(400).render('admin/floorplan-space-form', {
+        couple,
+        space: spaceData,
+        zones,
+        keys,
+        suggestedPosition: spaceData.position || 1,
+        formAction: `/admin/couples/${couple.id}/floor-plan`,
+        zoneKinds: FLOORPLAN_ZONE_KINDS,
+        error: 'Space title is required.',
+        flash: null,
+      });
+    }
+
+    await client.query('begin');
+    const { rows } = await client.query(
+      `insert into floorplan_spaces
+         (couple_id, eyebrow, title, capacity, square_feet, location_label, edge_top_label, position)
+       values ($1, $2, $3, $4, $5, $6, $7, $8) returning id`,
+      [couple.id, spaceData.eyebrow, spaceData.title, spaceData.capacity,
+       spaceData.square_feet, spaceData.location_label, spaceData.edge_top_label, spaceData.position],
+    );
+    const spaceId = rows[0].id;
+
+    for (const z of zones) {
+      await client.query(
+        `insert into floorplan_zones
+           (space_id, kind, label, position_top, position_left, position_right,
+            position_bottom, size_width, size_height, is_circle, edge_anchor, position)
+         values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+        [spaceId, z.kind, z.label, z.position_top, z.position_left, z.position_right,
+         z.position_bottom, z.size_width, z.size_height, z.is_circle, z.edge_anchor, z.position],
+      );
+    }
+    for (const k of keys) {
+      await client.query(
+        `insert into floorplan_key_items (space_id, name, detail, position)
+         values ($1, $2, $3, $4)`,
+        [spaceId, k.name, k.detail, k.position],
+      );
+    }
+    await client.query('commit');
+
+    setFlash(req, 'success', `Added ${spaceData.title} (${zones.length} zone${zones.length === 1 ? '' : 's'}, ${keys.length} key item${keys.length === 1 ? '' : 's'}).`);
+    res.redirect(`/admin/couples/${couple.id}/floor-plan`);
+  } catch (err) {
+    await client.query('rollback').catch(() => {});
+    next(err);
+  } finally {
+    client.release();
+  }
+});
+
+router.post('/couples/:id/floor-plan/:sid', async (req, res, next) => {
+  const client = await pool.connect();
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+
+    const spaceData = {
+      eyebrow: nullIfEmpty(req.body.eyebrow),
+      title: req.body.title?.trim() || '',
+      capacity: intOrNull(req.body.capacity),
+      square_feet: intOrNull(req.body.square_feet),
+      location_label: nullIfEmpty(req.body.location_label),
+      edge_top_label: nullIfEmpty(req.body.edge_top_label),
+      position: parseInt(req.body.position, 10) || 0,
+    };
+    const zones = parseFpZonesFromBody(req.body);
+    const keys  = parseFpKeysFromBody(req.body);
+
+    if (!spaceData.title) {
+      return res.status(400).redirect(`/admin/couples/${couple.id}/floor-plan/${req.params.sid}`);
+    }
+
+    await client.query('begin');
+    const { rowCount } = await client.query(
+      `update floorplan_spaces set
+         eyebrow = $1, title = $2, capacity = $3, square_feet = $4,
+         location_label = $5, edge_top_label = $6, position = $7,
+         updated_at = now()
+       where id = $8 and couple_id = $9`,
+      [spaceData.eyebrow, spaceData.title, spaceData.capacity, spaceData.square_feet,
+       spaceData.location_label, spaceData.edge_top_label, spaceData.position,
+       req.params.sid, couple.id],
+    );
+    if (rowCount === 0) {
+      await client.query('rollback');
+      return res.status(404).send('Space not found.');
+    }
+
+    // Replace zones + keys wholesale — same approach as households/budget.
+    await client.query('delete from floorplan_zones where space_id = $1', [req.params.sid]);
+    await client.query('delete from floorplan_key_items where space_id = $1', [req.params.sid]);
+    for (const z of zones) {
+      await client.query(
+        `insert into floorplan_zones
+           (space_id, kind, label, position_top, position_left, position_right,
+            position_bottom, size_width, size_height, is_circle, edge_anchor, position)
+         values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+        [req.params.sid, z.kind, z.label, z.position_top, z.position_left, z.position_right,
+         z.position_bottom, z.size_width, z.size_height, z.is_circle, z.edge_anchor, z.position],
+      );
+    }
+    for (const k of keys) {
+      await client.query(
+        `insert into floorplan_key_items (space_id, name, detail, position)
+         values ($1, $2, $3, $4)`,
+        [req.params.sid, k.name, k.detail, k.position],
+      );
+    }
+    await client.query('commit');
+
+    setFlash(req, 'success', `Saved ${spaceData.title}.`);
+    res.redirect(`/admin/couples/${couple.id}/floor-plan`);
+  } catch (err) {
+    await client.query('rollback').catch(() => {});
+    next(err);
+  } finally {
+    client.release();
+  }
+});
+
+router.post('/couples/:id/floor-plan/:sid/delete', async (req, res, next) => {
+  try {
+    const { rows } = await pool.query(
+      'delete from floorplan_spaces where id = $1 and couple_id = $2 returning title',
+      [req.params.sid, req.params.id],
+    );
+    if (rows[0]) setFlash(req, 'success', `Removed ${rows[0].title}.`);
+    res.redirect(`/admin/couples/${req.params.id}/floor-plan`);
   } catch (err) { next(err); }
 });
 

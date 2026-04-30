@@ -294,9 +294,66 @@ router.get('/p/:slug/timeline', async (req, res, next) => {
   }
 });
 
-router.get('/p/:slug/floor-plan', (_req, res) =>
-  res.render('floor-plan', { currentPage: 'floor-plan' }),
-);
+router.get('/p/:slug/floor-plan', async (req, res, next) => {
+  try {
+    const coupleId = res.locals.couple.id;
+
+    const [spacesRes, zonesRes, keysRes] = await Promise.all([
+      pool.query(
+        'select * from floorplan_spaces where couple_id = $1 order by position asc',
+        [coupleId],
+      ),
+      pool.query(
+        `select z.*
+           from floorplan_zones z
+           join floorplan_spaces s on s.id = z.space_id
+          where s.couple_id = $1
+          order by z.position asc`,
+        [coupleId],
+      ),
+      pool.query(
+        `select k.*
+           from floorplan_key_items k
+           join floorplan_spaces s on s.id = k.space_id
+          where s.couple_id = $1
+          order by k.position asc`,
+        [coupleId],
+      ),
+    ]);
+
+    const spaces = spacesRes.rows;
+    const zones = zonesRes.rows;
+    const keys = keysRes.rows;
+
+    const zonesBySpace = new Map();
+    for (const z of zones) {
+      const list = zonesBySpace.get(z.space_id) || [];
+      list.push(z);
+      zonesBySpace.set(z.space_id, list);
+    }
+    const keysBySpace = new Map();
+    for (const k of keys) {
+      const list = keysBySpace.get(k.space_id) || [];
+      list.push(k);
+      keysBySpace.set(k.space_id, list);
+    }
+
+    const totalFootprint = spaces.reduce((s, sp) => s + (sp.square_feet || 0), 0);
+
+    res.render('floor-plan', {
+      currentPage: 'floor-plan',
+      spaces,
+      zonesBySpace,
+      keysBySpace,
+      summary: {
+        spaceCount: spaces.length,
+        totalFootprint,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
 
 router.get('/p/:slug/guest-list', async (req, res, next) => {
   try {

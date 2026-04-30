@@ -54,6 +54,13 @@ create table if not exists couples (
   timeline_lastcall_time   text,
   timeline_lastcall_note   text,
 
+  -- Floor-plan editorial copy — the "Walkthrough" stat at the top of
+  -- /floor-plan ("9.26" + "Final at 10 AM"). The Venue, Spaces, and
+  -- Footprint stats are derived from the venue_* columns above and
+  -- the floorplan_spaces rows.
+  floorplan_walkthrough_date text,
+  floorplan_walkthrough_note text,
+
   created_at      timestamptz not null default now(),
   updated_at      timestamptz not null default now()
 );
@@ -67,6 +74,8 @@ alter table couples add column if not exists timeline_ceremony_time text;
 alter table couples add column if not exists timeline_ceremony_note text;
 alter table couples add column if not exists timeline_lastcall_time text;
 alter table couples add column if not exists timeline_lastcall_note text;
+alter table couples add column if not exists floorplan_walkthrough_date text;
+alter table couples add column if not exists floorplan_walkthrough_note text;
 
 create index if not exists couples_slug_idx on couples(slug);
 
@@ -337,3 +346,81 @@ create table if not exists timeline_events (
 );
 
 create index if not exists timeline_events_phase_id_idx on timeline_events(phase_id);
+
+-- ── Floor-plan venue spaces ──────────────────────────────────────────────
+--
+-- One row per CSS-rendered top-down schematic on /floor-plan. The static
+-- mockup has three: Ocean Lawn (ceremony), Upper Lawn & Loggia
+-- (cocktails), Garden Ballroom (reception). `edge_top_label` is the
+-- optional flavor caption pinned to the top edge of the schematic
+-- ("Pacific Ocean", "Bougainvillea wall"). `location_label` is the
+-- one-line meta string ("Outdoor", "Indoor", "Outdoor & covered").
+
+create table if not exists floorplan_spaces (
+  id              uuid primary key default gen_random_uuid(),
+  couple_id       uuid not null references couples(id) on delete cascade,
+
+  eyebrow         text,                  -- "Phase 03 · 4:00 PM"
+  title           text not null,         -- "The Ocean Lawn"
+  capacity        integer,               -- 60
+  square_feet     integer,               -- 2400
+  location_label  text,                   -- "Outdoor" / "Indoor" / "Outdoor & covered"
+  edge_top_label  text,                   -- "Pacific Ocean", "Bougainvillea wall"
+
+  position        integer not null default 0,
+  created_at      timestamptz not null default now(),
+  updated_at      timestamptz not null default now()
+);
+
+create index if not exists floorplan_spaces_couple_id_idx on floorplan_spaces(couple_id);
+
+-- ── Floor-plan zones (the positioned shapes inside the schematic) ────────
+--
+-- Each zone has a `kind` that drives the colored treatment on the page
+-- (arch, stage, chairs, aisle, service, bar, hightop, dance, table,
+-- head-table, door). Position + size are stored as raw CSS strings
+-- ("12%", "8%", null when not used); the public page renders them into
+-- the inline `style` attribute exactly as written. `is_circle` adds
+-- aspect-ratio: 1 for high-tops and round dinner tables. `edge_anchor`
+-- is the optional dashed-edge variant for door markers
+-- ("bottom-edge" today; could grow to "top-edge"/"left-edge" later).
+
+create table if not exists floorplan_zones (
+  id              uuid primary key default gen_random_uuid(),
+  space_id        uuid not null references floorplan_spaces(id) on delete cascade,
+
+  kind            text not null,           -- arch | stage | chairs | aisle | service |
+                                            -- bar | hightop | dance | table | head-table | door
+  label           text,                     -- "The arch", "01", "L · 24 chairs · 6 rows"
+
+  position_top    text,                     -- "12%"
+  position_left   text,                     -- "38%"
+  position_right  text,                     -- "1%" (rare)
+  position_bottom text,                     -- "1%" (for bottom-edge doors)
+  size_width      text,                     -- "24%"
+  size_height     text,                     -- "6%" (or null when is_circle)
+  is_circle       boolean not null default false,
+  edge_anchor     text,                     -- 'bottom-edge' | null
+
+  position        integer not null default 0,
+  created_at      timestamptz not null default now(),
+  updated_at      timestamptz not null default now()
+);
+
+create index if not exists floorplan_zones_space_id_idx on floorplan_zones(space_id);
+
+-- ── Floor-plan key items (the numbered legend below each schematic) ──────
+
+create table if not exists floorplan_key_items (
+  id              uuid primary key default gen_random_uuid(),
+  space_id        uuid not null references floorplan_spaces(id) on delete cascade,
+
+  name            text not null,           -- "The arch"
+  detail          text,                     -- "Olive branches, ivory ribbon — built on site..."
+
+  position        integer not null default 0,
+  created_at      timestamptz not null default now(),
+  updated_at      timestamptz not null default now()
+);
+
+create index if not exists floorplan_key_items_space_id_idx on floorplan_key_items(space_id);

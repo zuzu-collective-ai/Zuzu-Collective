@@ -494,6 +494,50 @@ code {
   .admin-event-row-line .admin-field { max-width: 100% !important; }
 }
 
+/* ── Inline floor-plan zone + key rows ──────────────────────────────────── */
+
+.admin-zone-rows,
+.admin-key-rows {
+  display: grid;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.admin-zone-row {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid var(--zz-finn-20);
+  border-radius: 2px;
+}
+
+.admin-zone-row-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: end;
+}
+.admin-zone-row-line .admin-field--inline { margin: 0; }
+
+.admin-key-row {
+  display: grid;
+  grid-template-columns: 1fr 2fr auto;
+  gap: 0.5rem;
+  align-items: end;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid var(--zz-finn-20);
+  border-radius: 2px;
+}
+
+@media (max-width: 760px) {
+  .admin-zone-row-line { flex-direction: column; align-items: stretch; }
+  .admin-zone-row-line .admin-field { max-width: 100% !important; }
+  .admin-key-row { grid-template-columns: 1fr; }
+  .admin-key-row [data-remove] { justify-self: end; }
+}
+
 .admin-field-help {
   font-size: 0.85rem;
   color: var(--zz-tobacco);

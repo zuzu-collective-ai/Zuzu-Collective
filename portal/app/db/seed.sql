@@ -38,6 +38,12 @@ update couples set
   timeline_lastcall_note = coalesce(timeline_lastcall_note, 'Sparkler send-off')
  where slug = 'alicia-and-jack-2026';
 
+-- Floor-plan walkthrough stat-note — same backfill pattern.
+update couples set
+  floorplan_walkthrough_date = coalesce(floorplan_walkthrough_date, '9.26'),
+  floorplan_walkthrough_note = coalesce(floorplan_walkthrough_note, 'Final at 10 AM')
+ where slug = 'alicia-and-jack-2026';
+
 -- ── Vendors — 17-row Alicia & Jack roster ──────────────────────────────
 do $$
 declare
@@ -662,4 +668,113 @@ begin
     (p_sendoff, '10:25', 'PM', 'Last call at the bar',                  null,                      'La Playa Catering',           null, null, 1),
     (p_sendoff, '10:30', 'PM', 'Sparkler send-off down the drive',     'Front porte-cochère',      'Zuzu Collective',             null, null, 2),
     (p_sendoff, '10:45', 'PM', 'Couple departs in vintage town car',    null,                      'Carmel Coast Transportation', null, null, 3);
+end $$;
+
+-- ── Floor plan — Alicia & Jack's three venue spaces ────────────────────
+--
+-- Mirrors the static mockup: Ocean Lawn (ceremony, 7 zones, 7 key items),
+-- Upper Lawn & Loggia (cocktails, 11 zones, 6 key items), Garden Ballroom
+-- (reception, 16 zones, 9 key items). Position values are CSS percentages
+-- copied verbatim from the mockup so the rendered page is pixel-identical
+-- to the hand-built one.
+
+do $$
+declare
+  aj_id uuid;
+  has_floorplan boolean;
+  s_ocean uuid; s_upper uuid; s_ballroom uuid;
+begin
+  select id into aj_id from couples where slug = 'alicia-and-jack-2026';
+  if aj_id is null then return; end if;
+
+  select exists(select 1 from floorplan_spaces where couple_id = aj_id) into has_floorplan;
+  if has_floorplan then return; end if;
+
+  insert into floorplan_spaces (couple_id, eyebrow, title, capacity, square_feet, location_label, edge_top_label, position) values
+    (aj_id, 'Phase 03 · 4:00 PM', 'The Ocean Lawn',           60,  2400, 'Outdoor',             'Pacific Ocean',     1),
+    (aj_id, 'Phase 04 · 4:30 PM', 'The Upper Lawn & Loggia', 120,  2200, 'Outdoor & covered',   'Bougainvillea wall', 2),
+    (aj_id, 'Phase 05 · 5:30 PM', 'The Garden Ballroom',     124,  3800, 'Indoor',              null,                3);
+
+  select id into s_ocean    from floorplan_spaces where couple_id = aj_id and position = 1;
+  select id into s_upper    from floorplan_spaces where couple_id = aj_id and position = 2;
+  select id into s_ballroom from floorplan_spaces where couple_id = aj_id and position = 3;
+
+  -- ── Ocean Lawn — zones ──────────────────────────────────────────────
+  insert into floorplan_zones (space_id, kind, label, position_top, position_left, size_width, size_height, position) values
+    (s_ocean, 'arch',    'The arch',              '12%', '38%', '24%', '6%',  1),
+    (s_ocean, 'stage',   'Officiant',             '21%', '44%', '12%', '6%',  2),
+    (s_ocean, 'chairs',  'Bridal party · L',      '21%', '26%', '16%', '6%',  3),
+    (s_ocean, 'chairs',  'Bridal party · R',      '21%', '58%', '16%', '6%',  4),
+    (s_ocean, 'aisle',   'Aisle',                 '30%', '47%', '6%',  '56%', 5),
+    (s_ocean, 'chairs',  'L · 24 chairs · 6 rows','30%', '16%', '30%', '56%', 6),
+    (s_ocean, 'chairs',  'R · 24 chairs · 6 rows','30%', '54%', '30%', '56%', 7),
+    (s_ocean, 'stage',   'Photographer',          '90%', '46%', '8%',  '6%',  8),
+    (s_ocean, 'service', 'Confetti',              '30%', '8%',  '6%',  '6%',  9),
+    (s_ocean, 'service', 'Confetti',              '30%', '86%', '6%',  '6%',  10);
+
+  -- ── Ocean Lawn — key items ──────────────────────────────────────────
+  insert into floorplan_key_items (space_id, name, detail, position) values
+    (s_ocean, 'The arch',                'Olive branches, ivory ribbon — built on site by the florist 2:30 PM.',           1),
+    (s_ocean, 'Officiant mark',          'Reverend Diane Marquez, slightly off-center for the photo composition.',         2),
+    (s_ocean, 'Bridal party flanks',     'Three on each side — angled inward toward the couple.',                          3),
+    (s_ocean, 'The aisle',               '4 ft wide, lined with bud vases on every other row.',                            4),
+    (s_ocean, 'Guest seating',           '48 white folding chairs — six rows of four per side.',                           5),
+    (s_ocean, 'Photographer position',   'Iris & Light from the rear; second shooter floats the side aisles.',             6),
+    (s_ocean, 'Confetti pouches',        'Dried lavender in linen pouches — set on every other chair, both sides.',        7);
+
+  -- ── Upper Lawn & Loggia — zones ─────────────────────────────────────
+  insert into floorplan_zones (space_id, kind, label, position_top, position_left, position_bottom, size_width, size_height, is_circle, edge_anchor, position) values
+    (s_upper, 'bar',     'Main bar',              '30%', '4%',   null, '8%',  '40%', false, null,           1),
+    (s_upper, 'stage',   'Carmel Strings · trio', '10%', '38%',  null, '24%', '8%',  false, null,           2),
+    (s_upper, 'service', 'Pass · L',              '30%', '24%',  null, '12%', '8%',  false, null,           3),
+    (s_upper, 'service', 'Pass · R',              '30%', '64%',  null, '12%', '8%',  false, null,           4),
+    (s_upper, 'hightop', '01',                    '48%', '22%',  null, '8%',  null,  true,  null,           5),
+    (s_upper, 'hightop', '02',                    '48%', '38%',  null, '8%',  null,  true,  null,           6),
+    (s_upper, 'hightop', '03',                    '48%', '54%',  null, '8%',  null,  true,  null,           7),
+    (s_upper, 'hightop', '04',                    '48%', '70%',  null, '8%',  null,  true,  null,           8),
+    (s_upper, 'hightop', '05',                    '70%', '30%',  null, '8%',  null,  true,  null,           9),
+    (s_upper, 'hightop', '06',                    '70%', '62%',  null, '8%',  null,  true,  null,           10),
+    (s_upper, 'service', 'Signature pour',        '30%', '84%',  null, '12%', '14%', false, null,           11),
+    (s_upper, 'door',    'To reception',          null,  '44%',  '1%', '12%', '5%',  false, 'bottom-edge', 12);
+
+  -- ── Upper Lawn & Loggia — key items ─────────────────────────────────
+  insert into floorplan_key_items (space_id, name, detail, position) values
+    (s_upper, 'Main bar',                       'Two bartenders — Carmel mule and sage gimlet on the chalkboard.',         1),
+    (s_upper, 'Carmel Strings · trio',          'Acoustic, no amp — set under the bougainvillea, 4:55 PM start.',          2),
+    (s_upper, 'Hors d''oeuvres pass stations',  'Six passed bites on linen trays — staged left and right of the trio.',    3),
+    (s_upper, 'Cocktail high-tops',             'Six 32" rounds with linen drapes and a single bud vase each.',            4),
+    (s_upper, 'Signature pour station',         'A small batched cocktail run by the captain — no line, no queue.',        5),
+    (s_upper, 'Path to the Garden Ballroom',    'Lit at 5:15 PM with hurricane lanterns lining the way.',                  6);
+
+  -- ── Garden Ballroom — zones ─────────────────────────────────────────
+  insert into floorplan_zones (space_id, kind, label, position_top, position_left, position_right, position_bottom, size_width, size_height, is_circle, edge_anchor, position) values
+    (s_ballroom, 'door',       'Catering',  '1%',  '70%', null, null, '16%', '4%',  false, null,           1),
+    (s_ballroom, 'stage',      'DJ',        '10%', '44%', null, null, '12%', '7%',  false, null,           2),
+    (s_ballroom, 'bar',        'Bar',       '26%', '3%',  null, null, '6%',  '40%', false, null,           3),
+    (s_ballroom, 'service',    'Cake',      '12%', '86%', null, null, '11%', '12%', false, null,           4),
+    (s_ballroom, 'dance',      'Dance',     '38%', '40%', null, null, '22%', '24%', false, null,           5),
+    (s_ballroom, 'table',      '02',        '22%', '16%', null, null, '11%', null,  true,  null,           6),
+    (s_ballroom, 'table',      '03',        '22%', '30%', null, null, '11%', null,  true,  null,           7),
+    (s_ballroom, 'table',      '04',        '22%', '60%', null, null, '11%', null,  true,  null,           8),
+    (s_ballroom, 'table',      '05',        '22%', '74%', null, null, '11%', null,  true,  null,           9),
+    (s_ballroom, 'table',      '06',        '42%', '18%', null, null, '11%', null,  true,  null,           10),
+    (s_ballroom, 'table',      '07',        '42%', '71%', null, null, '11%', null,  true,  null,           11),
+    (s_ballroom, 'head-table', '01',        '66%', '36%', null, null, '30%', '8%',  false, null,           12),
+    (s_ballroom, 'table',      '08',        '78%', '18%', null, null, '11%', null,  true,  null,           13),
+    (s_ballroom, 'table',      '09',        '78%', '71%', null, null, '11%', null,  true,  null,           14),
+    (s_ballroom, 'table',      '10',        '78%', '4%',  null, null, '11%', null,  true,  null,           15),
+    (s_ballroom, 'service',    'WC',        '50%', null,  '1%', null, '4%',  '16%', false, null,           16),
+    (s_ballroom, 'door',       'Entrance',  null,  '42%', null, '1%', '16%', '4%',  false, 'bottom-edge', 17);
+
+  -- ── Garden Ballroom — key items ─────────────────────────────────────
+  insert into floorplan_key_items (space_id, name, detail, position) values
+    (s_ballroom, 'Cypress · the head table', 'Oval, eight seats — the couple, both sets of parents, sister and brother. Faces the dance floor.', 1),
+    (s_ballroom, 'DJ · West Coast Sound',    'Booth at the back of the dance floor, low profile, no logo banners.',                              2),
+    (s_ballroom, 'Bar',                       '12-foot service bar along the loggia wall. Two bartenders + a barback.',                          3),
+    (s_ballroom, 'Cake table',                'Three-tier almond cake with fig & honey. Wheeled to dance-floor edge for the cut at 7:45.',       4),
+    (s_ballroom, 'Dance floor',               '22 ft × 24 ft parquet over the existing carpet. Centerpiece string lights overhead.',             5),
+    (s_ballroom, 'Round tables',              'Nine 60" rounds (8–10 seats each). Linen runners, taper candles, low ivory florals.',             6),
+    (s_ballroom, 'Catering ingress',          'Back-of-house double doors — used for plated dinner service and late-night bites.',               7),
+    (s_ballroom, 'Guest entrance',            'From the lit garden path. Place cards at the entry hung on a brass rod with linen ribbon.',       8),
+    (s_ballroom, 'Restrooms',                 'Just off the right-hand wall — signage in the venue''s house typeface.',                          9);
 end $$;
