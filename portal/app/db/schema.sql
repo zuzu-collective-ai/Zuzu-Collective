@@ -44,6 +44,16 @@ create table if not exists couples (
   -- pick function converts before storing.
   budget_total_cents integer not null default 0,
 
+  -- Timeline editorial copy — the four stat-notes at the top of /timeline.
+  -- Stored as plain text so Zoe can write whatever's most accurate
+  -- ("4:00" / "Sunset 6:32 PM" / "10:30" / "Sparkler send-off"). Keeping
+  -- these here rather than deriving from events lets the headline read
+  -- as flavor copy independent of the run-of-show timing.
+  timeline_ceremony_time   text,
+  timeline_ceremony_note   text,
+  timeline_lastcall_time   text,
+  timeline_lastcall_note   text,
+
   created_at      timestamptz not null default now(),
   updated_at      timestamptz not null default now()
 );
@@ -53,6 +63,10 @@ create table if not exists couples (
 -- entirely on re-run, so we make sure the column is here for fresh
 -- installs and add it to existing tables on Render.
 alter table couples add column if not exists budget_total_cents integer not null default 0;
+alter table couples add column if not exists timeline_ceremony_time text;
+alter table couples add column if not exists timeline_ceremony_note text;
+alter table couples add column if not exists timeline_lastcall_time text;
+alter table couples add column if not exists timeline_lastcall_note text;
 
 create index if not exists couples_slug_idx on couples(slug);
 
@@ -269,3 +283,57 @@ create table if not exists checklist_tasks (
 );
 
 create index if not exists checklist_tasks_milestone_id_idx on checklist_tasks(milestone_id);
+
+-- ── Timeline phases ──────────────────────────────────────────────────────
+--
+-- Six (or however many) phases of the wedding day. The static mockup
+-- has Getting ready / First look / Ceremony / Cocktail hour / Reception
+-- / Send-off, with the ceremony and send-off styled differently —
+-- `variant` carries that style hint (standard | ceremony | sendoff)
+-- so the page can highlight them without inferring from the title.
+
+create table if not exists timeline_phases (
+  id            uuid primary key default gen_random_uuid(),
+  couple_id     uuid not null references couples(id) on delete cascade,
+
+  phase_number  integer not null,            -- 1..N; surfaces as "Phase 01"
+  title         text not null,               -- "Getting ready"
+  window_text   text,                         -- "8:00 AM – 1:00 PM"
+  note_text     text,                         -- the longer paragraph
+  variant       text not null default 'standard', -- standard | ceremony | sendoff
+
+  position      integer not null default 0,
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now()
+);
+
+create index if not exists timeline_phases_couple_id_idx on timeline_phases(couple_id);
+create unique index if not exists timeline_phases_couple_number_uq on timeline_phases(couple_id, phase_number);
+
+-- ── Timeline events ──────────────────────────────────────────────────────
+--
+-- One row per event under a phase. `time_text` is the display string
+-- ("8:00", "12:30") and `meridiem` is the small caps suffix ("AM"/"PM");
+-- separate columns so the public page can render the meridiem in its
+-- own typographic treatment without parsing strings. The three optional
+-- meta lines (where / lead / with) match the labels used on the mockup.
+
+create table if not exists timeline_events (
+  id            uuid primary key default gen_random_uuid(),
+  phase_id      uuid not null references timeline_phases(id) on delete cascade,
+
+  time_text     text not null,                 -- "8:00", "12:30", "4:25"
+  meridiem      text,                           -- "AM" / "PM"
+  title         text not null,                  -- "Hair and makeup begins"
+
+  where_label   text,                           -- "Bridal suite, La Playa"
+  lead_label    text,                           -- "Belle Âme Beauty · 5 stations"
+  with_label    text,                           -- "Mom and maid of honor"
+  note_text     text,                           -- italic note paragraph
+
+  position      integer not null default 0,
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now()
+);
+
+create index if not exists timeline_events_phase_id_idx on timeline_events(phase_id);

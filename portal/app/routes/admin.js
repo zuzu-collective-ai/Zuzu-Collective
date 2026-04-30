@@ -45,6 +45,10 @@ const COUPLE_FIELDS = [
   'intro_text',
   'intro_tagline',
   'budget_total_cents',
+  'timeline_ceremony_time',
+  'timeline_ceremony_note',
+  'timeline_lastcall_time',
+  'timeline_lastcall_note',
 ];
 
 // Currency parsing — admin enters dollars (e.g. "120000", "$120,000",
@@ -1269,6 +1273,256 @@ router.post('/couples/:id/checklist/:mid/delete', async (req, res, next) => {
     );
     if (rows[0]) setFlash(req, 'success', `Removed ${rows[0].title}.`);
     res.redirect(`/admin/couples/${req.params.id}/checklist`);
+  } catch (err) { next(err); }
+});
+
+// ── Timeline (per couple — phases with inline events) ─────────────────
+
+const TIMELINE_VARIANTS = ['standard', 'ceremony', 'sendoff'];
+
+// events[i] = { id?, time_text, meridiem, title, where_label, lead_label,
+//               with_label, note_text, position }. Empty rows (no title) skipped.
+function parseEventsFromBody(body) {
+  const raw = body.events || {};
+  const indices = Object.keys(raw)
+    .map(Number)
+    .filter(n => !Number.isNaN(n))
+    .sort((a, b) => a - b);
+  return indices
+    .map(i => raw[i])
+    .filter(e => e && e.title && e.title.trim().length > 0)
+    .map((e, idx) => ({
+      id: e.id || null,
+      time_text: e.time_text?.trim() || '',
+      meridiem: e.meridiem?.trim() || null,
+      title: e.title.trim(),
+      where_label: e.where_label?.trim() || null,
+      lead_label: e.lead_label?.trim() || null,
+      with_label: e.with_label?.trim() || null,
+      note_text: e.note_text?.trim() || null,
+      position: idx + 1,
+    }));
+}
+
+router.get('/couples/:id/timeline', async (req, res, next) => {
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+
+    const { rows: phases } = await pool.query(
+      `select p.*,
+              coalesce(sums.event_count, 0)::int as event_count
+         from timeline_phases p
+         left join (
+           select phase_id, count(*) as event_count
+             from timeline_events
+            group by phase_id
+         ) sums on sums.phase_id = p.id
+        where p.couple_id = $1
+        order by p.position asc, p.phase_number asc`,
+      [couple.id],
+    );
+    res.render('admin/timeline-phases-list', {
+      couple,
+      phases,
+      flash: consumeFlash(req),
+    });
+  } catch (err) { next(err); }
+});
+
+router.get('/couples/:id/timeline/new', async (req, res, next) => {
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+
+    const { rows } = await pool.query(
+      'select coalesce(max(phase_number), 0) + 1 as next_num from timeline_phases where couple_id = $1',
+      [couple.id],
+    );
+
+    res.render('admin/timeline-phase-form', {
+      couple,
+      phase: null,
+      events: [],
+      suggestedNumber: rows[0].next_num,
+      formAction: `/admin/couples/${couple.id}/timeline`,
+      variants: TIMELINE_VARIANTS,
+      error: null,
+      flash: consumeFlash(req),
+    });
+  } catch (err) { next(err); }
+});
+
+router.get('/couples/:id/timeline/:pid', async (req, res, next) => {
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+
+    const { rows: phaseRows } = await pool.query(
+      'select * from timeline_phases where id = $1 and couple_id = $2',
+      [req.params.pid, couple.id],
+    );
+    if (!phaseRows[0]) return res.status(404).send('Phase not found.');
+
+    const { rows: events } = await pool.query(
+      'select * from timeline_events where phase_id = $1 order by position asc',
+      [phaseRows[0].id],
+    );
+
+    res.render('admin/timeline-phase-form', {
+      couple,
+      phase: phaseRows[0],
+      events,
+      suggestedNumber: phaseRows[0].phase_number,
+      formAction: `/admin/couples/${couple.id}/timeline/${phaseRows[0].id}`,
+      variants: TIMELINE_VARIANTS,
+      error: null,
+      flash: consumeFlash(req),
+    });
+  } catch (err) { next(err); }
+});
+
+router.post('/couples/:id/timeline', async (req, res, next) => {
+  const client = await pool.connect();
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+
+    const phaseData = {
+      phase_number: parseInt(req.body.phase_number, 10),
+      title: req.body.title?.trim() || '',
+      window_text: req.body.window_text?.trim() || null,
+      note_text: req.body.note_text?.trim() || null,
+      variant: TIMELINE_VARIANTS.includes(req.body.variant) ? req.body.variant : 'standard',
+      position: parseInt(req.body.position, 10) || 0,
+    };
+    const events = parseEventsFromBody(req.body);
+
+    if (!phaseData.title || !phaseData.phase_number) {
+      return res.status(400).render('admin/timeline-phase-form', {
+        couple,
+        phase: phaseData,
+        events,
+        suggestedNumber: phaseData.phase_number || 1,
+        formAction: `/admin/couples/${couple.id}/timeline`,
+        variants: TIMELINE_VARIANTS,
+        error: 'Phase number and title are required.',
+        flash: null,
+      });
+    }
+
+    await client.query('begin');
+    const { rows } = await client.query(
+      `insert into timeline_phases
+         (couple_id, phase_number, title, window_text, note_text, variant, position)
+       values ($1, $2, $3, $4, $5, $6, $7) returning id`,
+      [couple.id, phaseData.phase_number, phaseData.title, phaseData.window_text,
+       phaseData.note_text, phaseData.variant, phaseData.position],
+    );
+    const phaseId = rows[0].id;
+    for (const ev of events) {
+      await client.query(
+        `insert into timeline_events
+           (phase_id, time_text, meridiem, title, where_label, lead_label,
+            with_label, note_text, position)
+         values ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        [phaseId, ev.time_text, ev.meridiem, ev.title, ev.where_label,
+         ev.lead_label, ev.with_label, ev.note_text, ev.position],
+      );
+    }
+    await client.query('commit');
+
+    setFlash(req, 'success', `Added ${phaseData.title} (${events.length} event${events.length === 1 ? '' : 's'}).`);
+    res.redirect(`/admin/couples/${couple.id}/timeline`);
+  } catch (err) {
+    await client.query('rollback').catch(() => {});
+    if (err.code === '23505') {
+      return res.status(400).render('admin/timeline-phase-form', {
+        couple: await findCoupleById(req.params.id),
+        phase: { ...req.body },
+        events: parseEventsFromBody(req.body),
+        suggestedNumber: parseInt(req.body.phase_number, 10) || 1,
+        formAction: `/admin/couples/${req.params.id}/timeline`,
+        variants: TIMELINE_VARIANTS,
+        error: 'That phase number is already in use for this couple.',
+        flash: null,
+      });
+    }
+    next(err);
+  } finally {
+    client.release();
+  }
+});
+
+router.post('/couples/:id/timeline/:pid', async (req, res, next) => {
+  const client = await pool.connect();
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+
+    const phaseData = {
+      phase_number: parseInt(req.body.phase_number, 10),
+      title: req.body.title?.trim() || '',
+      window_text: req.body.window_text?.trim() || null,
+      note_text: req.body.note_text?.trim() || null,
+      variant: TIMELINE_VARIANTS.includes(req.body.variant) ? req.body.variant : 'standard',
+      position: parseInt(req.body.position, 10) || 0,
+    };
+    const events = parseEventsFromBody(req.body);
+
+    if (!phaseData.title || !phaseData.phase_number) {
+      return res.status(400).redirect(`/admin/couples/${couple.id}/timeline/${req.params.pid}`);
+    }
+
+    await client.query('begin');
+    const { rowCount } = await client.query(
+      `update timeline_phases set
+         phase_number = $1, title = $2, window_text = $3, note_text = $4,
+         variant = $5, position = $6, updated_at = now()
+       where id = $7 and couple_id = $8`,
+      [phaseData.phase_number, phaseData.title, phaseData.window_text, phaseData.note_text,
+       phaseData.variant, phaseData.position, req.params.pid, couple.id],
+    );
+    if (rowCount === 0) {
+      await client.query('rollback');
+      return res.status(404).send('Phase not found.');
+    }
+
+    await client.query('delete from timeline_events where phase_id = $1', [req.params.pid]);
+    for (const ev of events) {
+      await client.query(
+        `insert into timeline_events
+           (phase_id, time_text, meridiem, title, where_label, lead_label,
+            with_label, note_text, position)
+         values ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        [req.params.pid, ev.time_text, ev.meridiem, ev.title, ev.where_label,
+         ev.lead_label, ev.with_label, ev.note_text, ev.position],
+      );
+    }
+    await client.query('commit');
+
+    setFlash(req, 'success', `Saved ${phaseData.title}.`);
+    res.redirect(`/admin/couples/${couple.id}/timeline`);
+  } catch (err) {
+    await client.query('rollback').catch(() => {});
+    if (err.code === '23505') {
+      setFlash(req, 'error', 'That phase number is already in use for this couple.');
+      return res.redirect(`/admin/couples/${req.params.id}/timeline/${req.params.pid}`);
+    }
+    next(err);
+  } finally {
+    client.release();
+  }
+});
+
+router.post('/couples/:id/timeline/:pid/delete', async (req, res, next) => {
+  try {
+    const { rows } = await pool.query(
+      'delete from timeline_phases where id = $1 and couple_id = $2 returning title',
+      [req.params.pid, req.params.id],
+    );
+    if (rows[0]) setFlash(req, 'success', `Removed ${rows[0].title}.`);
+    res.redirect(`/admin/couples/${req.params.id}/timeline`);
   } catch (err) { next(err); }
 });
 

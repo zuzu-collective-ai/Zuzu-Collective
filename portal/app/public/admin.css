@@ -464,6 +464,36 @@ code {
   .admin-task-row [data-remove] { grid-column: 1 / -1; justify-self: end; }
 }
 
+/* ── Inline timeline event rows ─────────────────────────────────────────── */
+
+.admin-event-rows {
+  display: grid;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.admin-event-row {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid var(--zz-finn-20);
+  border-radius: 2px;
+}
+
+.admin-event-row-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: end;
+}
+.admin-event-row-line .admin-field--inline { margin: 0; }
+
+@media (max-width: 760px) {
+  .admin-event-row-line { flex-direction: column; align-items: stretch; }
+  .admin-event-row-line .admin-field { max-width: 100% !important; }
+}
+
 .admin-field-help {
   font-size: 0.85rem;
   color: var(--zz-tobacco);

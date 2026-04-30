@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include('partials/head', { title: `${couple.display_name} — ${phase ? phase.title : 'New phase'}` }) %>
+<body class="admin-body">
+
+  <%- include('partials/sidebar', { currentSection: 'couples' }) %>
+
+  <main class="admin-main">
+    <header class="admin-header">
+      <div>
+        <a href="/admin/couples/<%= couple.id %>/timeline" class="admin-back">← <%= couple.display_name %> · timeline</a>
+        <h1 class="admin-title">
+          <%= phase ? phase.title : 'New phase' %>
+        </h1>
+      </div>
+    </header>
+
+    <%- include('partials/couple-tabs', { couple, currentTab: 'timeline' }) %>
+
+    <%- include('partials/flash', { flash }) %>
+
+    <% if (error) { %>
+      <div class="admin-flash admin-flash--error" role="alert"><%= error %></div>
+    <% } %>
+
+    <% const VARIANT_LABELS = { standard: 'Standard', ceremony: 'Ceremony · accent', sendoff: 'Send-off · celebratory close' }; %>
+
+    <form action="<%= formAction %>" method="post" class="admin-form">
+      <fieldset class="admin-fieldset">
+        <legend class="admin-legend">Phase</legend>
+
+        <div class="admin-row" style="display: grid; grid-template-columns: 110px 1fr 1fr 110px; gap: 1rem;">
+          <label class="admin-field">
+            <span class="admin-field-label">Number *</span>
+            <input type="number" name="phase_number" min="1"
+                   value="<%= phase?.phase_number ?? suggestedNumber %>" required>
+          </label>
+          <label class="admin-field">
+            <span class="admin-field-label">Title *</span>
+            <input type="text" name="title" required
+                   value="<%= phase?.title || '' %>" placeholder="Getting ready">
+          </label>
+          <label class="admin-field">
+            <span class="admin-field-label">Variant</span>
+            <select name="variant">
+              <% variants.forEach(v => { %>
+                <option value="<%= v %>" <%= phase?.variant === v ? 'selected' : '' %>><%= VARIANT_LABELS[v] || v %></option>
+              <% }) %>
+            </select>
+          </label>
+          <label class="admin-field">
+            <span class="admin-field-label">Position</span>
+            <input type="number" name="position" min="0" value="<%= phase?.position ?? 0 %>">
+          </label>
+        </div>
+
+        <label class="admin-field">
+          <span class="admin-field-label">Window</span>
+          <input type="text" name="window_text" value="<%= phase?.window_text || '' %>" placeholder="8:00 AM – 1:00 PM">
+          <span class="admin-field-help">Free text. Surfaces between the phase number and event count.</span>
+        </label>
+
+        <label class="admin-field">
+          <span class="admin-field-label">Note</span>
+          <textarea name="note_text" rows="3"><%= phase?.note_text || '' %></textarea>
+          <span class="admin-field-help">Editorial paragraph under the phase title.</span>
+        </label>
+      </fieldset>
+
+      <fieldset class="admin-fieldset">
+        <legend class="admin-legend">Events</legend>
+        <p class="admin-fieldset-note">
+          One row per event under this phase. <em>Time</em> is just the digits ("8:00", "12:30");
+          <em>Meridiem</em> is the small caps suffix. The three meta columns map to the
+          "Where", "With", and "Lead" labels on the public page.
+        </p>
+
+        <div id="event-rows" class="admin-event-rows">
+          <%
+            const initial = (events && events.length) ? events : [
+              { time_text: '', meridiem: 'AM', title: '', where_label: '', lead_label: '', with_label: '', note_text: '', position: 1 },
+            ];
+          %>
+          <% initial.forEach((ev, i) => { %>
+            <div class="admin-event-row" data-row>
+              <input type="hidden" name="events[<%= i %>][id]" value="<%= ev.id || '' %>">
+
+              <div class="admin-event-row-line">
+                <label class="admin-field admin-field--inline" style="max-width: 110px;">
+                  <span class="admin-field-label">Time</span>
+                  <input type="text" name="events[<%= i %>][time_text]" value="<%= ev.time_text || '' %>" placeholder="8:00">
+                </label>
+                <label class="admin-field admin-field--inline" style="max-width: 90px;">
+                  <span class="admin-field-label">Meridiem</span>
+                  <select name="events[<%= i %>][meridiem]">
+                    <option value=""></option>
+                    <option value="AM" <%= ev.meridiem === 'AM' ? 'selected' : '' %>>AM</option>
+                    <option value="PM" <%= ev.meridiem === 'PM' ? 'selected' : '' %>>PM</option>
+                  </select>
+                </label>
+                <label class="admin-field admin-field--inline" style="flex: 1;">
+                  <span class="admin-field-label">Title</span>
+                  <input type="text" name="events[<%= i %>][title]" value="<%= ev.title || '' %>" placeholder="Hair and makeup begins">
+                </label>
+                <button type="button" class="admin-btn admin-btn--ghost admin-btn--small" data-remove>Remove</button>
+              </div>
+
+              <div class="admin-event-row-line">
+                <label class="admin-field admin-field--inline" style="flex: 1;">
+                  <span class="admin-field-label">Where</span>
+                  <input type="text" name="events[<%= i %>][where_label]" value="<%= ev.where_label || '' %>" placeholder="Bridal suite, La Playa">
+                </label>
+                <label class="admin-field admin-field--inline" style="flex: 1;">
+                  <span class="admin-field-label">With</span>
+                  <input type="text" name="events[<%= i %>][with_label]" value="<%= ev.with_label || '' %>" placeholder="Mom and maid of honor">
+                </label>
+                <label class="admin-field admin-field--inline" style="flex: 1;">
+                  <span class="admin-field-label">Lead</span>
+                  <input type="text" name="events[<%= i %>][lead_label]" value="<%= ev.lead_label || '' %>" placeholder="Iris &amp; Light Studio">
+                </label>
+              </div>
+
+              <label class="admin-field admin-field--inline">
+                <span class="admin-field-label">Note</span>
+                <input type="text" name="events[<%= i %>][note_text]" value="<%= ev.note_text || '' %>" placeholder="">
+              </label>
+            </div>
+          <% }) %>
+        </div>
+
+        <button type="button" id="add-event" class="admin-btn admin-btn--ghost">+ Add event</button>
+      </fieldset>
+
+      <div class="admin-form-actions">
+        <button type="submit" class="admin-btn admin-btn--primary">
+          <%= phase ? 'Save changes' : 'Add phase' %>
+        </button>
+        <a href="/admin/couples/<%= couple.id %>/timeline" class="admin-btn admin-btn--ghost">Cancel</a>
+      </div>
+    </form>
+
+    <% if (phase) { %>
+      <div class="admin-danger-zone">
+        <h2 class="admin-legend">Danger zone</h2>
+        <p>Remove this phase and all of its events from <%= couple.display_name %>'s timeline.</p>
+        <form action="/admin/couples/<%= couple.id %>/timeline/<%= phase.id %>/delete" method="post"
+              onsubmit="return confirm('Remove <%= phase.title %>? This cannot be undone.');">
+          <button type="submit" class="admin-btn admin-btn--danger">Remove phase</button>
+        </form>
+      </div>
+    <% } %>
+  </main>
+
+  <script>
+    (function () {
+      const container = document.getElementById('event-rows');
+      const addBtn = document.getElementById('add-event');
+      if (!container || !addBtn) return;
+
+      function nextIndex() {
+        return container.querySelectorAll('[data-row]').length;
+      }
+
+      function newRow() {
+        const i = nextIndex();
+        const row = document.createElement('div');
+        row.className = 'admin-event-row';
+        row.setAttribute('data-row', '');
+        row.innerHTML = `
+          <input type="hidden" name="events[${i}][id]" value="">
+          <div class="admin-event-row-line">
+            <label class="admin-field admin-field--inline" style="max-width: 110px;">
+              <span class="admin-field-label">Time</span>
+              <input type="text" name="events[${i}][time_text]" placeholder="8:00">
+            </label>
+            <label class="admin-field admin-field--inline" style="max-width: 90px;">
+              <span class="admin-field-label">Meridiem</span>
+              <select name="events[${i}][meridiem]">
+                <option value=""></option>
+                <option value="AM">AM</option>
+                <option value="PM">PM</option>
+              </select>
+            </label>
+            <label class="admin-field admin-field--inline" style="flex: 1;">
+              <span class="admin-field-label">Title</span>
+              <input type="text" name="events[${i}][title]" placeholder="Event title">
+            </label>
+            <button type="button" class="admin-btn admin-btn--ghost admin-btn--small" data-remove>Remove</button>
+          </div>
+          <div class="admin-event-row-line">
+            <label class="admin-field admin-field--inline" style="flex: 1;">
+              <span class="admin-field-label">Where</span>
+              <input type="text" name="events[${i}][where_label]" placeholder="">
+            </label>
+            <label class="admin-field admin-field--inline" style="flex: 1;">
+              <span class="admin-field-label">With</span>
+              <input type="text" name="events[${i}][with_label]" placeholder="">
+            </label>
+            <label class="admin-field admin-field--inline" style="flex: 1;">
+              <span class="admin-field-label">Lead</span>
+              <input type="text" name="events[${i}][lead_label]" placeholder="">
+            </label>
+          </div>
+          <label class="admin-field admin-field--inline">
+            <span class="admin-field-label">Note</span>
+            <input type="text" name="events[${i}][note_text]" placeholder="">
+          </label>
+        `;
+        container.appendChild(row);
+      }
+
+      addBtn.addEventListener('click', newRow);
+      container.addEventListener('click', (e) => {
+        if (e.target.matches('[data-remove]')) {
+          const row = e.target.closest('[data-row]');
+          if (row) row.remove();
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

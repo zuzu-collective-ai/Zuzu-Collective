@@ -29,6 +29,15 @@ on conflict (slug) do nothing;
 update couples set budget_total_cents = 12000000
  where slug = 'alicia-and-jack-2026' and budget_total_cents = 0;
 
+-- Same for the timeline editorial stat-notes — backfill on already-
+-- deployed databases so the headline copy reads as designed.
+update couples set
+  timeline_ceremony_time = coalesce(timeline_ceremony_time, '4:00'),
+  timeline_ceremony_note = coalesce(timeline_ceremony_note, 'Sunset 6:32 PM'),
+  timeline_lastcall_time = coalesce(timeline_lastcall_time, '10:30'),
+  timeline_lastcall_note = coalesce(timeline_lastcall_note, 'Sparkler send-off')
+ where slug = 'alicia-and-jack-2026';
+
 -- ── Vendors — 17-row Alicia & Jack roster ──────────────────────────────
 do $$
 declare
@@ -569,4 +578,88 @@ begin
   insert into checklist_tasks (milestone_id, name, sub_text, is_done, position) values
     (m11, 'Hair & makeup', null, false, 1),
     (m11, 'Get married',   null, false, 2);
+end $$;
+
+-- ── Timeline — Alicia & Jack's six-phase day-of run-of-show ────────────
+--
+-- Mirrors the static mockup: 6 phases, 30 events. The Ceremony and
+-- Send-off phases are flagged with variants so the public page can
+-- style them as accent / celebratory close.
+
+do $$
+declare
+  aj_id uuid;
+  has_timeline boolean;
+
+  p_ready uuid; p_first uuid; p_ceremony uuid;
+  p_cocktail uuid; p_reception uuid; p_sendoff uuid;
+begin
+  select id into aj_id from couples where slug = 'alicia-and-jack-2026';
+  if aj_id is null then return; end if;
+
+  select exists(select 1 from timeline_phases where couple_id = aj_id) into has_timeline;
+  if has_timeline then return; end if;
+
+  insert into timeline_phases (couple_id, phase_number, title, window_text, note_text, variant, position) values
+    (aj_id, 1, 'Getting ready',           '8:00 AM – 1:00 PM',  'Bridal suite at La Playa. Hair and makeup for the bride, three bridesmaids, and the mothers. Photographer arrives mid-morning for details and getting-ready coverage.', 'standard', 1),
+    (aj_id, 2, 'First look & portraits', '1:30 PM – 3:30 PM',  'A private moment on the terrace before the wedding party joins. Family formals follow off the shot list pre-built with the planner — quick, organized, no scrambling.',         'standard', 2),
+    (aj_id, 3, 'The ceremony',            '3:30 PM – 4:30 PM',  'On the lawn overlooking Carmel Bay. Forty-eight white folding chairs, a chuppah of olive branches, and a confetti send-off from the recessional aisle.',                       'ceremony', 3),
+    (aj_id, 4, 'Cocktail hour',           '4:30 PM – 5:30 PM',  'Guests on the upper lawn while the couple slips away for golden hour. Six passed hors d''oeuvres, two signature cocktails, and a string trio under the bougainvillea.',         'standard', 4),
+    (aj_id, 5, 'Reception',               '5:30 PM – 10:30 PM', 'Long candlelit tables under linen. Three-course plated dinner, three toasts, parent dances, and a late-night carafes-and-bites moment to keep the dance floor going.',         'standard', 5),
+    (aj_id, 6, 'Send-off',                '10:25 PM – 10:45 PM','Sparklers down the front drive, then the vintage town car waiting at the porte-cochère.',                                                                                       'sendoff',  6);
+
+  select id into p_ready     from timeline_phases where couple_id = aj_id and phase_number = 1;
+  select id into p_first     from timeline_phases where couple_id = aj_id and phase_number = 2;
+  select id into p_ceremony  from timeline_phases where couple_id = aj_id and phase_number = 3;
+  select id into p_cocktail  from timeline_phases where couple_id = aj_id and phase_number = 4;
+  select id into p_reception from timeline_phases where couple_id = aj_id and phase_number = 5;
+  select id into p_sendoff   from timeline_phases where couple_id = aj_id and phase_number = 6;
+
+  -- Phase 01 · Getting ready (6 events)
+  insert into timeline_events (phase_id, time_text, meridiem, title, where_label, lead_label, with_label, note_text, position) values
+    (p_ready, '8:00',  'AM', 'Hair and makeup begins',                                 'Bridal suite, La Playa', 'Belle Âme Beauty · 5 stations', null,                  'Coffee, croissants, and water set in the suite by 7:45.', 1),
+    (p_ready, '11:00', 'AM', 'Photographer arrives',                                   'Bridal suite',           'Iris & Light Studio',           null,                  null,                                                       2),
+    (p_ready, '11:30', 'AM', 'Detail photos — flat lay, dress, rings, invitation suite', null,                    'Iris & Light Studio',           null,                  'Heirloom hairpin and grandmother''s earrings staged with the rings.', 3),
+    (p_ready, '12:00', 'PM', 'Bridesmaids dressed, getting-ready portraits',           null,                     'Iris & Light Studio',           null,                  null,                                                       4),
+    (p_ready, '12:30', 'PM', 'Light lunch delivered to suite',                          'Bridal suite',          'La Playa Hotel',                null,                  null,                                                       5),
+    (p_ready, '1:00',  'PM', 'Bride into the dress',                                    null,                    'Iris & Light Studio',           'Mom and maid of honor', null,                                                     6);
+
+  -- Phase 02 · First look & portraits (4 events)
+  insert into timeline_events (phase_id, time_text, meridiem, title, where_label, lead_label, with_label, note_text, position) values
+    (p_first, '1:30', 'PM', 'First look on the La Playa terrace',          'South terrace, ocean side',  'Iris & Light Studio',                  null, 'Terrace cleared of guests until 1:50.',                       1),
+    (p_first, '2:00', 'PM', 'Wedding party portraits',                     'Garden walk & courtyard',    'Iris & Light Studio',                  null, null,                                                          2),
+    (p_first, '2:45', 'PM', 'Family formal portraits',                     'Courtyard fountain',         'Zuzu Collective + Iris & Light',       null, 'Pre-built shot list, called in groups by the planner.',       3),
+    (p_first, '3:30', 'PM', 'Couple tucked away, guests beginning to arrive', 'Hidden suite off the lobby', 'Zuzu Collective',                    null, null,                                                          4);
+
+  -- Phase 03 · Ceremony (4 events)
+  insert into timeline_events (phase_id, time_text, meridiem, title, where_label, lead_label, with_label, note_text, position) values
+    (p_ceremony, '3:30', 'PM', 'Guests seated, prelude music begins',         'Ocean lawn', 'West Coast Sound (DJ)',     null, null,                                                                                                       1),
+    (p_ceremony, '4:00', 'PM', 'Processional',                                 null,         'Reverend Diane Marquez',    null, 'Order: officiant · grandparents · parents · wedding party · bride with father.',                          2),
+    (p_ceremony, '4:05', 'PM', 'Vows, ring exchange, pronouncement',           null,         'Reverend Diane Marquez',    null, 'Reading by Alicia''s sister at the four-minute mark.',                                                     3),
+    (p_ceremony, '4:25', 'PM', 'Recessional & confetti send-off',              null,         'Zuzu Collective',           null, 'Dried lavender confetti staged in linen pouches at every other chair.',                                    4);
+
+  -- Phase 04 · Cocktail hour (4 events)
+  insert into timeline_events (phase_id, time_text, meridiem, title, where_label, lead_label, with_label, note_text, position) values
+    (p_cocktail, '4:30', 'PM', 'Cocktail hour begins on the upper lawn',     'Upper lawn & loggia',          'La Playa Catering',     null, 'Signatures: a Carmel mule and a sage gimlet.', 1),
+    (p_cocktail, '4:30', 'PM', 'Couple sneaks away for golden hour portraits','Cypress grove, beachside path','Iris & Light Studio',   null, null,                                          2),
+    (p_cocktail, '5:00', 'PM', 'String trio plays through cocktail hour',     null,                          'Carmel Strings',        null, null,                                          3),
+    (p_cocktail, '5:15', 'PM', 'Move guests to the reception room',          'Garden ballroom',              'Zuzu Collective',       null, null,                                          4);
+
+  -- Phase 05 · Reception (9 events)
+  insert into timeline_events (phase_id, time_text, meridiem, title, where_label, lead_label, with_label, note_text, position) values
+    (p_reception, '5:30', 'PM', 'Grand entrance into the reception',                   null, 'West Coast Sound (DJ)',          null, 'Entrance song: "At Last" — Etta James.',                          1),
+    (p_reception, '5:35', 'PM', 'First dance',                                          null, 'West Coast Sound (DJ)',          null, null,                                                              2),
+    (p_reception, '5:45', 'PM', 'Welcome toast — father of the bride',                  null, 'Zuzu Collective (mic cue)',      null, null,                                                              3),
+    (p_reception, '5:55', 'PM', 'Dinner served — three-course plated',                  null, 'La Playa Catering',              null, 'First course poured with the burgundy; entrée with the cabernet.', 4),
+    (p_reception, '7:15', 'PM', 'Toasts — maid of honor and best man',                  null, 'Zuzu Collective (mic cue)',      null, null,                                                              5),
+    (p_reception, '7:45', 'PM', 'Cake cutting',                                         null, 'West Coast Sound (DJ)',          null, 'Three-tier almond cake, fig & honey filling.',                    6),
+    (p_reception, '8:00', 'PM', 'Parent dances — mother & son, father & daughter',      null, 'West Coast Sound (DJ)',          null, null,                                                              7),
+    (p_reception, '8:15', 'PM', 'Open dance floor',                                     null, 'West Coast Sound (DJ)',          null, null,                                                              8),
+    (p_reception, '9:30', 'PM', 'Late-night bites',                                     null, 'La Playa Catering',              null, 'Truffle fries, sliders, and chilled rosé carafes set on the bar.',9);
+
+  -- Phase 06 · Send-off (3 events)
+  insert into timeline_events (phase_id, time_text, meridiem, title, where_label, lead_label, with_label, note_text, position) values
+    (p_sendoff, '10:25', 'PM', 'Last call at the bar',                  null,                      'La Playa Catering',           null, null, 1),
+    (p_sendoff, '10:30', 'PM', 'Sparkler send-off down the drive',     'Front porte-cochère',      'Zuzu Collective',             null, null, 2),
+    (p_sendoff, '10:45', 'PM', 'Couple departs in vintage town car',    null,                      'Carmel Coast Transportation', null, null, 3);
 end $$;

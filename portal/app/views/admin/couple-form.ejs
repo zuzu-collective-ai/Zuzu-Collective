@@ -71,6 +71,36 @@
       </fieldset>
 
       <fieldset class="admin-fieldset">
+        <legend class="admin-legend">Timeline headline</legend>
+        <p class="admin-fieldset-note">
+          The four small stat-notes at the top of <code>/timeline</code>. The Date stat is
+          computed from the wedding date; the Events count is computed live. These four
+          fields are editorial flavor copy alongside them. Leave any field blank to hide
+          its column.
+        </p>
+        <div class="admin-row" style="display: grid; grid-template-columns: 110px 1fr; gap: 1rem;">
+          <label class="admin-field">
+            <span class="admin-field-label">Ceremony time</span>
+            <input type="text" name="timeline_ceremony_time" value="<%= couple?.timeline_ceremony_time || '' %>" placeholder="4:00">
+          </label>
+          <label class="admin-field">
+            <span class="admin-field-label">Ceremony note</span>
+            <input type="text" name="timeline_ceremony_note" value="<%= couple?.timeline_ceremony_note || '' %>" placeholder="Sunset 6:32 PM">
+          </label>
+        </div>
+        <div class="admin-row" style="display: grid; grid-template-columns: 110px 1fr; gap: 1rem;">
+          <label class="admin-field">
+            <span class="admin-field-label">Last call time</span>
+            <input type="text" name="timeline_lastcall_time" value="<%= couple?.timeline_lastcall_time || '' %>" placeholder="10:30">
+          </label>
+          <label class="admin-field">
+            <span class="admin-field-label">Last call note</span>
+            <input type="text" name="timeline_lastcall_note" value="<%= couple?.timeline_lastcall_note || '' %>" placeholder="Sparkler send-off">
+          </label>
+        </div>
+      </fieldset>
+
+      <fieldset class="admin-fieldset">
         <legend class="admin-legend">Venue</legend>
         <label class="admin-field">
           <span class="admin-field-label">Venue name</span>

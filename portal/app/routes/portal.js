@@ -251,9 +251,48 @@ router.get('/p/:slug/budget', async (req, res, next) => {
   }
 });
 
-router.get('/p/:slug/timeline', (_req, res) =>
-  res.render('timeline', { currentPage: 'timeline' }),
-);
+router.get('/p/:slug/timeline', async (req, res, next) => {
+  try {
+    const coupleId = res.locals.couple.id;
+
+    const [phasesRes, eventsRes] = await Promise.all([
+      pool.query(
+        'select * from timeline_phases where couple_id = $1 order by position asc, phase_number asc',
+        [coupleId],
+      ),
+      pool.query(
+        `select e.*
+           from timeline_events e
+           join timeline_phases p on p.id = e.phase_id
+          where p.couple_id = $1
+          order by e.position asc`,
+        [coupleId],
+      ),
+    ]);
+
+    const phases = phasesRes.rows;
+    const events = eventsRes.rows;
+
+    const eventsByPhase = new Map();
+    for (const e of events) {
+      const list = eventsByPhase.get(e.phase_id) || [];
+      list.push(e);
+      eventsByPhase.set(e.phase_id, list);
+    }
+
+    res.render('timeline', {
+      currentPage: 'timeline',
+      phases,
+      eventsByPhase,
+      summary: {
+        eventCount: events.length,
+        phaseCount: phases.length,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
 
 router.get('/p/:slug/floor-plan', (_req, res) =>
   res.render('floor-plan', { currentPage: 'floor-plan' }),
