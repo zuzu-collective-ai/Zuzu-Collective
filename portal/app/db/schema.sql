@@ -226,3 +226,46 @@ create table if not exists budget_line_items (
 );
 
 create index if not exists budget_line_items_category_id_idx on budget_line_items(category_id);
+
+-- ── Checklist milestones ─────────────────────────────────────────────────
+--
+-- Editorial milestones on /checklist — "12 Months Out · The foundation",
+-- "6–8 Months Out · Filling in the canvas", etc. Whether a milestone is
+-- "Complete" / "You are here" / "Upcoming" is derived from its tasks at
+-- render time (first not-fully-complete milestone is the active one),
+-- so milestone rows only carry display copy.
+
+create table if not exists checklist_milestones (
+  id              uuid primary key default gen_random_uuid(),
+  couple_id       uuid not null references couples(id) on delete cascade,
+
+  date_label      text not null,        -- "October 2025 · 12 Months Out"
+  title           text not null,         -- "The foundation"
+
+  position        integer not null default 0,
+  created_at      timestamptz not null default now(),
+  updated_at      timestamptz not null default now()
+);
+
+create index if not exists checklist_milestones_couple_id_idx on checklist_milestones(couple_id);
+
+-- ── Checklist tasks ──────────────────────────────────────────────────────
+--
+-- One row per checkbox under a milestone. `sub_text` is the small italic
+-- caption underneath the task name on the public page (e.g. the booked
+-- vendor's name, a follow-up reminder).
+
+create table if not exists checklist_tasks (
+  id              uuid primary key default gen_random_uuid(),
+  milestone_id    uuid not null references checklist_milestones(id) on delete cascade,
+
+  name            text not null,        -- "Book the venue"
+  sub_text        text,                  -- "La Playa Hotel · Carmel-by-the-Sea"
+  is_done         boolean not null default false,
+
+  position        integer not null default 0,
+  created_at      timestamptz not null default now(),
+  updated_at      timestamptz not null default now()
+);
+
+create index if not exists checklist_tasks_milestone_id_idx on checklist_tasks(milestone_id);

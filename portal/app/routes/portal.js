@@ -88,9 +88,91 @@ router.get('/p/:slug/vendors', async (req, res, next) => {
   }
 });
 
-router.get('/p/:slug/checklist', (_req, res) =>
-  res.render('checklist', { currentPage: 'checklist' }),
-);
+router.get('/p/:slug/checklist', async (req, res, next) => {
+  try {
+    const coupleId = res.locals.couple.id;
+
+    const [msRes, tasksRes] = await Promise.all([
+      pool.query(
+        'select * from checklist_milestones where couple_id = $1 order by position asc',
+        [coupleId],
+      ),
+      pool.query(
+        `select t.*
+           from checklist_tasks t
+           join checklist_milestones m on m.id = t.milestone_id
+          where m.couple_id = $1
+          order by t.position asc`,
+        [coupleId],
+      ),
+    ]);
+
+    const milestones = msRes.rows;
+    const tasks = tasksRes.rows;
+
+    const tasksByMilestone = new Map();
+    for (const t of tasks) {
+      const list = tasksByMilestone.get(t.milestone_id) || [];
+      list.push(t);
+      tasksByMilestone.set(t.milestone_id, list);
+    }
+
+    // Per-milestone progress + state. The first milestone that isn't
+    // fully complete is the "active" one (gets the "You are here" badge);
+    // every milestone before it that is complete is "done"; everything
+    // after the active one is "upcoming".
+    let foundActive = false;
+    const milestoneState = new Map();
+    for (const m of milestones) {
+      const ts = tasksByMilestone.get(m.id) || [];
+      const total = ts.length;
+      const done = ts.filter(t => t.is_done).length;
+      const inFlight = total - done;
+      const allDone = total > 0 && done === total;
+
+      let state;
+      if (allDone) {
+        state = 'done';
+      } else if (!foundActive) {
+        state = 'active';
+        foundActive = true;
+      } else {
+        state = 'upcoming';
+      }
+
+      milestoneState.set(m.id, { total, done, inFlight, state });
+    }
+
+    // Page-level summary
+    const tasksTotal = tasks.length;
+    const tasksDone = tasks.filter(t => t.is_done).length;
+    const pctDone = tasksTotal > 0 ? Math.round((tasksDone / tasksTotal) * 100) : 0;
+
+    // Days to wedding — couple.wedding_date is stored as a date (no time),
+    // so compare at UTC midnight to keep the count stable across the day.
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+    const wd = new Date(res.locals.couple.wedding_date);
+    wd.setUTCHours(0, 0, 0, 0);
+    const daysToWedding = Math.max(0, Math.round((wd - today) / 86400000));
+
+    res.render('checklist', {
+      currentPage: 'checklist',
+      milestones,
+      tasksByMilestone,
+      milestoneState,
+      summary: {
+        milestoneCount: milestones.length,
+        tasksTotal,
+        tasksDone,
+        pctDone,
+        daysToWedding,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
 
 router.get('/p/:slug/budget', async (req, res, next) => {
   try {

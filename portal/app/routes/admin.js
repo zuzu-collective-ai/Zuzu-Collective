@@ -1059,6 +1059,219 @@ router.post('/couples/:id/budget/:cid/delete', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// ── Checklist (per couple — milestones with inline tasks) ─────────────
+
+// Body shape matches budget: lines[i] = task fields. Empty rows skipped.
+function parseTasksFromBody(body) {
+  const raw = body.tasks || {};
+  const indices = Object.keys(raw)
+    .map(Number)
+    .filter(n => !Number.isNaN(n))
+    .sort((a, b) => a - b);
+  return indices
+    .map(i => raw[i])
+    .filter(t => t && t.name && t.name.trim().length > 0)
+    .map((t, idx) => ({
+      id: t.id || null,
+      name: t.name.trim(),
+      sub_text: t.sub_text?.trim() || null,
+      // Checkbox inputs only post a value when checked, so presence in
+      // the body (any non-empty value) means done.
+      is_done: !!(t.is_done && t.is_done !== '' && t.is_done !== 'false'),
+      position: idx + 1,
+    }));
+}
+
+router.get('/couples/:id/checklist', async (req, res, next) => {
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+
+    const { rows: milestones } = await pool.query(
+      `select m.*,
+              coalesce(sums.task_count, 0)::int  as task_count,
+              coalesce(sums.done_count, 0)::int  as done_count
+         from checklist_milestones m
+         left join (
+           select milestone_id,
+                  count(*) as task_count,
+                  count(*) filter (where is_done) as done_count
+             from checklist_tasks
+            group by milestone_id
+         ) sums on sums.milestone_id = m.id
+        where m.couple_id = $1
+        order by m.position asc`,
+      [couple.id],
+    );
+    res.render('admin/checklist-milestones-list', {
+      couple,
+      milestones,
+      flash: consumeFlash(req),
+    });
+  } catch (err) { next(err); }
+});
+
+router.get('/couples/:id/checklist/new', async (req, res, next) => {
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+
+    const { rows } = await pool.query(
+      'select coalesce(max(position), 0) + 1 as next_pos from checklist_milestones where couple_id = $1',
+      [couple.id],
+    );
+
+    res.render('admin/checklist-milestone-form', {
+      couple,
+      milestone: null,
+      tasks: [],
+      suggestedPosition: rows[0].next_pos,
+      formAction: `/admin/couples/${couple.id}/checklist`,
+      error: null,
+      flash: consumeFlash(req),
+    });
+  } catch (err) { next(err); }
+});
+
+router.get('/couples/:id/checklist/:mid', async (req, res, next) => {
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+
+    const { rows: msRows } = await pool.query(
+      'select * from checklist_milestones where id = $1 and couple_id = $2',
+      [req.params.mid, couple.id],
+    );
+    if (!msRows[0]) return res.status(404).send('Milestone not found.');
+
+    const { rows: tasks } = await pool.query(
+      'select * from checklist_tasks where milestone_id = $1 order by position asc',
+      [msRows[0].id],
+    );
+
+    res.render('admin/checklist-milestone-form', {
+      couple,
+      milestone: msRows[0],
+      tasks,
+      suggestedPosition: msRows[0].position,
+      formAction: `/admin/couples/${couple.id}/checklist/${msRows[0].id}`,
+      error: null,
+      flash: consumeFlash(req),
+    });
+  } catch (err) { next(err); }
+});
+
+router.post('/couples/:id/checklist', async (req, res, next) => {
+  const client = await pool.connect();
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+
+    const milestoneData = {
+      date_label: req.body.date_label?.trim() || '',
+      title: req.body.title?.trim() || '',
+      position: parseInt(req.body.position, 10) || 0,
+    };
+    const tasks = parseTasksFromBody(req.body);
+
+    if (!milestoneData.date_label || !milestoneData.title) {
+      return res.status(400).render('admin/checklist-milestone-form', {
+        couple,
+        milestone: milestoneData,
+        tasks,
+        suggestedPosition: milestoneData.position || 1,
+        formAction: `/admin/couples/${couple.id}/checklist`,
+        error: 'Date label and title are required.',
+        flash: null,
+      });
+    }
+
+    await client.query('begin');
+    const { rows } = await client.query(
+      `insert into checklist_milestones (couple_id, date_label, title, position)
+       values ($1, $2, $3, $4) returning id`,
+      [couple.id, milestoneData.date_label, milestoneData.title, milestoneData.position],
+    );
+    const milestoneId = rows[0].id;
+    for (const t of tasks) {
+      await client.query(
+        `insert into checklist_tasks (milestone_id, name, sub_text, is_done, position)
+         values ($1, $2, $3, $4, $5)`,
+        [milestoneId, t.name, t.sub_text, t.is_done, t.position],
+      );
+    }
+    await client.query('commit');
+
+    setFlash(req, 'success', `Added ${milestoneData.title} (${tasks.length} task${tasks.length === 1 ? '' : 's'}).`);
+    res.redirect(`/admin/couples/${couple.id}/checklist`);
+  } catch (err) {
+    await client.query('rollback').catch(() => {});
+    next(err);
+  } finally {
+    client.release();
+  }
+});
+
+router.post('/couples/:id/checklist/:mid', async (req, res, next) => {
+  const client = await pool.connect();
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+
+    const milestoneData = {
+      date_label: req.body.date_label?.trim() || '',
+      title: req.body.title?.trim() || '',
+      position: parseInt(req.body.position, 10) || 0,
+    };
+    const tasks = parseTasksFromBody(req.body);
+
+    if (!milestoneData.date_label || !milestoneData.title) {
+      return res.status(400).redirect(`/admin/couples/${couple.id}/checklist/${req.params.mid}`);
+    }
+
+    await client.query('begin');
+    const { rowCount } = await client.query(
+      `update checklist_milestones set
+         date_label = $1, title = $2, position = $3, updated_at = now()
+       where id = $4 and couple_id = $5`,
+      [milestoneData.date_label, milestoneData.title, milestoneData.position, req.params.mid, couple.id],
+    );
+    if (rowCount === 0) {
+      await client.query('rollback');
+      return res.status(404).send('Milestone not found.');
+    }
+
+    await client.query('delete from checklist_tasks where milestone_id = $1', [req.params.mid]);
+    for (const t of tasks) {
+      await client.query(
+        `insert into checklist_tasks (milestone_id, name, sub_text, is_done, position)
+         values ($1, $2, $3, $4, $5)`,
+        [req.params.mid, t.name, t.sub_text, t.is_done, t.position],
+      );
+    }
+    await client.query('commit');
+
+    setFlash(req, 'success', `Saved ${milestoneData.title}.`);
+    res.redirect(`/admin/couples/${couple.id}/checklist`);
+  } catch (err) {
+    await client.query('rollback').catch(() => {});
+    next(err);
+  } finally {
+    client.release();
+  }
+});
+
+router.post('/couples/:id/checklist/:mid/delete', async (req, res, next) => {
+  try {
+    const { rows } = await pool.query(
+      'delete from checklist_milestones where id = $1 and couple_id = $2 returning title',
+      [req.params.mid, req.params.id],
+    );
+    if (rows[0]) setFlash(req, 'success', `Removed ${rows[0].title}.`);
+    res.redirect(`/admin/couples/${req.params.id}/checklist`);
+  } catch (err) { next(err); }
+});
+
 // ── Couple delete (kept at the bottom so vendor routes match first) ───
 
 // Delete couple

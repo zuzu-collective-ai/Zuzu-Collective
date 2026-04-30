@@ -439,3 +439,134 @@ begin
   insert into budget_line_items (category_id, name, vendor_label, amount_cents, paid_cents, status_kind, status_label, position) values
     (c_misc, 'Buffer & tips', 'Vendor tips · marriage license · contingency', 175000, 0, 'upcoming', 'Held in reserve', 1);
 end $$;
+
+-- ── Checklist — Alicia & Jack's 11-milestone arc ───────────────────────
+--
+-- Mirrors the static mockup: 12-months-out done, 9–10-months-out done,
+-- 6–8-months "filling in the canvas" active, the rest upcoming. Look up
+-- each milestone by (couple_id, position) for the tasks INSERT.
+
+do $$
+declare
+  aj_id uuid;
+  has_checklist boolean;
+
+  m01 uuid; m02 uuid; m03 uuid; m04 uuid; m05 uuid; m06 uuid;
+  m07 uuid; m08 uuid; m09 uuid; m10 uuid; m11 uuid;
+begin
+  select id into aj_id from couples where slug = 'alicia-and-jack-2026';
+  if aj_id is null then return; end if;
+
+  select exists(select 1 from checklist_milestones where couple_id = aj_id) into has_checklist;
+  if has_checklist then return; end if;
+
+  insert into checklist_milestones (couple_id, date_label, title, position) values
+    (aj_id, 'October 2025 · 12 Months Out',                   'The foundation',                   1),
+    (aj_id, 'December 2025 – January 2026 · 9–10 Months Out', 'The big bookings',                 2),
+    (aj_id, 'February – April 2026 · 6–8 Months Out',         'Filling in the canvas',            3),
+    (aj_id, 'May – June 2026 · 4–5 Months Out',               'Sending the world an invitation',  4),
+    (aj_id, 'July 2026 · 3 Months Out',                       'Almost in focus',                  5),
+    (aj_id, 'August 2026 · 2 Months Out',                     'The home stretch begins',          6),
+    (aj_id, 'September 2026 · 1 Month Out',                   'The final month',                  7),
+    (aj_id, 'September 26, 2026 · 2 Weeks Out',               'The final fortnight',              8),
+    (aj_id, 'October 3, 2026 · 1 Week Out',                   'The week',                         9),
+    (aj_id, 'October 9, 2026 · Day Before',                   'Eve',                             10),
+    (aj_id, 'October 10, 2026 · Day Of',                      'The day',                         11);
+
+  select id into m01 from checklist_milestones where couple_id = aj_id and position = 1;
+  select id into m02 from checklist_milestones where couple_id = aj_id and position = 2;
+  select id into m03 from checklist_milestones where couple_id = aj_id and position = 3;
+  select id into m04 from checklist_milestones where couple_id = aj_id and position = 4;
+  select id into m05 from checklist_milestones where couple_id = aj_id and position = 5;
+  select id into m06 from checklist_milestones where couple_id = aj_id and position = 6;
+  select id into m07 from checklist_milestones where couple_id = aj_id and position = 7;
+  select id into m08 from checklist_milestones where couple_id = aj_id and position = 8;
+  select id into m09 from checklist_milestones where couple_id = aj_id and position = 9;
+  select id into m10 from checklist_milestones where couple_id = aj_id and position = 10;
+  select id into m11 from checklist_milestones where couple_id = aj_id and position = 11;
+
+  -- 12 Months Out — fully complete
+  insert into checklist_tasks (milestone_id, name, sub_text, is_done, position) values
+    (m01, 'Set the wedding date',          null,                                       true, 1),
+    (m01, 'Book the wedding planner',      'Zuzu Collective signed',                   true, 2),
+    (m01, 'Set the overall budget',        '$120,000 confirmed',                       true, 3),
+    (m01, 'Draft the initial guest list',  null,                                       true, 4),
+    (m01, 'Book the venue',                'La Playa Hotel · Carmel-by-the-Sea',       true, 5);
+
+  -- 9–10 Months Out — fully complete
+  insert into checklist_tasks (milestone_id, name, sub_text, is_done, position) values
+    (m02, 'Book the photographer',  'Iris & Light Studio',  true, 1),
+    (m02, 'Book the videographer',  'Carmel Coast Films',   true, 2),
+    (m02, 'Begin dress shopping',   null,                   true, 3),
+    (m02, 'Book the DJ',            'West Coast Sound',     true, 4),
+    (m02, 'Send save-the-dates',    null,                   true, 5);
+
+  -- 6–8 Months Out — active (7 of 9 done)
+  insert into checklist_tasks (milestone_id, name, sub_text, is_done, position) values
+    (m03, 'Purchase the wedding gown',                            'Silk slip · Carmel boutique',                                          true,  1),
+    (m03, 'Hire the officiant',                                   'Reverend Diane Marquez',                                               true,  2),
+    (m03, 'Book the hotel room block',                            '40 rooms · La Playa',                                                  true,  3),
+    (m03, 'Order save-the-dates & invitations from stationer',    null,                                                                   true,  4),
+    (m03, 'Begin the design deck with Zuzu',                      null,                                                                   true,  5),
+    (m03, 'Lock in the engagement session',                       null,                                                                   true,  6),
+    (m03, 'Confirm the bridal party & ask formally',              null,                                                                   true,  7),
+    (m03, 'Finalize the florist',                                 'Three studios shortlisted · decision by end of month',                 false, 8),
+    (m03, 'Book hair stylist & makeup artist',                    'Trial scheduled October',                                              false, 9);
+
+  -- 4–5 Months Out — upcoming (0 of 6)
+  insert into checklist_tasks (milestone_id, name, sub_text, is_done, position) values
+    (m04, 'Send the invitations',            null, false, 1),
+    (m04, 'Finalize the ceremony music',     null, false, 2),
+    (m04, 'Schedule the menu tasting',       null, false, 3),
+    (m04, 'Book the rehearsal dinner venue', null, false, 4),
+    (m04, 'Order the wedding rings',         null, false, 5),
+    (m04, 'First dress fitting',             null, false, 6);
+
+  -- 3 Months Out — upcoming (0 of 5)
+  insert into checklist_tasks (milestone_id, name, sub_text, is_done, position) values
+    (m05, 'Apply for the marriage license', null,                              false, 1),
+    (m05, 'Begin collecting RSVPs',         null,                              false, 2),
+    (m05, 'Finalize the floral order',      null,                              false, 3),
+    (m05, 'Plan honeymoon details',         'Travel agent · Amalfi Coast',     false, 4),
+    (m05, 'Hair & makeup trial',            null,                              false, 5);
+
+  -- 2 Months Out — upcoming (0 of 4)
+  insert into checklist_tasks (milestone_id, name, sub_text, is_done, position) values
+    (m06, 'Send final headcount to caterer', null, false, 1),
+    (m06, 'Write the vows',                  null, false, 2),
+    (m06, 'Begin seating arrangements',      null, false, 3),
+    (m06, 'Second dress fitting',            null, false, 4);
+
+  -- 1 Month Out — upcoming (0 of 5)
+  insert into checklist_tasks (milestone_id, name, sub_text, is_done, position) values
+    (m07, 'Final vendor walkthroughs',          null, false, 1),
+    (m07, 'Confirm transportation timing',      null, false, 2),
+    (m07, 'Pick up the marriage license',       null, false, 3),
+    (m07, 'Wedding-day timeline finalized',     null, false, 4),
+    (m07, 'Pay all vendor balances',            null, false, 5);
+
+  -- 2 Weeks Out — upcoming (0 of 4)
+  insert into checklist_tasks (milestone_id, name, sub_text, is_done, position) values
+    (m08, 'Confirm all vendor arrival times', null, false, 1),
+    (m08, 'Final beauty trial',               null, false, 2),
+    (m08, 'Pack the honeymoon bag',           null, false, 3),
+    (m08, 'Bridal party final fittings',      null, false, 4);
+
+  -- 1 Week Out — upcoming (0 of 4)
+  insert into checklist_tasks (milestone_id, name, sub_text, is_done, position) values
+    (m09, 'Pick up dress and tuxedo',          null, false, 1),
+    (m09, 'Pack the day-of emergency kit',     null, false, 2),
+    (m09, 'Confirm rehearsal dinner headcount',null, false, 3),
+    (m09, 'Day-of items delivered to venue',   null, false, 4);
+
+  -- Day Before — upcoming (0 of 3)
+  insert into checklist_tasks (milestone_id, name, sub_text, is_done, position) values
+    (m10, 'Rehearsal at the venue', null, false, 1),
+    (m10, 'Rehearsal dinner',       null, false, 2),
+    (m10, 'Early to bed',           null, false, 3);
+
+  -- Day Of — upcoming (0 of 2)
+  insert into checklist_tasks (milestone_id, name, sub_text, is_done, position) values
+    (m11, 'Hair & makeup', null, false, 1),
+    (m11, 'Get married',   null, false, 2);
+end $$;

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include('partials/head', { title: `${couple.display_name} — Checklist` }) %>
+<body class="admin-body">
+
+  <%- include('partials/sidebar', { currentSection: 'couples' }) %>
+
+  <main class="admin-main">
+    <header class="admin-header">
+      <div>
+        <a href="/admin" class="admin-back">← All couples</a>
+        <h1 class="admin-title"><%= couple.display_name %></h1>
+        <p class="admin-subtitle">
+          <a href="/p/<%= couple.slug %>/checklist" target="_blank" rel="noopener">View live portal ↗</a>
+        </p>
+      </div>
+      <a href="/admin/couples/<%= couple.id %>/checklist/new" class="admin-btn admin-btn--primary">+ Add milestone</a>
+    </header>
+
+    <%- include('partials/couple-tabs', { couple, currentTab: 'checklist' }) %>
+
+    <%- include('partials/flash', { flash }) %>
+
+    <%
+      const totalTasks = milestones.reduce((s, m) => s + (m.task_count || 0), 0);
+      const totalDone  = milestones.reduce((s, m) => s + (m.done_count || 0), 0);
+    %>
+
+    <% if (milestones.length > 0) { %>
+      <p class="admin-empty" style="font-style: normal; color: var(--zz-finn-60); padding: 0 0 1.5rem;">
+        <%= milestones.length %> milestone<%= milestones.length === 1 ? '' : 's' %>
+        &nbsp;·&nbsp; <%= totalDone %> of <%= totalTasks %> task<%= totalTasks === 1 ? '' : 's' %> complete
+      </p>
+    <% } %>
+
+    <% if (milestones.length === 0) { %>
+      <p class="admin-empty">
+        No milestones yet for <%= couple.display_name %>.
+        <a href="/admin/couples/<%= couple.id %>/checklist/new">Add the first one</a>.
+      </p>
+    <% } else { %>
+      <ul class="admin-list">
+        <% milestones.forEach(m => {
+             const allDone = m.task_count > 0 && m.done_count === m.task_count;
+        %>
+          <li class="admin-list-item">
+            <a href="/admin/couples/<%= couple.id %>/checklist/<%= m.id %>" class="admin-list-link">
+              <div class="admin-list-name"><em><%= m.title %></em></div>
+              <div class="admin-list-meta">
+                <span><%= m.date_label %></span>
+                <span><%= m.done_count %> of <%= m.task_count %> done<% if (allDone) { %> · complete<% } %></span>
+              </div>
+            </a>
+          </li>
+        <% }) %>
+      </ul>
+    <% } %>
+  </main>
+
+</body>
+</html>
