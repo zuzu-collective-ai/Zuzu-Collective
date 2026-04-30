@@ -44,6 +44,18 @@ update couples set
   floorplan_walkthrough_note = coalesce(floorplan_walkthrough_note, 'Final at 10 AM')
  where slug = 'alicia-and-jack-2026';
 
+-- Design page editorial copy — backfill on already-deployed databases.
+update couples set
+  design_subtitle = coalesce(design_subtitle,
+    'Ivory-forward with soft green accents. Warm, coastal, and grounded — everything we''re building draws from these four colors and the mood they hold together.'),
+  design_tone_title = coalesce(design_tone_title,
+    'Intimate and considered. Nothing overdone.'),
+  design_materials_title = coalesce(design_materials_title,
+    'Polished silver. Matte white. Clear glass.'),
+  design_materials_note = coalesce(design_materials_note,
+    'All warmth reliant on candlelight.')
+ where slug = 'alicia-and-jack-2026';
+
 -- ── Vendors — 17-row Alicia & Jack roster ──────────────────────────────
 do $$
 declare
@@ -777,4 +789,103 @@ begin
     (s_ballroom, 'Catering ingress',          'Back-of-house double doors — used for plated dinner service and late-night bites.',               7),
     (s_ballroom, 'Guest entrance',            'From the lit garden path. Place cards at the entry hung on a brass rod with linen ribbon.',       8),
     (s_ballroom, 'Restrooms',                 'Just off the right-hand wall — signage in the venue''s house typeface.',                          9);
+end $$;
+
+-- ── Design — Alicia & Jack's six inspiration galleries ─────────────────
+--
+-- Mirrors the static mockup: Ceremony / Florals / Tablescape /
+-- Stationery & Signage / Reception / Lighting, 5 tiles each (the first
+-- is the hero with a 2×2 layout). Tiles carry a label, a title, and a
+-- placeholder `note` ("img → ceremony / hero") that surfaces as a small
+-- caption until real photos are dropped into public/inspo/<slug>/.
+
+do $$
+declare
+  aj_id uuid;
+  has_galleries boolean;
+
+  g_ceremony uuid; g_florals uuid; g_tablescape uuid;
+  g_stationery uuid; g_reception uuid; g_lighting uuid;
+begin
+  select id into aj_id from couples where slug = 'alicia-and-jack-2026';
+  if aj_id is null then return; end if;
+
+  select exists(select 1 from inspiration_galleries where couple_id = aj_id) into has_galleries;
+  if has_galleries then return; end if;
+
+  insert into inspiration_galleries (couple_id, eyebrow, title, description, position) values
+    (aj_id, 'Ceremony',                'An olive-branch arch over the aisle.',         'On the Ocean Lawn — forty-eight white folding chairs, the Pacific behind, a chuppah of olive branches and ivory ribbon.', 1),
+    (aj_id, 'Florals',                 'Ivory roses, peonies, anthurium.',              'Soft greens, never bright. Olive, dusty miller, and sage carry the chartreuse note through the room.',                  2),
+    (aj_id, 'Tablescape',              'Linen, candlelight, hand-blown glass.',         'Long, low, candlelit. Polished silver flatware, ivory linen runners, and bud vases instead of statement arrangements.', 3),
+    (aj_id, 'Stationery & Signage',    'Letterpressed, hand-lettered, weighted.',       'Ivory cotton paper, soft chartreuse ink, brass and wax. Every printed thing is something you''d want to keep.',       4),
+    (aj_id, 'Reception',               'The Garden Ballroom by candlelight.',           'String lights low, dance floor in the middle, the head table watching over it. No spotlights, no logos, no rented signage.', 5),
+    (aj_id, 'Lighting',                'All warmth reliant on candlelight.',            'No overheads after sundown. Hurricanes, tapers, lanterns, bistro strings — every glow comes from a flame or its imitation.', 6);
+
+  select id into g_ceremony   from inspiration_galleries where couple_id = aj_id and position = 1;
+  select id into g_florals    from inspiration_galleries where couple_id = aj_id and position = 2;
+  select id into g_tablescape from inspiration_galleries where couple_id = aj_id and position = 3;
+  select id into g_stationery from inspiration_galleries where couple_id = aj_id and position = 4;
+  select id into g_reception  from inspiration_galleries where couple_id = aj_id and position = 5;
+  select id into g_lighting   from inspiration_galleries where couple_id = aj_id and position = 6;
+
+  insert into inspiration_tiles (gallery_id, label, title, note, is_hero, position) values
+    -- Ceremony
+    (g_ceremony, 'Hero',         'An olive-branch arch over the aisle.',                  'img → ceremony / hero',  true,  1),
+    (g_ceremony, 'Aisle',        'Bud vases lining every other row.',                     'img → ceremony / 02',    false, 2),
+    (g_ceremony, 'Recessional',  'The aisle dressed for the walk back.',                  'img → ceremony / 03',    false, 3),
+    (g_ceremony, 'Send-off',     'Linen pouches of dried lavender on every other chair.', 'img → ceremony / 04',    false, 4),
+    (g_ceremony, 'Altar',        'A single brass candle, lit at four.',                   'img → ceremony / 05',    false, 5),
+
+    -- Florals
+    (g_florals, 'Hero',          'Ivory roses, peonies, anthurium.',                       'img → florals / hero',  true,  1),
+    (g_florals, 'Centerpieces',  'Olive branches in low ivory urns.',                      'img → florals / 02',    false, 2),
+    (g_florals, 'Head table',    'Calla lilies trailing the length.',                      'img → florals / 03',    false, 3),
+    (g_florals, 'Bouquet',       'Loose stems, hand-tied with silk ribbon.',               'img → florals / 04',    false, 4),
+    (g_florals, 'Boutonnières',  'Sage and dusty miller, no statement bloom.',             'img → florals / 05',    false, 5),
+
+    -- Tablescape
+    (g_tablescape, 'Hero',           'Candlelit length, ivory linen, soft green accents.', 'img → tablescape / hero', true,  1),
+    (g_tablescape, 'Tapers',         'Tall candles in polished silver holders.',           'img → tablescape / 02',   false, 2),
+    (g_tablescape, 'Glassware',      'Hand-blown, no stems, slight imperfection.',         'img → tablescape / 03',   false, 3),
+    (g_tablescape, 'Napkins',        'Folded with a pressed wax seal.',                    'img → tablescape / 04',   false, 4),
+    (g_tablescape, 'Place setting',  'Custom menu at every plate.',                        'img → tablescape / 05',   false, 5),
+
+    -- Stationery & Signage
+    (g_stationery, 'Hero',             'The full invitation suite — letterpressed.',       'img → stationery / hero', true,  1),
+    (g_stationery, 'Place card',       'Tied with chartreuse silk ribbon.',                'img → stationery / 02',   false, 2),
+    (g_stationery, 'Welcome sign',     'Hand-painted, at the porte-cochère.',              'img → stationery / 03',   false, 3),
+    (g_stationery, 'Table names',      'Cypress, Bay, Olive — hand-lettered cards.',       'img → stationery / 04',   false, 4),
+    (g_stationery, 'Order of service', 'Ivory and gold leaf, deckled edge.',               'img → stationery / 05',   false, 5),
+
+    -- Reception
+    (g_reception, 'Hero',           'The Garden Ballroom by candlelight.',                  'img → reception / hero', true,  1),
+    (g_reception, 'Dance floor',    'String lights low, parquet underfoot.',                'img → reception / 02',   false, 2),
+    (g_reception, 'Head table',     'Cypress — the cake just to one side.',                 'img → reception / 03',   false, 3),
+    (g_reception, 'Cocktail hour',  'High-tops on the upper lawn, signature pour bar.',     'img → reception / 04',   false, 4),
+    (g_reception, 'Entry',          'Place cards on a brass rod, linen ribbon.',            'img → reception / 05',   false, 5),
+
+    -- Lighting
+    (g_lighting, 'Hero',         'Tapers and pillars down the length of the table.', 'img → lighting / hero', true,  1),
+    (g_lighting, 'Hurricanes',   'Clear glass, brass base.',                          'img → lighting / 02',   false, 2),
+    (g_lighting, 'Path',         'Lanterns lining the way to the ballroom.',          'img → lighting / 03',   false, 3),
+    (g_lighting, 'Altar',        'A pillar candlestand at the arch.',                 'img → lighting / 04',   false, 4),
+    (g_lighting, 'Overhead',     'Bistro strings draped low over the dance floor.',   'img → lighting / 05',   false, 5);
+end $$;
+
+-- ── Design — Alicia & Jack's three materials ───────────────────────────
+do $$
+declare
+  aj_id uuid;
+  has_materials boolean;
+begin
+  select id into aj_id from couples where slug = 'alicia-and-jack-2026';
+  if aj_id is null then return; end if;
+
+  select exists(select 1 from design_materials where couple_id = aj_id) into has_materials;
+  if has_materials then return; end if;
+
+  insert into design_materials (couple_id, name, detail, swatch_kind, position) values
+    (aj_id, 'Polished silver', 'Flatware · candle holders · table numbers',  'silver',     1),
+    (aj_id, 'Matte white',     'Plates · menus · stationery',                'palette-3',  2),
+    (aj_id, 'Clear glass',     'Glassware · vessels · hurricanes',           'clear',      3);
 end $$;

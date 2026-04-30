@@ -538,6 +538,31 @@ code {
   .admin-key-row [data-remove] { justify-self: end; }
 }
 
+/* ── Inline inspiration tile rows ───────────────────────────────────────── */
+
+.admin-tile-rows {
+  display: grid;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.admin-tile-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: end;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid var(--zz-finn-20);
+  border-radius: 2px;
+}
+.admin-tile-row .admin-field--inline { margin: 0; }
+
+@media (max-width: 760px) {
+  .admin-tile-row { flex-direction: column; align-items: stretch; }
+  .admin-tile-row .admin-field { max-width: 100% !important; }
+}
+
 .admin-field-help {
   font-size: 0.85rem;
   color: var(--zz-tobacco);

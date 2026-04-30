@@ -51,6 +51,10 @@ const COUPLE_FIELDS = [
   'timeline_lastcall_note',
   'floorplan_walkthrough_date',
   'floorplan_walkthrough_note',
+  'design_subtitle',
+  'design_tone_title',
+  'design_materials_title',
+  'design_materials_note',
 ];
 
 // Currency parsing — admin enters dollars (e.g. "120000", "$120,000",
@@ -1815,6 +1819,298 @@ router.post('/couples/:id/floor-plan/:sid/delete', async (req, res, next) => {
     if (rows[0]) setFlash(req, 'success', `Removed ${rows[0].title}.`);
     res.redirect(`/admin/couples/${req.params.id}/floor-plan`);
   } catch (err) { next(err); }
+});
+
+// ── Design (per couple — galleries + materials) ───────────────────────
+
+const DESIGN_SWATCH_KINDS = [
+  'silver', 'gold', 'brass', 'white', 'ivory', 'clear',
+  'palette-1', 'palette-2', 'palette-3', 'palette-4',
+];
+
+function parseTilesFromBody(body) {
+  const raw = body.tiles || {};
+  const indices = Object.keys(raw)
+    .map(Number)
+    .filter(n => !Number.isNaN(n))
+    .sort((a, b) => a - b);
+  return indices
+    .map(i => raw[i])
+    .filter(t => t && t.title && t.title.trim().length > 0)
+    .map((t, idx) => ({
+      id: t.id || null,
+      label: t.label?.trim() || '',
+      title: t.title.trim(),
+      note: nullIfEmpty(t.note),
+      is_hero: !!(t.is_hero && t.is_hero !== '' && t.is_hero !== 'false'),
+      position: idx + 1,
+    }));
+}
+
+// Design landing — shows both sub-sections (galleries + materials) so
+// Zoe can reach either without clicking through twice.
+router.get('/couples/:id/design', async (req, res, next) => {
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+
+    const [{ rows: galleries }, { rows: materials }] = await Promise.all([
+      pool.query(
+        `select g.*,
+                coalesce((select count(*) from inspiration_tiles t where t.gallery_id = g.id), 0)::int  as tile_count,
+                coalesce((select count(*) from inspiration_tiles t where t.gallery_id = g.id and t.is_hero), 0)::int as hero_count
+           from inspiration_galleries g
+          where g.couple_id = $1
+          order by g.position asc`,
+        [couple.id],
+      ),
+      pool.query(
+        'select * from design_materials where couple_id = $1 order by position asc',
+        [couple.id],
+      ),
+    ]);
+
+    res.render('admin/design-overview', {
+      couple,
+      galleries,
+      materials,
+      flash: consumeFlash(req),
+    });
+  } catch (err) { next(err); }
+});
+
+// ── Galleries (with inline tiles) ─────────────────────────────────────
+
+router.get('/couples/:id/design/galleries/new', async (req, res, next) => {
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+
+    const { rows } = await pool.query(
+      'select coalesce(max(position), 0) + 1 as next_pos from inspiration_galleries where couple_id = $1',
+      [couple.id],
+    );
+
+    res.render('admin/design-gallery-form', {
+      couple,
+      gallery: null,
+      tiles: [],
+      suggestedPosition: rows[0].next_pos,
+      formAction: `/admin/couples/${couple.id}/design/galleries`,
+      error: null,
+      flash: consumeFlash(req),
+    });
+  } catch (err) { next(err); }
+});
+
+router.get('/couples/:id/design/galleries/:gid', async (req, res, next) => {
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+
+    const { rows: galleryRows } = await pool.query(
+      'select * from inspiration_galleries where id = $1 and couple_id = $2',
+      [req.params.gid, couple.id],
+    );
+    if (!galleryRows[0]) return res.status(404).send('Gallery not found.');
+
+    const { rows: tiles } = await pool.query(
+      'select * from inspiration_tiles where gallery_id = $1 order by position asc',
+      [galleryRows[0].id],
+    );
+
+    res.render('admin/design-gallery-form', {
+      couple,
+      gallery: galleryRows[0],
+      tiles,
+      suggestedPosition: galleryRows[0].position,
+      formAction: `/admin/couples/${couple.id}/design/galleries/${galleryRows[0].id}`,
+      error: null,
+      flash: consumeFlash(req),
+    });
+  } catch (err) { next(err); }
+});
+
+router.post('/couples/:id/design/galleries', async (req, res, next) => {
+  const client = await pool.connect();
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+
+    const galleryData = {
+      eyebrow: nullIfEmpty(req.body.eyebrow),
+      title: req.body.title?.trim() || '',
+      description: nullIfEmpty(req.body.description),
+      position: parseInt(req.body.position, 10) || 0,
+    };
+    const tiles = parseTilesFromBody(req.body);
+
+    if (!galleryData.title) {
+      return res.status(400).render('admin/design-gallery-form', {
+        couple,
+        gallery: galleryData,
+        tiles,
+        suggestedPosition: galleryData.position || 1,
+        formAction: `/admin/couples/${couple.id}/design/galleries`,
+        error: 'Gallery title is required.',
+        flash: null,
+      });
+    }
+
+    await client.query('begin');
+    const { rows } = await client.query(
+      `insert into inspiration_galleries (couple_id, eyebrow, title, description, position)
+       values ($1, $2, $3, $4, $5) returning id`,
+      [couple.id, galleryData.eyebrow, galleryData.title, galleryData.description, galleryData.position],
+    );
+    const galleryId = rows[0].id;
+    for (const t of tiles) {
+      await client.query(
+        `insert into inspiration_tiles (gallery_id, label, title, note, is_hero, position)
+         values ($1, $2, $3, $4, $5, $6)`,
+        [galleryId, t.label, t.title, t.note, t.is_hero, t.position],
+      );
+    }
+    await client.query('commit');
+
+    setFlash(req, 'success', `Added ${galleryData.title} (${tiles.length} tile${tiles.length === 1 ? '' : 's'}).`);
+    res.redirect(`/admin/couples/${couple.id}/design`);
+  } catch (err) {
+    await client.query('rollback').catch(() => {});
+    next(err);
+  } finally {
+    client.release();
+  }
+});
+
+router.post('/couples/:id/design/galleries/:gid', async (req, res, next) => {
+  const client = await pool.connect();
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+
+    const galleryData = {
+      eyebrow: nullIfEmpty(req.body.eyebrow),
+      title: req.body.title?.trim() || '',
+      description: nullIfEmpty(req.body.description),
+      position: parseInt(req.body.position, 10) || 0,
+    };
+    const tiles = parseTilesFromBody(req.body);
+
+    if (!galleryData.title) {
+      return res.status(400).redirect(`/admin/couples/${couple.id}/design/galleries/${req.params.gid}`);
+    }
+
+    await client.query('begin');
+    const { rowCount } = await client.query(
+      `update inspiration_galleries set
+         eyebrow = $1, title = $2, description = $3, position = $4, updated_at = now()
+       where id = $5 and couple_id = $6`,
+      [galleryData.eyebrow, galleryData.title, galleryData.description, galleryData.position, req.params.gid, couple.id],
+    );
+    if (rowCount === 0) {
+      await client.query('rollback');
+      return res.status(404).send('Gallery not found.');
+    }
+
+    await client.query('delete from inspiration_tiles where gallery_id = $1', [req.params.gid]);
+    for (const t of tiles) {
+      await client.query(
+        `insert into inspiration_tiles (gallery_id, label, title, note, is_hero, position)
+         values ($1, $2, $3, $4, $5, $6)`,
+        [req.params.gid, t.label, t.title, t.note, t.is_hero, t.position],
+      );
+    }
+    await client.query('commit');
+
+    setFlash(req, 'success', `Saved ${galleryData.title}.`);
+    res.redirect(`/admin/couples/${couple.id}/design`);
+  } catch (err) {
+    await client.query('rollback').catch(() => {});
+    next(err);
+  } finally {
+    client.release();
+  }
+});
+
+router.post('/couples/:id/design/galleries/:gid/delete', async (req, res, next) => {
+  try {
+    const { rows } = await pool.query(
+      `delete from inspiration_galleries
+        where id = $1 and couple_id = $2 returning title`,
+      [req.params.gid, req.params.id],
+    );
+    if (rows[0]) setFlash(req, 'success', `Removed ${rows[0].title}.`);
+    res.redirect(`/admin/couples/${req.params.id}/design`);
+  } catch (err) { next(err); }
+});
+
+// ── Materials (a single bulk-edit form for the whole list) ────────────
+
+router.get('/couples/:id/design/materials', async (req, res, next) => {
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+
+    const { rows: materials } = await pool.query(
+      'select * from design_materials where couple_id = $1 order by position asc',
+      [couple.id],
+    );
+    res.render('admin/design-materials-form', {
+      couple,
+      materials,
+      swatchKinds: DESIGN_SWATCH_KINDS,
+      formAction: `/admin/couples/${couple.id}/design/materials`,
+      error: null,
+      flash: consumeFlash(req),
+    });
+  } catch (err) { next(err); }
+});
+
+function parseMaterialsFromBody(body) {
+  const raw = body.materials || {};
+  const indices = Object.keys(raw)
+    .map(Number)
+    .filter(n => !Number.isNaN(n))
+    .sort((a, b) => a - b);
+  return indices
+    .map(i => raw[i])
+    .filter(m => m && m.name && m.name.trim().length > 0)
+    .map((m, idx) => ({
+      name: m.name.trim(),
+      detail: nullIfEmpty(m.detail),
+      swatch_kind: DESIGN_SWATCH_KINDS.includes(m.swatch_kind) ? m.swatch_kind : 'silver',
+      position: idx + 1,
+    }));
+}
+
+router.post('/couples/:id/design/materials', async (req, res, next) => {
+  const client = await pool.connect();
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+
+    const materials = parseMaterialsFromBody(req.body);
+
+    await client.query('begin');
+    await client.query('delete from design_materials where couple_id = $1', [couple.id]);
+    for (const m of materials) {
+      await client.query(
+        `insert into design_materials (couple_id, name, detail, swatch_kind, position)
+         values ($1, $2, $3, $4, $5)`,
+        [couple.id, m.name, m.detail, m.swatch_kind, m.position],
+      );
+    }
+    await client.query('commit');
+
+    setFlash(req, 'success', `Saved materials (${materials.length} row${materials.length === 1 ? '' : 's'}).`);
+    res.redirect(`/admin/couples/${couple.id}/design`);
+  } catch (err) {
+    await client.query('rollback').catch(() => {});
+    next(err);
+  } finally {
+    client.release();
+  }
 });
 
 // ── Couple delete (kept at the bottom so vendor routes match first) ───

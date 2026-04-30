@@ -119,6 +119,32 @@
       </fieldset>
 
       <fieldset class="admin-fieldset">
+        <legend class="admin-legend">Design page copy</legend>
+        <p class="admin-fieldset-note">
+          Editorial copy on <code>/design</code>. The palette and tone keywords above
+          drive the rest of the page; inspiration galleries and materials live on the
+          Design tab.
+        </p>
+        <label class="admin-field">
+          <span class="admin-field-label">Page subtitle</span>
+          <textarea name="design_subtitle" rows="2"><%= couple?.design_subtitle || '' %></textarea>
+          <span class="admin-field-help">The long paragraph under the H1 on the design page.</span>
+        </label>
+        <label class="admin-field">
+          <span class="admin-field-label">Tone section title</span>
+          <input type="text" name="design_tone_title" value="<%= couple?.design_tone_title || '' %>" placeholder="Intimate and considered. Nothing overdone.">
+        </label>
+        <label class="admin-field">
+          <span class="admin-field-label">Materials section title</span>
+          <input type="text" name="design_materials_title" value="<%= couple?.design_materials_title || '' %>" placeholder="Polished silver. Matte white. Clear glass.">
+        </label>
+        <label class="admin-field">
+          <span class="admin-field-label">Materials section note</span>
+          <input type="text" name="design_materials_note" value="<%= couple?.design_materials_note || '' %>" placeholder="All warmth reliant on candlelight.">
+        </label>
+      </fieldset>
+
+      <fieldset class="admin-fieldset">
         <legend class="admin-legend">Venue</legend>
         <label class="admin-field">
           <span class="admin-field-label">Venue name</span>

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include('partials/head', { title: `${couple.display_name} — Materials` }) %>
+<body class="admin-body">
+
+  <%- include('partials/sidebar', { currentSection: 'couples' }) %>
+
+  <main class="admin-main">
+    <header class="admin-header">
+      <div>
+        <a href="/admin/couples/<%= couple.id %>/design" class="admin-back">← <%= couple.display_name %> · design</a>
+        <h1 class="admin-title">Metals &amp; finishes</h1>
+      </div>
+    </header>
+
+    <%- include('partials/couple-tabs', { couple, currentTab: 'design' }) %>
+
+    <%- include('partials/flash', { flash }) %>
+
+    <% if (error) { %>
+      <div class="admin-flash admin-flash--error" role="alert"><%= error %></div>
+    <% } %>
+
+    <%
+      const SWATCH_LABELS = {
+        silver: 'Polished silver', gold: 'Polished gold', brass: 'Brass',
+        white: 'Matte white', ivory: 'Ivory', clear: 'Clear glass',
+        'palette-1': 'Couple color 1', 'palette-2': 'Couple color 2',
+        'palette-3': 'Couple color 3', 'palette-4': 'Couple color 4',
+      };
+    %>
+
+    <form action="<%= formAction %>" method="post" class="admin-form">
+      <fieldset class="admin-fieldset">
+        <legend class="admin-legend">Materials</legend>
+        <p class="admin-fieldset-note">
+          One row per swatch. <em>Kind</em> picks a visual treatment from the preset list
+          (silver / gold / brass / white / ivory / clear / palette-1..4) — Zoe doesn't
+          write CSS. Saving replaces the whole list with what's posted; rows with no
+          name are skipped.
+        </p>
+
+        <div id="material-rows" class="admin-key-rows">
+          <%
+            const initial = (materials && materials.length) ? materials : [
+              { name: '', detail: '', swatch_kind: 'silver', position: 1 },
+            ];
+          %>
+          <% initial.forEach((m, i) => { %>
+            <div class="admin-key-row" data-row style="grid-template-columns: 1fr 1.6fr 180px auto;">
+              <label class="admin-field admin-field--inline">
+                <span class="admin-field-label">Name</span>
+                <input type="text" name="materials[<%= i %>][name]" value="<%= m.name || '' %>" placeholder="Polished silver">
+              </label>
+              <label class="admin-field admin-field--inline">
+                <span class="admin-field-label">Detail</span>
+                <input type="text" name="materials[<%= i %>][detail]" value="<%= m.detail || '' %>" placeholder="Flatware · candle holders · table numbers">
+              </label>
+              <label class="admin-field admin-field--inline">
+                <span class="admin-field-label">Kind</span>
+                <select name="materials[<%= i %>][swatch_kind]">
+                  <% swatchKinds.forEach(k => { %>
+                    <option value="<%= k %>" <%= m.swatch_kind === k ? 'selected' : '' %>><%= SWATCH_LABELS[k] || k %></option>
+                  <% }) %>
+                </select>
+              </label>
+              <button type="button" class="admin-btn admin-btn--ghost admin-btn--small" data-remove>Remove</button>
+            </div>
+          <% }) %>
+        </div>
+
+        <button type="button" id="add-material" class="admin-btn admin-btn--ghost">+ Add material</button>
+      </fieldset>
+
+      <div class="admin-form-actions">
+        <button type="submit" class="admin-btn admin-btn--primary">Save materials</button>
+        <a href="/admin/couples/<%= couple.id %>/design" class="admin-btn admin-btn--ghost">Cancel</a>
+      </div>
+    </form>
+  </main>
+
+  <script>
+    (function () {
+      const container = document.getElementById('material-rows');
+      const addBtn = document.getElementById('add-material');
+      if (!container || !addBtn) return;
+
+      const KIND_OPTIONS = <%- JSON.stringify(swatchKinds.map(k => ({ value: k, label: SWATCH_LABELS[k] || k }))) %>;
+
+      function nextIndex() { return container.querySelectorAll('[data-row]').length; }
+
+      addBtn.addEventListener('click', () => {
+        const i = nextIndex();
+        const html = `
+          <div class="admin-key-row" data-row style="grid-template-columns: 1fr 1.6fr 180px auto;">
+            <label class="admin-field admin-field--inline">
+              <span class="admin-field-label">Name</span>
+              <input type="text" name="materials[${i}][name]" placeholder="">
+            </label>
+            <label class="admin-field admin-field--inline">
+              <span class="admin-field-label">Detail</span>
+              <input type="text" name="materials[${i}][detail]" placeholder="">
+            </label>
+            <label class="admin-field admin-field--inline">
+              <span class="admin-field-label">Kind</span>
+              <select name="materials[${i}][swatch_kind]">
+                ${KIND_OPTIONS.map(k => `<option value="${k.value}">${k.label}</option>`).join('')}
+              </select>
+            </label>
+            <button type="button" class="admin-btn admin-btn--ghost admin-btn--small" data-remove>Remove</button>
+          </div>
+        `;
+        container.insertAdjacentHTML('beforeend', html);
+      });
+
+      container.addEventListener('click', (e) => {
+        if (e.target.matches('[data-remove]')) {
+          const row = e.target.closest('[data-row]');
+          if (row) row.remove();
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

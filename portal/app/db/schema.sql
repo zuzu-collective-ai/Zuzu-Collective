@@ -61,6 +61,15 @@ create table if not exists couples (
   floorplan_walkthrough_date text,
   floorplan_walkthrough_note text,
 
+  -- Design page editorial copy. Most of /design is data-backed
+  -- (palette colors above, tone keywords/statement above, inspiration
+  -- galleries + materials below). These four fields cover the bits of
+  -- prose that aren't generic enough to hardcode in the template.
+  design_subtitle         text,   -- the long page intro under the H1
+  design_tone_title       text,   -- "Intimate and considered. Nothing overdone."
+  design_materials_title  text,   -- "Polished silver. Matte white. Clear glass."
+  design_materials_note   text,   -- "All warmth reliant on candlelight."
+
   created_at      timestamptz not null default now(),
   updated_at      timestamptz not null default now()
 );
@@ -76,6 +85,10 @@ alter table couples add column if not exists timeline_lastcall_time text;
 alter table couples add column if not exists timeline_lastcall_note text;
 alter table couples add column if not exists floorplan_walkthrough_date text;
 alter table couples add column if not exists floorplan_walkthrough_note text;
+alter table couples add column if not exists design_subtitle text;
+alter table couples add column if not exists design_tone_title text;
+alter table couples add column if not exists design_materials_title text;
+alter table couples add column if not exists design_materials_note text;
 
 create index if not exists couples_slug_idx on couples(slug);
 
@@ -424,3 +437,74 @@ create table if not exists floorplan_key_items (
 );
 
 create index if not exists floorplan_key_items_space_id_idx on floorplan_key_items(space_id);
+
+-- ── Inspiration galleries ────────────────────────────────────────────────
+--
+-- Six (or however many) editorial chapters on /design. Each gallery has
+-- a small-caps eyebrow ("Ceremony" / "Florals" / ...), an italic title,
+-- and a description. The actual visual tiles live in
+-- inspiration_tiles, with one tile flagged is_hero so it gets the
+-- larger 2×2 layout in the grid.
+
+create table if not exists inspiration_galleries (
+  id              uuid primary key default gen_random_uuid(),
+  couple_id       uuid not null references couples(id) on delete cascade,
+
+  eyebrow         text,                    -- "Ceremony"
+  title           text not null,           -- "An olive-branch arch over the aisle."
+  description     text,                     -- the longer editorial paragraph
+
+  position        integer not null default 0,
+  created_at      timestamptz not null default now(),
+  updated_at      timestamptz not null default now()
+);
+
+create index if not exists inspiration_galleries_couple_id_idx on inspiration_galleries(couple_id);
+
+-- ── Inspiration tiles ────────────────────────────────────────────────────
+--
+-- One tile per visual reference under a gallery. `note` is the caption
+-- that appears at the bottom of the tile (currently used for the file
+-- path placeholder, e.g. "img → ceremony / hero", until real photos
+-- ship). `is_hero` flips the tile to the 2×2 hero layout.
+
+create table if not exists inspiration_tiles (
+  id              uuid primary key default gen_random_uuid(),
+  gallery_id      uuid not null references inspiration_galleries(id) on delete cascade,
+
+  label           text not null,           -- "Hero" / "Aisle" / "Recessional"
+  title           text not null,           -- "An olive-branch arch over the aisle."
+  note            text,                     -- "img → ceremony / hero"
+  is_hero         boolean not null default false,
+
+  position        integer not null default 0,
+  created_at      timestamptz not null default now(),
+  updated_at      timestamptz not null default now()
+);
+
+create index if not exists inspiration_tiles_gallery_id_idx on inspiration_tiles(gallery_id);
+
+-- ── Design materials ─────────────────────────────────────────────────────
+--
+-- The "Metals & Finishes" grid at the foot of /design — a small set of
+-- 3-ish swatches (Polished silver, Matte white, Clear glass on the demo
+-- couple). `swatch_kind` drives the visual treatment so Zoe doesn't
+-- have to write CSS — picks a preset from a fixed list:
+--   silver | gold | brass | white | ivory | clear | palette-1..4
+-- The view maps each kind to a background gradient or a couple-palette
+-- variable.
+
+create table if not exists design_materials (
+  id              uuid primary key default gen_random_uuid(),
+  couple_id       uuid not null references couples(id) on delete cascade,
+
+  name            text not null,           -- "Polished silver"
+  detail          text,                     -- "Flatware · candle holders · table numbers"
+  swatch_kind     text not null default 'silver',
+
+  position        integer not null default 0,
+  created_at      timestamptz not null default now(),
+  updated_at      timestamptz not null default now()
+);
+
+create index if not exists design_materials_couple_id_idx on design_materials(couple_id);

@@ -55,9 +55,50 @@ router.get('/p/:slug', (_req, res) =>
   res.render('landing', { currentPage: 'home' }),
 );
 
-router.get('/p/:slug/design', (_req, res) =>
-  res.render('design', { currentPage: 'design' }),
-);
+router.get('/p/:slug/design', async (req, res, next) => {
+  try {
+    const coupleId = res.locals.couple.id;
+
+    const [galleriesRes, tilesRes, materialsRes] = await Promise.all([
+      pool.query(
+        'select * from inspiration_galleries where couple_id = $1 order by position asc',
+        [coupleId],
+      ),
+      pool.query(
+        `select t.*
+           from inspiration_tiles t
+           join inspiration_galleries g on g.id = t.gallery_id
+          where g.couple_id = $1
+          order by t.position asc`,
+        [coupleId],
+      ),
+      pool.query(
+        'select * from design_materials where couple_id = $1 order by position asc',
+        [coupleId],
+      ),
+    ]);
+
+    const galleries = galleriesRes.rows;
+    const tiles = tilesRes.rows;
+    const materials = materialsRes.rows;
+
+    const tilesByGallery = new Map();
+    for (const t of tiles) {
+      const list = tilesByGallery.get(t.gallery_id) || [];
+      list.push(t);
+      tilesByGallery.set(t.gallery_id, list);
+    }
+
+    res.render('design', {
+      currentPage: 'design',
+      galleries,
+      tilesByGallery,
+      materials,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
 
 router.get('/p/:slug/vendors', async (req, res, next) => {
   try {
