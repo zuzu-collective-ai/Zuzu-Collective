@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include('partials/head', { title: 'Couples' }) %>
+<body class="admin-body">
+
+  <%- include('partials/sidebar', { currentSection: 'couples' }) %>
+
+  <main class="admin-main">
+    <header class="admin-header">
+      <h1 class="admin-title">Couples</h1>
+      <a href="/admin/couples/new" class="admin-btn admin-btn--primary">+ New couple</a>
+    </header>
+
+    <%- include('partials/flash', { flash }) %>
+
+    <% if (couples.length === 0) { %>
+      <p class="admin-empty">No couples yet. <a href="/admin/couples/new">Add your first one</a>.</p>
+    <% } else { %>
+      <ul class="admin-list">
+        <% couples.forEach(couple => { %>
+          <li class="admin-list-item">
+            <a href="/admin/couples/<%= couple.id %>" class="admin-list-link">
+              <div class="admin-list-name"><%= couple.display_name %></div>
+              <div class="admin-list-meta">
+                <span class="admin-list-date">
+                  <%= new Date(couple.wedding_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }) %>
+                </span>
+                <% if (couple.venue_name) { %>
+                  <span class="admin-list-venue">
+                    <%= couple.venue_name %><% if (couple.venue_location) { %> · <%= couple.venue_location %><% } %>
+                  </span>
+                <% } %>
+                <span class="admin-list-slug">/p/<%= couple.slug %></span>
+              </div>
+            </a>
+            <div class="admin-list-actions">
+              <a href="/p/<%= couple.slug %>" class="admin-link" target="_blank" rel="noopener">View portal ↗</a>
+            </div>
+          </li>
+        <% }) %>
+      </ul>
+    <% } %>
+  </main>
+
+</body>
+</html>

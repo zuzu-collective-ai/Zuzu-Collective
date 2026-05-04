@@ -1,0 +1,478 @@
+/*
+ * Zuzu Collective portal — guest list, RSVP, and seating
+ *
+ * Three things in one page because they share source data: every guest is
+ * invited (guest list), responds (RSVP), and is seated (seating chart).
+ *
+ * Page sections:
+ *   .guest-summary  — 5 KPIs across the top
+ *   .rsvp           — households grouped by status (Accepted / Awaiting /
+ *                     Declined). Households are the unit, not individuals —
+ *                     one invitation per household, multiple seats inside.
+ *   .seating        — table cards, two-column grid, each with the table
+ *                     name, capacity, and the list of seated guests.
+ *   .unseated       — accepted guests still without a table.
+ *
+ * Anti-spreadsheet — italic display names, mono labels, hairlines not cells.
+ */
+
+/* ── Summary stats — 5 cells, same pattern as timeline ─────────────────── */
+
+.guest-summary {
+  padding-top: var(--space-lg);
+  padding-bottom: var(--space-lg);
+}
+.guest-summary .summary-stats {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  max-width: var(--content-max);
+  margin: 0 auto;
+}
+.guest-summary .stat {
+  text-align: center;
+  padding: var(--space-md);
+  border-right: 1px solid var(--zz-finn-20);
+}
+.guest-summary .stat:last-child { border-right: 0; }
+.guest-summary .stat-label {
+  font-family: var(--zz-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--zz-finn-60);
+  margin-bottom: var(--space-md);
+}
+.guest-summary .stat-number {
+  font-family: var(--zz-display);
+  font-style: italic;
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 1;
+  color: var(--zz-finn);
+}
+.guest-summary .stat-number--accent  { color: var(--zz-tobacco); }
+.guest-summary .stat-number--decline { color: var(--zz-smoky); opacity: 0.85; }
+.guest-summary .stat-note {
+  margin-top: var(--space-sm);
+  font-family: var(--zz-display);
+  font-size: 0.95rem;
+  color: var(--zz-ink);
+  opacity: 0.75;
+}
+
+/* ── Filter strip — visual-only buttons (no JS in mockup) ───────────────── */
+
+.guest-filters {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: 0 var(--space-md);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-md);
+  border-top: 1px dashed var(--zz-finn-20);
+  border-bottom: 1px dashed var(--zz-finn-20);
+  padding-block: var(--space-md);
+}
+.guest-filters-label {
+  font-family: var(--zz-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--zz-finn-60);
+}
+.guest-filters-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-left: var(--space-sm);
+}
+.filter-chip {
+  font-family: var(--zz-display);
+  font-size: 0.95rem;
+  font-style: italic;
+  color: var(--zz-finn);
+  padding: 4px 14px;
+  border: 1px solid var(--zz-finn-20);
+  border-radius: 999px;
+  cursor: pointer;
+  background: transparent;
+  transition: border-color 160ms ease, background 160ms ease;
+}
+.filter-chip:hover { border-color: var(--zz-finn-60); }
+.filter-chip.is-active {
+  border-color: var(--zz-finn);
+  background: rgba(65, 39, 51, 0.06);
+}
+
+/* ── RSVP — grouped by status ───────────────────────────────────────────── */
+
+.rsvp {
+  max-width: var(--content-max);
+  margin-inline: auto;
+  padding: var(--space-xl) var(--space-md);
+}
+
+.rsvp-group {
+  padding: var(--space-lg) 0;
+  border-bottom: 1px solid var(--zz-finn-20);
+}
+.rsvp-group:last-child { border-bottom: 0; }
+
+.rsvp-group-head {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: baseline;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+.rsvp-group-title {
+  font-family: var(--zz-display);
+  font-style: italic;
+  font-size: clamp(1.75rem, 3.4vw, 2.5rem);
+  line-height: 1.05;
+  color: var(--zz-finn);
+  margin: 0;
+  font-weight: 400;
+}
+.rsvp-group-count {
+  font-family: var(--zz-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--zz-finn-60);
+  text-align: right;
+}
+
+/* Awaiting group gets the Tobacco-tinted highlight band — same treatment
+   as the active milestone on the checklist page. The follow-up list is
+   what Zoe actually needs to see this week.                             */
+.rsvp-group.is-awaiting {
+  background: rgba(73, 57, 51, 0.04);
+  margin-inline: calc(-1 * var(--space-md));
+  padding-inline: var(--space-md);
+  border-top: 1px solid var(--zz-tobacco);
+  border-bottom: 1px solid var(--zz-tobacco);
+}
+
+.rsvp-group.is-declined .rsvp-group-title { opacity: 0.7; }
+
+/* ── Household block ────────────────────────────────────────────────────── */
+
+.households {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.household {
+  display: grid;
+  grid-template-columns: 160px 1fr 160px;
+  gap: var(--space-lg);
+  padding: var(--space-md) 0;
+  border-bottom: 1px dashed var(--zz-finn-20);
+  align-items: start;
+}
+.household:last-child { border-bottom: 0; }
+
+.household-meta { padding-top: 0.4rem; }
+.household-meta .label { display: block; }
+.household-side {
+  display: block;
+  margin-top: 4px;
+  font-family: var(--zz-display);
+  font-style: italic;
+  font-size: 0.95rem;
+  color: var(--zz-tobacco);
+}
+
+.household-name {
+  font-family: var(--zz-display);
+  font-size: clamp(1.375rem, 2.4vw, 1.75rem);
+  line-height: 1.1;
+  color: var(--zz-finn);
+  margin: 0 0 var(--space-xs);
+  font-weight: 400;
+}
+.household-name em { font-style: italic; font-weight: 500; }
+
+.household-people {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px var(--space-md);
+}
+.household-people li {
+  font-family: var(--zz-display);
+  font-size: 1rem;
+  color: var(--zz-ink);
+}
+.household-people li.is-plus-one {
+  font-style: italic;
+  color: var(--zz-tobacco);
+}
+.household-people li.is-kid::after {
+  content: " · child";
+  font-family: var(--zz-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--zz-finn-60);
+  margin-left: 4px;
+}
+
+.household-note {
+  margin: var(--space-xs) 0 0;
+  font-family: var(--zz-display);
+  font-style: italic;
+  font-size: 0.9375rem;
+  color: var(--zz-tobacco);
+  opacity: 0.85;
+}
+
+/* Right column — table assignment + status pill stacked */
+.household-status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-xs);
+  padding-top: 0.4rem;
+}
+
+.household-table {
+  font-family: var(--zz-display);
+  font-style: italic;
+  font-size: 0.95rem;
+  color: var(--zz-finn);
+  text-align: right;
+}
+.household-table-num {
+  font-family: var(--zz-mono);
+  font-style: normal;
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--zz-finn-60);
+  display: block;
+}
+
+.household-pill {
+  font-family: var(--zz-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border: 1px solid currentColor;
+  white-space: nowrap;
+}
+.pill-accepted  { color: var(--zz-finn); }
+.pill-awaiting  { color: var(--zz-tobacco); }
+.pill-declined  { color: var(--zz-smoky); }
+
+/* Declined households are quieter overall */
+.household.is-declined { opacity: 0.7; }
+
+/* ── Seating chart — table cards ────────────────────────────────────────── */
+
+.seating-intro {
+  max-width: 56ch;
+  margin: 0 auto var(--space-lg);
+  text-align: center;
+  font-family: var(--zz-display);
+  font-size: 1.0625rem;
+  line-height: 1.55;
+  color: var(--zz-ink);
+}
+
+.tables {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-md);
+  padding-inline: var(--space-md);
+}
+
+.table-card {
+  padding: var(--space-lg);
+  border: 1px solid var(--zz-finn-20);
+  border-radius: 2px;
+  background: var(--zz-moonlight);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.table-card-head {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: baseline;
+  gap: var(--space-sm);
+  padding-bottom: var(--space-sm);
+  border-bottom: 1px dashed var(--zz-finn-20);
+}
+.table-card-num {
+  font-family: var(--zz-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--zz-tobacco);
+  display: block;
+  margin-bottom: 4px;
+}
+.table-card-name {
+  font-family: var(--zz-display);
+  font-style: italic;
+  font-size: 1.625rem;
+  line-height: 1;
+  color: var(--zz-finn);
+  margin: 0;
+  font-weight: 400;
+}
+.table-card-capacity {
+  font-family: var(--zz-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--zz-finn-60);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.table-card-note {
+  font-family: var(--zz-display);
+  font-style: italic;
+  font-size: 0.95rem;
+  color: var(--zz-tobacco);
+  opacity: 0.85;
+  margin: 0;
+}
+
+.seat-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 4px;
+  counter-reset: seat;
+}
+.seat-list li {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: var(--space-sm);
+  align-items: baseline;
+  font-family: var(--zz-display);
+  font-size: 1rem;
+  color: var(--zz-ink);
+}
+.seat-list li::before {
+  counter-increment: seat;
+  content: counter(seat, decimal-leading-zero);
+  font-family: var(--zz-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.18em;
+  color: var(--zz-finn-60);
+}
+.seat-list li.is-empty {
+  font-style: italic;
+  color: var(--zz-finn-60);
+}
+.seat-list li.is-empty::before { color: var(--zz-finn-60); opacity: 0.6; }
+
+/* Head table gets slightly stronger treatment — it's the centerpiece */
+.table-card.is-head {
+  background: var(--zz-finn);
+  color: var(--zz-moonlight);
+  border-color: var(--zz-finn);
+}
+.table-card.is-head .table-card-num,
+.table-card.is-head .table-card-capacity { color: rgba(239, 237, 225, 0.7); }
+.table-card.is-head .table-card-name     { color: var(--zz-moonlight); }
+.table-card.is-head .table-card-head     { border-bottom-color: rgba(239, 237, 225, 0.2); }
+.table-card.is-head .seat-list li        { color: var(--zz-moonlight); }
+.table-card.is-head .seat-list li::before { color: rgba(239, 237, 225, 0.6); }
+.table-card.is-head .table-card-note     { color: rgba(239, 237, 225, 0.75); }
+
+/* ── Unseated panel — accepted but not yet at a table ───────────────────── */
+
+.unseated {
+  max-width: var(--content-max);
+  margin-inline: auto;
+  padding: var(--space-xl) var(--space-md) 0;
+}
+.unseated-head {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: baseline;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+  padding-bottom: var(--space-sm);
+  border-bottom: 1px solid var(--zz-finn-20);
+}
+.unseated-title {
+  font-family: var(--zz-display);
+  font-style: italic;
+  font-size: 1.5rem;
+  color: var(--zz-finn);
+  margin: 0;
+  font-weight: 400;
+}
+.unseated-count {
+  font-family: var(--zz-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--zz-finn-60);
+}
+.unseated-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-sm) var(--space-lg);
+}
+.unseated-list li {
+  font-family: var(--zz-display);
+  font-size: 1rem;
+  color: var(--zz-ink);
+  padding-left: var(--space-md);
+  position: relative;
+}
+.unseated-list li::before {
+  content: "·";
+  position: absolute;
+  left: 0;
+  color: var(--zz-finn-60);
+}
+
+/* ── Responsive ─────────────────────────────────────────────────────────── */
+
+@media (max-width: 960px) {
+  .tables { grid-template-columns: 1fr; }
+  .unseated-list { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 760px) {
+  .guest-summary .summary-stats { grid-template-columns: 1fr 1fr; }
+  .guest-summary .stat { border-right: 0; border-bottom: 1px solid var(--zz-finn-20); }
+  .guest-summary .stat:nth-last-child(-n+1) { border-bottom: 0; }
+
+  .household {
+    grid-template-columns: 1fr;
+    gap: var(--space-sm);
+  }
+  .household-meta { padding-top: 0; }
+  .household-status {
+    align-items: flex-start;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    padding-top: 0;
+  }
+  .household-table { text-align: left; }
+
+  .unseated-list { grid-template-columns: 1fr; }
+}

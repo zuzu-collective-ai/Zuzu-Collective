@@ -1,0 +1,55 @@
+name: Deploy portal mockup to GitHub Pages
+
+# Serves portal/mockup/ at:
+#   https://zuzu-collective-ai.github.io/Zuzu-Collective/landing.html
+#
+# Requires the repo's Pages source to be set to "GitHub Actions"
+# (Settings → Pages → Build and deployment → Source). Set once, runs
+# automatically on every push to the feature branch after that.
+
+on:
+  push:
+    branches:
+      - claude/continue-work-57JpY
+    paths:
+      - 'portal/mockup/**'
+      - '.github/workflows/deploy-pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+  # `actions: write` is required when enablement: true creates the
+  # Pages site on the first run.
+  actions: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+        with:
+          # Create the Pages site on the first run so we don't need a
+          # manual click in Settings → Pages.
+          enablement: true
+
+      - name: Upload mockup as Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: portal/mockup
+
+      - name: Deploy to Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

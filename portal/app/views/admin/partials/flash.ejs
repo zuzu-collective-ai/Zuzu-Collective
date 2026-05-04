@@ -1,0 +1,9 @@
+<%#
+  One-shot flash banner. Renders nothing if `flash` is null.
+  Type controls the color: success | error | info.
+%>
+<% if (flash) { %>
+  <div class="admin-flash admin-flash--<%= flash.type %>" role="status">
+    <%= flash.message %>
+  </div>
+<% } %>

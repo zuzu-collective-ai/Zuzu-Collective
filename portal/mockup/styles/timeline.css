@@ -1,0 +1,296 @@
+/*
+ * Zuzu Collective portal — timeline page (day-of run-of-show)
+ *
+ * Six phases from morning getting-ready through late-night send-off. Each
+ * phase is its own block with a window (start–end), a phase title, and a
+ * list of timed events. Each event is laid out as time | details so the
+ * couple can read it like a printed schedule.
+ *
+ * Anti-spreadsheet — no gridlines, no table cells. Editorial weight on the
+ * time and the event title, supporting metadata in mono.
+ */
+
+/* ── Summary stats — same pattern as checklist/budget ───────────────────── */
+
+.timeline-summary {
+  padding-top: var(--space-lg);
+  padding-bottom: var(--space-lg);
+}
+.timeline-summary .summary-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  max-width: var(--content-max);
+  margin: 0 auto;
+}
+.timeline-summary .stat {
+  text-align: center;
+  padding: var(--space-md);
+  border-right: 1px solid var(--zz-finn-20);
+}
+.timeline-summary .stat:last-child { border-right: 0; }
+.timeline-summary .stat-label {
+  font-family: var(--zz-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--zz-finn-60);
+  margin-bottom: var(--space-md);
+}
+.timeline-summary .stat-number {
+  font-family: var(--zz-display);
+  font-style: italic;
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 1;
+  color: var(--zz-finn);
+}
+.timeline-summary .stat-note {
+  margin-top: var(--space-sm);
+  font-family: var(--zz-display);
+  font-size: 0.95rem;
+  color: var(--zz-ink);
+  opacity: 0.75;
+}
+
+/* ── Phase container ────────────────────────────────────────────────────── */
+
+.phases {
+  max-width: var(--content-max);
+  margin-inline: auto;
+  padding: 0 var(--space-md) var(--space-2xl);
+}
+
+.phase {
+  padding: var(--space-xl) 0;
+  border-bottom: 1px solid var(--zz-finn-20);
+}
+.phase:first-child { padding-top: var(--space-md); }
+.phase:last-child  { border-bottom: 0; }
+
+/* ── Phase header — number, window, italic title, one-line note ─────────── */
+
+.phase-head {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  grid-template-areas:
+    "num   window  count"
+    "title title   title"
+    "note  note    note";
+  column-gap: var(--space-md);
+  row-gap: var(--space-xs);
+  align-items: baseline;
+  margin-bottom: var(--space-lg);
+  padding-bottom: var(--space-md);
+  border-bottom: 1px dashed var(--zz-finn-20);
+}
+
+.phase-num {
+  grid-area: num;
+  font-family: var(--zz-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--zz-tobacco);
+}
+
+.phase-window {
+  grid-area: window;
+  font-family: var(--zz-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--zz-finn-60);
+}
+
+.phase-count {
+  grid-area: count;
+  font-family: var(--zz-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--zz-finn-60);
+  text-align: right;
+}
+
+.phase-title {
+  grid-area: title;
+  font-family: var(--zz-display);
+  font-style: italic;
+  font-size: clamp(2rem, 4.2vw, 3rem);
+  line-height: 1.05;
+  color: var(--zz-finn);
+  margin: 0;
+  font-weight: 400;
+}
+
+.phase-note {
+  grid-area: note;
+  font-family: var(--zz-display);
+  font-size: 1.0625rem;
+  line-height: 1.55;
+  color: var(--zz-ink);
+  opacity: 0.85;
+  max-width: 56ch;
+  margin: 0;
+}
+
+/* ── Event list — time | details ────────────────────────────────────────── */
+
+.event-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.event {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  column-gap: var(--space-lg);
+  padding: var(--space-md) 0;
+  border-bottom: 1px dashed var(--zz-finn-20);
+  align-items: baseline;
+}
+.event:last-child { border-bottom: 0; }
+
+.event-time {
+  font-family: var(--zz-mono);
+  font-size: 1rem;
+  letter-spacing: 0.06em;
+  color: var(--zz-finn);
+  white-space: nowrap;
+}
+
+.event-time-meridiem {
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  margin-left: 4px;
+  color: var(--zz-finn-60);
+}
+
+.event-body {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+}
+
+.event-title {
+  font-family: var(--zz-display);
+  font-style: italic;
+  font-size: 1.5rem;
+  line-height: 1.2;
+  color: var(--zz-finn);
+  margin: 0;
+  font-weight: 400;
+}
+
+.event-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  margin-top: 2px;
+}
+
+.event-meta-item {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.event-meta-label {
+  font-family: var(--zz-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--zz-finn-60);
+}
+.event-meta-value {
+  font-family: var(--zz-display);
+  font-size: 0.95rem;
+  color: var(--zz-ink);
+}
+
+.event-note {
+  font-family: var(--zz-display);
+  font-style: italic;
+  font-size: 0.9375rem;
+  color: var(--zz-tobacco);
+  opacity: 0.85;
+  margin-top: 2px;
+}
+
+/* Anchor — small Finn dot rendered before each time, ties events to the
+   vertical rhythm of the phase. */
+.event-time::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--zz-finn);
+  margin-right: var(--space-sm);
+  position: relative;
+  top: -3px;
+}
+
+/* ── Phase variations ───────────────────────────────────────────────────── */
+
+/* Ceremony — full focus, slight Tobacco-tinted background, the heart of
+   the day. Matches the "is-active" treatment used on the checklist page.  */
+.phase.phase--ceremony {
+  background: rgba(73, 57, 51, 0.04);
+  margin-inline: calc(-1 * var(--space-md));
+  padding-inline: var(--space-md);
+  border-top: 1px solid var(--zz-tobacco);
+  border-bottom: 1px solid var(--zz-tobacco);
+}
+.phase.phase--ceremony .phase-title { color: var(--zz-finn); }
+
+/* Send-off — celebratory, centered like the checklist's "Day Of" milestone */
+.phase.phase--sendoff { text-align: center; }
+.phase.phase--sendoff .phase-head {
+  grid-template-columns: 1fr;
+  grid-template-areas:
+    "window"
+    "num"
+    "title"
+    "count"
+    "note";
+  text-align: center;
+}
+.phase.phase--sendoff .phase-count { text-align: center; }
+.phase.phase--sendoff .phase-note { margin-inline: auto; }
+.phase.phase--sendoff .event { grid-template-columns: 1fr; row-gap: var(--space-xs); justify-items: center; text-align: center; }
+.phase.phase--sendoff .event-time::before { display: none; }
+.phase.phase--sendoff .event-meta { justify-content: center; }
+
+/* ── Print — the day-of schedule should print cleanly ───────────────────── */
+
+@media print {
+  .topbar, .footer { display: none; }
+  body { background: #fff; color: #000; }
+  .phase { page-break-inside: avoid; }
+}
+
+/* ── Responsive ─────────────────────────────────────────────────────────── */
+
+@media (max-width: 760px) {
+  .timeline-summary .summary-stats { grid-template-columns: 1fr 1fr; }
+  .timeline-summary .stat { border-right: 0; border-bottom: 1px solid var(--zz-finn-20); }
+  .timeline-summary .stat:nth-last-child(-n+2) { border-bottom: 0; }
+
+  .phase-head {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "num"
+      "window"
+      "title"
+      "count"
+      "note";
+  }
+  .phase-count { text-align: left; }
+
+  .event {
+    grid-template-columns: 1fr;
+    row-gap: var(--space-xs);
+  }
+  .event-time::before { margin-right: var(--space-xs); }
+  .event-meta { gap: var(--space-sm); }
+}

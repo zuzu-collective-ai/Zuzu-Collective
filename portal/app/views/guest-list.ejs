@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include('partials/head', { couple, title: 'Guest List, RSVP & Seating', extraStyles: ['palette.css', 'guest-list.css'] }) %>
+<body>
+
+  <%- include('partials/topbar', { couple, currentPage }) %>
+
+  <!-- ── Page header ─────────────────────────────────────────────────────── -->
+  <section class="page-header">
+    <span class="label page-eyebrow"><%= couple.display_name %></span>
+    <h1 class="page-title">Guest List, RSVP &amp; Seating</h1>
+    <p class="page-subtitle">
+      One source of truth for everyone invited — who said yes, who said no,
+      who's still thinking, and where they'll sit. Households are the unit;
+      seats are the count.
+    </p>
+  </section>
+
+  <%
+    function pad2(n) { return String(n).padStart(2, '0'); }
+    const acceptedPercent = summary.invited
+      ? Math.round((summary.accepted / summary.invited) * 100)
+      : 0;
+  %>
+
+  <!-- ── Summary stats ───────────────────────────────────────────────────── -->
+  <section class="section guest-summary">
+    <div class="summary-stats">
+      <div class="stat">
+        <div class="stat-label">Invited</div>
+        <div class="stat-number"><%= summary.invited %></div>
+        <div class="stat-note"><%= summary.households %> households</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Accepted</div>
+        <div class="stat-number stat-number--accent"><%= summary.accepted %></div>
+        <div class="stat-note"><%= acceptedPercent %>% of invites</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Awaiting</div>
+        <div class="stat-number"><%= summary.awaiting %></div>
+        <div class="stat-note"><%= summary.awaitingHouseholds %> households</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Declined</div>
+        <div class="stat-number stat-number--decline"><%= summary.declined %></div>
+        <div class="stat-note"><%= summary.declinedHouseholds %> households</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Seated</div>
+        <div class="stat-number"><%= summary.seated %></div>
+        <div class="stat-note"><%= summary.unseated %> still to place</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Filter strip — visual only in v1 ─────────────────────────────────── -->
+  <div class="guest-filters" role="group" aria-label="Filter the guest list">
+    <span class="guest-filters-label">Filter</span>
+    <div class="guest-filters-list">
+      <button type="button" class="filter-chip is-active">All</button>
+      <button type="button" class="filter-chip">Bride's side</button>
+      <button type="button" class="filter-chip">Groom's side</button>
+      <button type="button" class="filter-chip">Both</button>
+      <button type="button" class="filter-chip">Bridal party</button>
+      <button type="button" class="filter-chip">Children</button>
+    </div>
+  </div>
+
+  <%
+    // Mapping for the household-card right column (table assignment + pill).
+    const STATUS_PILL = {
+      accepted: { label: 'Accepted',  cls: 'pill-accepted' },
+      awaiting: { label: 'Awaiting',  cls: 'pill-awaiting' },
+      declined: { label: 'Declined',  cls: 'pill-declined' },
+    };
+    const GROUP_TITLE = {
+      awaiting: 'Awaiting reply',
+      accepted: 'Accepted',
+      declined: 'With regrets',
+    };
+    const GROUP_CLASS = {
+      awaiting: 'is-awaiting',
+      accepted: 'is-accepted',
+      declined: 'is-declined',
+    };
+
+    // Helper — given a household, find its "primary" table (first table
+    // any of its guests is assigned to). Used for the household card's
+    // table-name display in the Accepted group.
+    function householdTable(h) {
+      const guests = guestsByHousehold.get(h.id) || [];
+      const seated = guests.find(g => g.table_id);
+      if (!seated) return null;
+      return tables.find(t => t.id === seated.table_id) || null;
+    }
+
+    // Did anyone in this household get an explicit table assignment?
+    function anySeated(h) {
+      const guests = guestsByHousehold.get(h.id) || [];
+      return guests.some(g => g.table_id);
+    }
+  %>
+
+  <!-- ── RSVP grouped by status ─────────────────────────────────────────── -->
+  <section class="rsvp">
+    <% ['awaiting', 'accepted', 'declined'].forEach(status => {
+      const list = householdsByStatus[status] || [];
+      if (list.length === 0) return;
+      const totalSeats = list.reduce((sum, h) =>
+        sum + ((guestsByHousehold.get(h.id) || []).length), 0);
+    %>
+      <article class="rsvp-group <%= GROUP_CLASS[status] %>">
+        <header class="rsvp-group-head">
+          <h2 class="rsvp-group-title"><em><%= GROUP_TITLE[status] %></em></h2>
+          <span class="rsvp-group-count">
+            <%= list.length %> household<%= list.length === 1 ? '' : 's' %> · <%= totalSeats %> seats
+          </span>
+        </header>
+        <ul class="households">
+          <% list.forEach(h => {
+            const guests = guestsByHousehold.get(h.id) || [];
+            const pill = STATUS_PILL[h.status] || STATUS_PILL.awaiting;
+            const t = householdTable(h);
+          %>
+            <li class="household<%= status === 'declined' ? ' is-declined' : '' %>">
+              <div class="household-meta">
+                <span class="label">Household</span>
+                <% if (h.side) { %>
+                  <span class="household-side"><%= h.side %></span>
+                <% } %>
+              </div>
+              <div class="household-body">
+                <h3 class="household-name"><em><%= h.display_name %></em></h3>
+                <ul class="household-people">
+                  <% guests.forEach(g => { %>
+                    <li class="<%= g.guest_type === 'plus_one' ? 'is-plus-one' : (g.guest_type === 'child' ? 'is-kid' : '') %>">
+                      <%= g.display_name %>
+                    </li>
+                  <% }) %>
+                </ul>
+                <% if (h.note) { %>
+                  <p class="household-note"><%= h.note %></p>
+                <% } %>
+              </div>
+              <div class="household-status">
+                <% if (h.status === 'accepted') { %>
+                  <span class="household-table">
+                    <% if (t) { %>
+                      <span class="household-table-num">Table <%= pad2(t.table_number) %></span>
+                      <%= t.table_name %>
+                    <% } else { %>
+                      <span class="household-table-num">Unseated</span>
+                      To assign
+                    <% } %>
+                  </span>
+                <% } %>
+                <span class="household-pill <%= pill.cls %>"><%= pill.label %></span>
+              </div>
+            </li>
+          <% }) %>
+        </ul>
+      </article>
+    <% }) %>
+  </section>
+
+  <!-- ── Seating chart — table cards ───────────────────────────────────── -->
+  <% if (tables.length > 0) { %>
+    <section class="section">
+      <header class="section-head">
+        <span class="label">Seating · <%= tables.length %> tables</span>
+        <h2 class="section-title">The room, table by table.</h2>
+        <p class="section-description seating-intro">
+          Round tables in the reception room. Drag to reseat in admin —
+          for now, this is a static read.
+        </p>
+      </header>
+
+      <div class="tables">
+        <% tables.forEach(t => {
+          const seated = guestsByTable.get(t.id) || [];
+          const filled = seated.length;
+          const isHead = t.role === 'head';
+        %>
+          <article class="table-card<%= isHead ? ' is-head' : '' %>">
+            <header class="table-card-head">
+              <div>
+                <span class="table-card-num">
+                  Table <%= pad2(t.table_number) %><% if (isHead) { %> · Head<% } %>
+                </span>
+                <h3 class="table-card-name"><em><%= t.table_name %></em></h3>
+              </div>
+              <span class="table-card-capacity">
+                <%= filled %> of <%= t.capacity %><% if (t.role === 'kids') { %> · kids<% } %>
+              </span>
+            </header>
+            <% if (t.note) { %>
+              <p class="table-card-note"><%= t.note %></p>
+            <% } %>
+            <ol class="seat-list">
+              <% seated.forEach(g => { %>
+                <li><%= g.display_name %></li>
+              <% }) %>
+              <% for (let i = filled; i < t.capacity; i++) { %>
+                <li class="is-empty">Open seat</li>
+              <% } %>
+            </ol>
+          </article>
+        <% }) %>
+      </div>
+
+      <!-- ── Still to seat ─────────────────────────────────────────── -->
+      <% if (unseatedAccepted.length > 0) { %>
+        <div class="unseated">
+          <header class="unseated-head">
+            <h3 class="unseated-title"><em>Still to seat</em></h3>
+            <span class="unseated-count">
+              <%= unseatedAccepted.length %> accepted · awaiting assignment
+            </span>
+          </header>
+          <ul class="unseated-list">
+            <% unseatedAccepted.forEach(g => { %>
+              <li><%= g.display_name %></li>
+            <% }) %>
+          </ul>
+        </div>
+      <% } %>
+    </section>
+  <% } %>
+
+  <%- include('partials/footer', { couple }) %>
+
+</body>
+</html>

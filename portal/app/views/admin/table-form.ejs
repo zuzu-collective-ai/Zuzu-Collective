@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include('partials/head', { title: `${couple.display_name} — ${table ? 'Table ' + String(table.table_number).padStart(2, '0') : 'New table'}` }) %>
+<body class="admin-body">
+
+  <%- include('partials/sidebar', { currentSection: 'couples' }) %>
+
+  <main class="admin-main">
+    <header class="admin-header">
+      <div>
+        <a href="/admin/couples/<%= couple.id %>/tables" class="admin-back">← <%= couple.display_name %> · tables</a>
+        <h1 class="admin-title">
+          <%= table ? `Table ${String(table.table_number).padStart(2, '0')}${table.table_name ? ' · ' + table.table_name : ''}` : 'New table' %>
+        </h1>
+      </div>
+    </header>
+
+    <%- include('partials/couple-tabs', { couple, currentTab: 'guests' }) %>
+
+    <nav class="admin-subtabs">
+      <a href="/admin/couples/<%= couple.id %>/guests" class="admin-subtab">Households</a>
+      <a href="/admin/couples/<%= couple.id %>/tables" class="admin-subtab is-current" aria-current="page">Tables</a>
+    </nav>
+
+    <%- include('partials/flash', { flash }) %>
+
+    <% if (error) { %>
+      <div class="admin-flash admin-flash--error" role="alert"><%= error %></div>
+    <% } %>
+
+    <form action="<%= formAction %>" method="post" class="admin-form">
+      <fieldset class="admin-fieldset">
+        <legend class="admin-legend">The basics</legend>
+
+        <div class="admin-row" style="display: grid; grid-template-columns: 120px 1fr 120px; gap: 1rem;">
+          <label class="admin-field">
+            <span class="admin-field-label">Number *</span>
+            <input type="number" name="table_number" min="1" value="<%= table?.table_number ?? '' %>" required>
+          </label>
+          <label class="admin-field">
+            <span class="admin-field-label">Name</span>
+            <input type="text" name="table_name" value="<%= table?.table_name || '' %>" placeholder="Cypress, Bay, Olive…">
+          </label>
+          <label class="admin-field">
+            <span class="admin-field-label">Capacity</span>
+            <input type="number" name="capacity" min="1" max="20" value="<%= table?.capacity ?? 8 %>">
+          </label>
+        </div>
+
+        <% const ROLE_LABEL = { standard: 'Standard', head: 'Head table', kids: "Kids' table" }; %>
+        <label class="admin-field">
+          <span class="admin-field-label">Role</span>
+          <select name="role">
+            <% roles.forEach(r => { %>
+              <option value="<%= r %>" <%= table?.role === r ? 'selected' : '' %>><%= ROLE_LABEL[r] || r %></option>
+            <% }) %>
+          </select>
+          <span class="admin-field-help">Head tables render with the inverted Finn/Moonlight treatment on the public page.</span>
+        </label>
+
+        <label class="admin-field">
+          <span class="admin-field-label">Note</span>
+          <textarea name="note" rows="2"><%= table?.note || '' %></textarea>
+          <span class="admin-field-help">One-line description shown on the table card. e.g. "Parents and the couple. Closest to the dance floor."</span>
+        </label>
+
+        <label class="admin-field">
+          <span class="admin-field-label">Position</span>
+          <input type="number" name="position" min="0" value="<%= table?.position ?? 0 %>">
+          <span class="admin-field-help">Order on the public page (low to high).</span>
+        </label>
+      </fieldset>
+
+      <div class="admin-form-actions">
+        <button type="submit" class="admin-btn admin-btn--primary">
+          <%= table ? 'Save changes' : 'Add table' %>
+        </button>
+        <a href="/admin/couples/<%= couple.id %>/tables" class="admin-btn admin-btn--ghost">Cancel</a>
+      </div>
+    </form>
+
+    <% if (table) { %>
+      <div class="admin-danger-zone">
+        <h2 class="admin-legend">Danger zone</h2>
+        <p>Remove this table. Anyone seated here becomes unseated (their household stays).</p>
+        <form action="/admin/couples/<%= couple.id %>/tables/<%= table.id %>/delete" method="post"
+              onsubmit="return confirm('Remove Table <%= String(table.table_number).padStart(2, '0') %>? This cannot be undone.');">
+          <button type="submit" class="admin-btn admin-btn--danger">Remove table</button>
+        </form>
+      </div>
+    <% } %>
+  </main>
+
+</body>
+</html>

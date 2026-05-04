@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include('partials/head', { couple, title: 'Vendors', extraStyles: ['palette.css', 'vendors.css'] }) %>
+<body>
+
+  <%- include('partials/topbar', { couple, currentPage }) %>
+
+  <!-- ── Page header ─────────────────────────────────────────────────────── -->
+  <section class="page-header">
+    <span class="label page-eyebrow"><%= couple.display_name %></span>
+    <h1 class="page-title">Vendors</h1>
+    <p class="page-subtitle">
+      The team behind October tenth. Each vendor with their contact details — booked,
+      in conversation, or still on the shortlist.
+    </p>
+  </section>
+
+  <%
+    // Status pills — display label + CSS class per status code stored
+    // in vendors.status. Anything we don't recognize falls back to a
+    // generic "Pending" pill so a typo at the data layer never breaks
+    // rendering.
+    const STATUS = {
+      booked:    { label: 'Booked',         cls: 'status-booked' },
+      shortlist: { label: 'Shortlisting',   cls: 'status-shortlist' },
+      pending:   { label: 'Pending',        cls: 'status-pending' },
+      na:        { label: 'N / A',          cls: 'status-na' },
+    };
+    function statusPill(s) {
+      return STATUS[s] || { label: s || 'Pending', cls: 'status-pending' };
+    }
+    function pad2(n) { return String(n).padStart(2, '0'); }
+
+    const stillSelecting = (counts.shortlist || 0) + (counts.pending || 0);
+  %>
+
+  <!-- ── Summary counts ──────────────────────────────────────────────────── -->
+  <section class="section vendors-summary">
+    <div class="summary-stats">
+      <div class="stat">
+        <div class="stat-label">Vendors total</div>
+        <div class="stat-number"><%= counts.total %></div>
+        <div class="stat-note">Across the full team</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Booked</div>
+        <div class="stat-number stat-number--accent"><%= counts.booked || 0 %></div>
+        <div class="stat-note">Contracts signed</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Still selecting</div>
+        <div class="stat-number"><%= stillSelecting %></div>
+        <div class="stat-note">In conversation or shortlisting</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Vendor list ─────────────────────────────────────────────────────── -->
+  <section class="section vendor-list">
+    <% if (vendors.length === 0) { %>
+      <p class="vendor-tbc-note" style="text-align:center; padding: 4rem 0;">
+        No vendors yet. Zoe will add them as bookings come in.
+      </p>
+    <% } %>
+
+    <% vendors.forEach((v, i) => {
+      const pill = statusPill(v.status);
+      const isTbc = !v.display_name;
+      const stateClass = v.status === 'booked' ? 'is-booked' : (v.status === 'na' ? 'is-na' : 'is-tbc');
+    %>
+      <article class="vendor <%= stateClass %>">
+        <div class="vendor-meta">
+          <span class="label"><%= pad2(v.position || i + 1) %> · <%= v.vendor_type %></span>
+        </div>
+        <div class="vendor-body">
+          <% if (isTbc) { %>
+            <h2 class="vendor-name vendor-name--tbc"><em><%= v.note ? 'See note' : 'To be booked' %></em></h2>
+            <% if (v.note) { %>
+              <p class="vendor-tbc-note"><%= v.note %></p>
+            <% } %>
+          <% } else { %>
+            <h2 class="vendor-name">
+              <em><%= v.display_name %></em><% if (v.note) { %><span class="vendor-note"> · <%= v.note %></span><% } %>
+            </h2>
+            <ul class="vendor-contact">
+              <% if (v.contact_name) { %>
+                <li><span class="contact-label">Contact</span><%= v.contact_name %></li>
+              <% } %>
+              <% if (v.phone) { %>
+                <li><span class="contact-label">Phone</span><a href="tel:<%= v.phone.replace(/[^+0-9]/g, '') %>"><%= v.phone %></a></li>
+              <% } %>
+              <% if (v.email) { %>
+                <li><span class="contact-label">Email</span><a href="mailto:<%= v.email %>"><%= v.email %></a></li>
+              <% } %>
+              <% if (v.address) { %>
+                <li><span class="contact-label">Address</span><%= v.address %></li>
+              <% } %>
+            </ul>
+          <% } %>
+        </div>
+        <div class="vendor-status">
+          <span class="status-pill <%= pill.cls %>"><%= pill.label %></span>
+        </div>
+      </article>
+    <% }) %>
+  </section>
+
+  <%- include('partials/footer', { couple }) %>
+
+</body>
+</html>

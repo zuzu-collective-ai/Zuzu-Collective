@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include('partials/head', { couple, title: 'Floor Plan', extraStyles: ['palette.css', 'floor-plan.css'] }) %>
+<body>
+
+  <%- include('partials/topbar', { couple, currentPage }) %>
+
+  <%
+    // Build the inline `style` string for a zone from the columns. Each
+    // CSS percentage is stored verbatim (e.g. "12%"); we just emit the
+    // ones that aren't null. is_circle adds aspect-ratio: 1 so high-tops
+    // and round dinner tables stay round regardless of size_height.
+    function zoneStyle(z) {
+      const parts = [];
+      if (z.position_top    != null) parts.push(`top: ${z.position_top};`);
+      if (z.position_left   != null) parts.push(`left: ${z.position_left};`);
+      if (z.position_right  != null) parts.push(`right: ${z.position_right};`);
+      if (z.position_bottom != null) parts.push(`bottom: ${z.position_bottom};`);
+      if (z.size_width      != null) parts.push(`width: ${z.size_width};`);
+      if (z.size_height     != null) parts.push(`height: ${z.size_height};`);
+      if (z.is_circle)               parts.push('aspect-ratio: 1;');
+      return parts.join(' ');
+    }
+    function zoneClass(z) {
+      const cls = ['zone', `is-${z.kind}`];
+      if (z.edge_anchor) cls.push(`is-${z.edge_anchor}`);
+      return cls.join(' ');
+    }
+    function fmtNum(n) { return Number(n || 0).toLocaleString('en-US'); }
+  %>
+
+  <!-- ── Page header ─────────────────────────────────────────────────────── -->
+  <section class="page-header">
+    <span class="label page-eyebrow"><%= couple.display_name %></span>
+    <h1 class="page-title">Floor Plan</h1>
+    <p class="page-subtitle">
+      The room, top down. <%= summary.spaceCount %> venue space<%= summary.spaceCount === 1 ? '' : 's' %>,
+      drawn to scale and keyed below.
+    </p>
+  </section>
+
+  <!-- ── Summary stats ───────────────────────────────────────────────────── -->
+  <section class="section floorplan-summary">
+    <div class="summary-stats">
+      <% if (couple.venue_name) { %>
+        <div class="stat">
+          <div class="stat-label">Venue</div>
+          <div class="stat-number"><%= couple.venue_name %></div>
+          <% if (couple.venue_location) { %>
+            <div class="stat-note"><%= couple.venue_location %></div>
+          <% } %>
+        </div>
+      <% } %>
+      <div class="stat">
+        <div class="stat-label">Spaces</div>
+        <div class="stat-number"><%= summary.spaceCount %></div>
+        <div class="stat-note">
+          <% spaces.forEach((s, i) => { %><%= s.title.replace(/^The\s+/, '').split(' ')[0] %><% if (i < spaces.length - 1) { %> · <% } %><% }) %>
+        </div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Footprint</div>
+        <div class="stat-number"><%= fmtNum(summary.totalFootprint) %></div>
+        <div class="stat-note">Total square feet</div>
+      </div>
+      <% if (couple.floorplan_walkthrough_date || couple.floorplan_walkthrough_note) { %>
+        <div class="stat">
+          <div class="stat-label">Walkthrough</div>
+          <div class="stat-number"><%= couple.floorplan_walkthrough_date || '' %></div>
+          <% if (couple.floorplan_walkthrough_note) { %>
+            <div class="stat-note"><%= couple.floorplan_walkthrough_note %></div>
+          <% } %>
+        </div>
+      <% } %>
+    </div>
+  </section>
+
+  <!-- ── Venue spaces ────────────────────────────────────────────────────── -->
+  <% spaces.forEach(space => {
+       const zones = zonesBySpace.get(space.id) || [];
+       const keys  = keysBySpace.get(space.id)  || [];
+  %>
+    <article class="venue-space">
+      <header class="venue-space-head">
+        <% if (space.eyebrow) { %>
+          <span class="label venue-space-eyebrow"><%= space.eyebrow %></span>
+        <% } %>
+        <h2 class="venue-space-title"><em><%= space.title %></em></h2>
+        <% if (space.capacity || space.square_feet || space.location_label) { %>
+          <div class="venue-space-meta">
+            <% if (space.capacity)        { %><span>Capacity <%= space.capacity %></span><% } %>
+            <% if (space.square_feet)     { %><span><%= fmtNum(space.square_feet) %> sq ft</span><% } %>
+            <% if (space.location_label)  { %><span><%= space.location_label %></span><% } %>
+          </div>
+        <% } %>
+      </header>
+
+      <div class="floorplan-scene">
+        <div class="floorplan" role="img" aria-label="Top-down schematic of <%= space.title %>">
+          <span class="compass">N&nbsp;↑</span>
+          <span class="scale-bar">10 ft</span>
+
+          <% if (space.edge_top_label) { %>
+            <span class="edge-label is-top"><%= space.edge_top_label %></span>
+          <% } %>
+
+          <% zones.forEach(z => { %>
+            <div class="<%= zoneClass(z) %>" style="<%= zoneStyle(z) %>"><%= z.label || '' %></div>
+          <% }) %>
+        </div>
+
+        <% if (keys.length > 0) { %>
+          <ol class="floorplan-key">
+            <% keys.forEach((k, idx) => { %>
+              <li>
+                <span class="key-num"><%= String(idx + 1).padStart(2, '0') %></span>
+                <div>
+                  <span class="key-name"><%= k.name %></span>
+                  <% if (k.detail) { %><span class="key-detail"><%= k.detail %></span><% } %>
+                </div>
+              </li>
+            <% }) %>
+          </ol>
+        <% } %>
+      </div>
+    </article>
+  <% }) %>
+
+
+  <%- include('partials/footer', { couple }) %>
+
+</body>
+</html>

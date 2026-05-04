@@ -1,0 +1,228 @@
+<%#
+  Used for both new and edit. `couple` is null in new mode, otherwise
+  the row from the DB. `formAction` is the POST URL.
+%>
+<!DOCTYPE html>
+<html lang="en">
+<%- include('partials/head', { title: couple?.display_name ? `Edit ${couple.display_name}` : 'New couple' }) %>
+<body class="admin-body">
+
+  <%- include('partials/sidebar', { currentSection: 'couples' }) %>
+
+  <main class="admin-main">
+    <header class="admin-header">
+      <div>
+        <a href="/admin" class="admin-back">← All couples</a>
+        <h1 class="admin-title"><%= couple?.display_name || 'New couple' %></h1>
+        <% if (couple?.slug) { %>
+          <p class="admin-subtitle">
+            <a href="/p/<%= couple.slug %>" target="_blank" rel="noopener">View live portal ↗</a>
+          </p>
+        <% } %>
+      </div>
+    </header>
+
+    <% if (couple) { %>
+      <%- include('partials/couple-tabs', { couple, currentTab: 'basics' }) %>
+    <% } %>
+
+    <%- include('partials/flash', { flash }) %>
+
+    <% if (error) { %>
+      <div class="admin-flash admin-flash--error" role="alert"><%= error %></div>
+    <% } %>
+
+    <form action="<%= formAction %>" method="post" class="admin-form">
+
+      <fieldset class="admin-fieldset">
+        <legend class="admin-legend">The basics</legend>
+
+        <label class="admin-field">
+          <span class="admin-field-label">Display name *</span>
+          <input type="text" name="display_name" value="<%= couple?.display_name || '' %>" required>
+          <span class="admin-field-help">How the couple is named in headlines. e.g. "Alicia &amp; Jack".</span>
+        </label>
+
+        <label class="admin-field">
+          <span class="admin-field-label">Slug *</span>
+          <input type="text" name="slug" value="<%= couple?.slug || '' %>" required pattern="[a-z0-9\-]+" placeholder="alicia-and-jack-2026">
+          <span class="admin-field-help">URL segment. Lowercase, dashes only. The portal lives at <code>/p/&lt;slug&gt;</code>.</span>
+        </label>
+
+        <label class="admin-field">
+          <span class="admin-field-label">Wedding date *</span>
+          <input type="date" name="wedding_date" value="<%= couple?.wedding_date ? new Date(couple.wedding_date).toISOString().slice(0, 10) : '' %>" required>
+        </label>
+      </fieldset>
+
+      <fieldset class="admin-fieldset">
+        <legend class="admin-legend">Budget headline</legend>
+        <label class="admin-field">
+          <span class="admin-field-label">Total budget (USD)</span>
+          <input type="text" name="budget_total_cents"
+                 value="<%= couple?.budget_total_cents ? (couple.budget_total_cents / 100).toFixed(couple.budget_total_cents % 100 === 0 ? 0 : 2) : '' %>"
+                 placeholder="120000"
+                 inputmode="decimal">
+          <span class="admin-field-help">
+            The headline number on the budget page. Enter dollars — commas and a "$" are fine.
+            Per-category targets and per-line amounts live on the budget tab.
+          </span>
+        </label>
+      </fieldset>
+
+      <fieldset class="admin-fieldset">
+        <legend class="admin-legend">Timeline headline</legend>
+        <p class="admin-fieldset-note">
+          The four small stat-notes at the top of <code>/timeline</code>. The Date stat is
+          computed from the wedding date; the Events count is computed live. These four
+          fields are editorial flavor copy alongside them. Leave any field blank to hide
+          its column.
+        </p>
+        <div class="admin-row" style="display: grid; grid-template-columns: 110px 1fr; gap: 1rem;">
+          <label class="admin-field">
+            <span class="admin-field-label">Ceremony time</span>
+            <input type="text" name="timeline_ceremony_time" value="<%= couple?.timeline_ceremony_time || '' %>" placeholder="4:00">
+          </label>
+          <label class="admin-field">
+            <span class="admin-field-label">Ceremony note</span>
+            <input type="text" name="timeline_ceremony_note" value="<%= couple?.timeline_ceremony_note || '' %>" placeholder="Sunset 6:32 PM">
+          </label>
+        </div>
+        <div class="admin-row" style="display: grid; grid-template-columns: 110px 1fr; gap: 1rem;">
+          <label class="admin-field">
+            <span class="admin-field-label">Last call time</span>
+            <input type="text" name="timeline_lastcall_time" value="<%= couple?.timeline_lastcall_time || '' %>" placeholder="10:30">
+          </label>
+          <label class="admin-field">
+            <span class="admin-field-label">Last call note</span>
+            <input type="text" name="timeline_lastcall_note" value="<%= couple?.timeline_lastcall_note || '' %>" placeholder="Sparkler send-off">
+          </label>
+        </div>
+      </fieldset>
+
+      <fieldset class="admin-fieldset">
+        <legend class="admin-legend">Floor plan headline</legend>
+        <p class="admin-fieldset-note">
+          The "Walkthrough" stat-note at the top of <code>/floor-plan</code>. Venue, Spaces,
+          and Footprint are derived from the venue fields and floorplan rows.
+        </p>
+        <div class="admin-row" style="display: grid; grid-template-columns: 110px 1fr; gap: 1rem;">
+          <label class="admin-field">
+            <span class="admin-field-label">Walkthrough date</span>
+            <input type="text" name="floorplan_walkthrough_date" value="<%= couple?.floorplan_walkthrough_date || '' %>" placeholder="9.26">
+          </label>
+          <label class="admin-field">
+            <span class="admin-field-label">Walkthrough note</span>
+            <input type="text" name="floorplan_walkthrough_note" value="<%= couple?.floorplan_walkthrough_note || '' %>" placeholder="Final at 10 AM">
+          </label>
+        </div>
+      </fieldset>
+
+      <fieldset class="admin-fieldset">
+        <legend class="admin-legend">Design page copy</legend>
+        <p class="admin-fieldset-note">
+          Editorial copy on <code>/design</code>. The palette and tone keywords above
+          drive the rest of the page; inspiration galleries and materials live on the
+          Design tab.
+        </p>
+        <label class="admin-field">
+          <span class="admin-field-label">Page subtitle</span>
+          <textarea name="design_subtitle" rows="2"><%= couple?.design_subtitle || '' %></textarea>
+          <span class="admin-field-help">The long paragraph under the H1 on the design page.</span>
+        </label>
+        <label class="admin-field">
+          <span class="admin-field-label">Tone section title</span>
+          <input type="text" name="design_tone_title" value="<%= couple?.design_tone_title || '' %>" placeholder="Intimate and considered. Nothing overdone.">
+        </label>
+        <label class="admin-field">
+          <span class="admin-field-label">Materials section title</span>
+          <input type="text" name="design_materials_title" value="<%= couple?.design_materials_title || '' %>" placeholder="Polished silver. Matte white. Clear glass.">
+        </label>
+        <label class="admin-field">
+          <span class="admin-field-label">Materials section note</span>
+          <input type="text" name="design_materials_note" value="<%= couple?.design_materials_note || '' %>" placeholder="All warmth reliant on candlelight.">
+        </label>
+      </fieldset>
+
+      <fieldset class="admin-fieldset">
+        <legend class="admin-legend">Venue</legend>
+        <label class="admin-field">
+          <span class="admin-field-label">Venue name</span>
+          <input type="text" name="venue_name" value="<%= couple?.venue_name || '' %>" placeholder="La Playa">
+        </label>
+        <label class="admin-field">
+          <span class="admin-field-label">Venue location</span>
+          <input type="text" name="venue_location" value="<%= couple?.venue_location || '' %>" placeholder="Carmel-by-the-Sea">
+        </label>
+      </fieldset>
+
+      <fieldset class="admin-fieldset">
+        <legend class="admin-legend">Palette</legend>
+        <p class="admin-fieldset-note">Four colors plus optional friendly names. The portal recolors itself wherever <code>--couple-1..4</code> is referenced.</p>
+
+        <% [1, 2, 3, 4].forEach(n => { %>
+          <div class="admin-row admin-row--palette">
+            <label class="admin-field admin-field--swatch">
+              <span class="admin-field-label">Color <%= n %></span>
+              <span class="admin-swatch-row">
+                <input type="color" name="palette_color_<%= n %>" value="<%= couple?.[`palette_color_${n}`] || (n === 1 ? '#EFEDE1' : n === 2 ? '#64690C' : n === 3 ? '#FFFFFF' : '#F5F0E4') %>">
+                <input type="text" name="palette_color_<%= n %>_name" value="<%= couple?.[`palette_color_${n}_name`] || '' %>" placeholder="Ivory" class="admin-swatch-name">
+              </span>
+            </label>
+          </div>
+        <% }) %>
+      </fieldset>
+
+      <fieldset class="admin-fieldset">
+        <legend class="admin-legend">Tone &amp; feeling</legend>
+        <label class="admin-field">
+          <span class="admin-field-label">Keywords</span>
+          <input type="text" name="tone_keywords" value="<%= couple?.tone_keywords || '' %>" placeholder="Elegant · Coastal · Candlelit · Californian · Timeless · Intentional">
+        </label>
+        <label class="admin-field">
+          <span class="admin-field-label">Statement</span>
+          <input type="text" name="tone_statement" value="<%= couple?.tone_statement || '' %>" placeholder="All warmth reliant on candlelight.">
+        </label>
+      </fieldset>
+
+      <fieldset class="admin-fieldset">
+        <legend class="admin-legend">Landing copy</legend>
+        <label class="admin-field">
+          <span class="admin-field-label">Hero subtitle</span>
+          <input type="text" name="hero_subtitle" value="<%= couple?.hero_subtitle || 'Wedding Portal' %>">
+        </label>
+        <label class="admin-field">
+          <span class="admin-field-label">Intro paragraph</span>
+          <textarea name="intro_text" rows="3"><%= couple?.intro_text || '' %></textarea>
+          <span class="admin-field-help">Long-form copy on the home page just below the hero.</span>
+        </label>
+        <label class="admin-field">
+          <span class="admin-field-label">Intro tagline</span>
+          <input type="text" name="intro_tagline" value="<%= couple?.intro_tagline || 'escape the mundane.' %>">
+        </label>
+      </fieldset>
+
+      <div class="admin-form-actions">
+        <button type="submit" class="admin-btn admin-btn--primary">
+          <%= couple ? 'Save changes' : 'Create couple' %>
+        </button>
+        <% if (couple) { %>
+          <a href="/admin" class="admin-btn admin-btn--ghost">Cancel</a>
+        <% } %>
+      </div>
+    </form>
+
+    <% if (couple) { %>
+      <div class="admin-danger-zone">
+        <h2 class="admin-legend">Danger zone</h2>
+        <p>Permanently delete this couple's portal and all related data.</p>
+        <form action="/admin/couples/<%= couple.id %>/delete" method="post"
+              onsubmit="return confirm('Delete <%= couple.display_name %>? This cannot be undone.');">
+          <button type="submit" class="admin-btn admin-btn--danger">Delete couple</button>
+        </form>
+      </div>
+    <% } %>
+  </main>
+
+</body>
+</html>

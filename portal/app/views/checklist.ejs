@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include('partials/head', { couple, title: 'Checklist', extraStyles: ['palette.css', 'checklist.css'] }) %>
+<body>
+
+  <%- include('partials/topbar', { couple, currentPage }) %>
+
+  <%
+    function fmtWeddingDate(d) {
+      return new Date(d).toLocaleDateString('en-US', {
+        year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC',
+      });
+    }
+    // The checklist page reads cleaner with the milestone count adjusting
+    // to whatever's in the DB — copy mirrors the editorial subhead.
+  %>
+
+  <!-- ── Page header ─────────────────────────────────────────────────────── -->
+  <section class="page-header">
+    <span class="label page-eyebrow"><%= couple.display_name %></span>
+    <h1 class="page-title">Checklist</h1>
+    <p class="page-subtitle">
+      <%= summary.milestoneCount %> milestone<%= summary.milestoneCount === 1 ? '' : 's' %>
+      from the moment you set the date to the morning of the wedding.
+      We track what's done, what's coming, and where you are right now.
+    </p>
+  </section>
+
+  <!-- ── Summary stats ───────────────────────────────────────────────────── -->
+  <section class="section checklist-summary">
+    <div class="summary-stats">
+      <div class="stat">
+        <div class="stat-label">Tasks total</div>
+        <div class="stat-number"><%= summary.tasksTotal %></div>
+        <div class="stat-note">Across <%= summary.milestoneCount %> milestone<%= summary.milestoneCount === 1 ? '' : 's' %></div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Complete</div>
+        <div class="stat-number stat-number--accent"><%= summary.tasksDone %></div>
+        <div class="stat-note">
+          <%= summary.pctDone %>%<% if (summary.pctDone > 0 && summary.pctDone < 100) { %> — on track<% } %>
+        </div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Days to wedding</div>
+        <div class="stat-number"><%= summary.daysToWedding %></div>
+        <div class="stat-note"><%= fmtWeddingDate(couple.wedding_date) %></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Milestones ──────────────────────────────────────────────────────── -->
+  <section class="milestones">
+    <% milestones.forEach((m, idx) => {
+         const state = milestoneState.get(m.id) || { total: 0, done: 0, inFlight: 0, state: 'upcoming' };
+         const tasks = tasksByMilestone.get(m.id) || [];
+         const isLast = idx === milestones.length - 1;
+         const cls = `milestone is-${state.state}` + (isLast ? ' milestone--day-of' : '');
+         let progressLabel;
+         if (state.state === 'done') {
+           progressLabel = `${state.done} of ${state.total} complete`;
+         } else if (state.state === 'active' && state.done > 0) {
+           progressLabel = `${state.done} of ${state.total} complete · ${state.inFlight} in flight`;
+         } else {
+           progressLabel = `${state.done} of ${state.total}`;
+         }
+    %>
+      <article class="<%= cls %>">
+        <header class="milestone-head">
+          <% if (state.state === 'active') { %>
+            <span class="milestone-here">You are here</span>
+          <% } %>
+          <span class="label milestone-date"><%= m.date_label %></span>
+          <h2 class="milestone-title"><em><%= m.title %></em></h2>
+          <span class="milestone-progress"><%= progressLabel %></span>
+          <% if (state.state === 'done') { %>
+            <span class="milestone-badge">Complete</span>
+          <% } %>
+        </header>
+        <% if (tasks.length > 0) { %>
+          <ul class="task-list">
+            <% tasks.forEach(t => { %>
+              <li>
+                <label>
+                  <input type="checkbox" class="task-check" <%= t.is_done ? 'checked' : '' %> disabled>
+                  <span class="task-name"><%= t.name %></span>
+                  <% if (t.sub_text) { %><span class="task-sub"><%= t.sub_text %></span><% } %>
+                </label>
+              </li>
+            <% }) %>
+          </ul>
+        <% } %>
+      </article>
+    <% }) %>
+  </section>
+
+
+  <%- include('partials/footer', { couple }) %>
+
+</body>
+</html>

@@ -1,0 +1,32 @@
+<%#
+  Persistent top nav. Highlights the current page via the
+  `currentPage` local. Every couple-facing page renders this.
+
+  Phase 1: only `home` is wired to a real route. The other links point
+  to anchors prefixed with the couple slug; they 404 cleanly until
+  Phase 2 builds those views.
+%>
+<header class="topbar">
+  <a href="/p/<%= couple.slug %>" class="wordmark" aria-label="Zuzu Collective home">Zuzu</a>
+
+  <nav class="topnav" aria-label="Portal sections">
+    <% const links = [
+      { id: 'home',       href: '',             label: 'Home' },
+      { id: 'design',     href: '/design',      label: 'Design' },
+      { id: 'vendors',    href: '/vendors',     label: 'Vendors' },
+      { id: 'checklist',  href: '/checklist',   label: 'Checklist' },
+      { id: 'budget',     href: '/budget',      label: 'Budget' },
+      { id: 'timeline',   href: '/timeline',    label: 'Timeline' },
+      { id: 'floor-plan', href: '/floor-plan',  label: 'Floor&nbsp;Plan' },
+      { id: 'guest-list', href: '/guest-list',  label: 'Guest&nbsp;List,&nbsp;RSVP,&nbsp;and&nbsp;Seating' },
+    ]; %>
+    <% links.forEach(link => {
+      const url = `/p/${couple.slug}${link.href}`;
+      const isCurrent = link.id === currentPage;
+    %>
+      <a href="<%= url %>"
+         class="topnav-link<%= isCurrent ? ' is-current' : '' %>"
+         <% if (isCurrent) { %>aria-current="page"<% } %>><%- link.label %></a>
+    <% }) %>
+  </nav>
+</header>

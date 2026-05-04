@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include('partials/head', { title: `${couple.display_name} — ${household ? household.display_name : 'New household'}` }) %>
+<body class="admin-body">
+
+  <%- include('partials/sidebar', { currentSection: 'couples' }) %>
+
+  <main class="admin-main">
+    <header class="admin-header">
+      <div>
+        <a href="/admin/couples/<%= couple.id %>/guests" class="admin-back">← <%= couple.display_name %> · households</a>
+        <h1 class="admin-title">
+          <%= household ? household.display_name : 'New household' %>
+        </h1>
+      </div>
+    </header>
+
+    <%- include('partials/couple-tabs', { couple, currentTab: 'guests' }) %>
+
+    <nav class="admin-subtabs">
+      <a href="/admin/couples/<%= couple.id %>/guests" class="admin-subtab is-current" aria-current="page">Households</a>
+      <a href="/admin/couples/<%= couple.id %>/tables" class="admin-subtab">Tables</a>
+    </nav>
+
+    <%- include('partials/flash', { flash }) %>
+
+    <% if (error) { %>
+      <div class="admin-flash admin-flash--error" role="alert"><%= error %></div>
+    <% } %>
+
+    <form action="<%= formAction %>" method="post" class="admin-form">
+      <fieldset class="admin-fieldset">
+        <legend class="admin-legend">Household</legend>
+
+        <label class="admin-field">
+          <span class="admin-field-label">Display name *</span>
+          <input type="text" name="display_name" required value="<%= household?.display_name || '' %>" placeholder="The Bennetts">
+          <span class="admin-field-help">How the household reads on the public page. e.g. "The Bennetts", "Eleanor Bennett", "Maya & Carlos".</span>
+        </label>
+
+        <div class="admin-row" style="display: grid; grid-template-columns: 1fr 1fr 100px; gap: 1rem;">
+          <label class="admin-field">
+            <span class="admin-field-label">Side / relation</span>
+            <input type="text" name="side" value="<%= household?.side || '' %>" placeholder="Bride's side · cousin">
+          </label>
+          <label class="admin-field">
+            <span class="admin-field-label">RSVP status *</span>
+            <select name="status">
+              <% const STATUS_LABELS = { accepted: 'Accepted', awaiting: 'Awaiting', declined: 'Declined' }; %>
+              <% statuses.forEach(s => { %>
+                <option value="<%= s %>" <%= household?.status === s ? 'selected' : '' %>><%= STATUS_LABELS[s] || s %></option>
+              <% }) %>
+            </select>
+          </label>
+          <label class="admin-field">
+            <span class="admin-field-label">Position</span>
+            <input type="number" name="position" min="0" value="<%= household?.position ?? 0 %>">
+          </label>
+        </div>
+
+        <label class="admin-field">
+          <span class="admin-field-label">Note</span>
+          <textarea name="note" rows="2"><%= household?.note || '' %></textarea>
+          <span class="admin-field-help">Italic blurb on the household card. Toasts, dietary notes, follow-up reminders.</span>
+        </label>
+      </fieldset>
+
+      <fieldset class="admin-fieldset">
+        <legend class="admin-legend">Guests</legend>
+        <p class="admin-fieldset-note">
+          One row per individual person in this household. Type <em>plus_one</em>
+          renders in italic Tobacco; <em>child</em> gets a "· child" tag.
+          Pick a table to seat them, or leave blank to keep them in the
+          "Still to seat" bucket.
+        </p>
+
+        <div id="guest-rows" class="admin-guest-rows">
+          <%
+            // Render existing rows + at least one blank row, OR if no
+            // existing guests, render two blank rows so the form starts
+            // with something to type into.
+            const initial = (guests && guests.length) ? guests : [
+              { display_name: '', guest_type: 'adult', table_id: null, position: 1 },
+              { display_name: '', guest_type: 'adult', table_id: null, position: 2 },
+            ];
+          %>
+          <% initial.forEach((g, i) => { %>
+            <div class="admin-guest-row" data-row>
+              <input type="hidden" name="guests[<%= i %>][id]" value="<%= g.id || '' %>">
+              <label class="admin-field admin-field--inline">
+                <span class="admin-field-label">Name</span>
+                <input type="text" name="guests[<%= i %>][display_name]" value="<%= g.display_name || '' %>" placeholder="Jane Doe">
+              </label>
+              <label class="admin-field admin-field--inline">
+                <span class="admin-field-label">Type</span>
+                <select name="guests[<%= i %>][guest_type]">
+                  <% guestTypes.forEach(gt => {
+                    const labels = { adult: 'Adult', child: 'Child', plus_one: 'Plus one' };
+                  %>
+                    <option value="<%= gt %>" <%= g.guest_type === gt ? 'selected' : '' %>><%= labels[gt] || gt %></option>
+                  <% }) %>
+                </select>
+              </label>
+              <label class="admin-field admin-field--inline">
+                <span class="admin-field-label">Table</span>
+                <select name="guests[<%= i %>][table_id]">
+                  <option value="">Unseated</option>
+                  <% tables.forEach(t => { %>
+                    <option value="<%= t.id %>" <%= g.table_id === t.id ? 'selected' : '' %>>
+                      Table <%= String(t.table_number).padStart(2, '0') %><% if (t.table_name) { %> · <%= t.table_name %><% } %>
+                    </option>
+                  <% }) %>
+                </select>
+              </label>
+              <button type="button" class="admin-btn admin-btn--ghost admin-btn--small" data-remove>Remove</button>
+            </div>
+          <% }) %>
+        </div>
+
+        <button type="button" id="add-guest" class="admin-btn admin-btn--ghost">+ Add guest</button>
+      </fieldset>
+
+      <div class="admin-form-actions">
+        <button type="submit" class="admin-btn admin-btn--primary">
+          <%= household ? 'Save changes' : 'Add household' %>
+        </button>
+        <a href="/admin/couples/<%= couple.id %>/guests" class="admin-btn admin-btn--ghost">Cancel</a>
+      </div>
+    </form>
+
+    <% if (household) { %>
+      <div class="admin-danger-zone">
+        <h2 class="admin-legend">Danger zone</h2>
+        <p>Remove this household and all of its guests from <%= couple.display_name %>'s portal.</p>
+        <form action="/admin/couples/<%= couple.id %>/guests/<%= household.id %>/delete" method="post"
+              onsubmit="return confirm('Remove <%= household.display_name %>? This cannot be undone.');">
+          <button type="submit" class="admin-btn admin-btn--danger">Remove household</button>
+        </form>
+      </div>
+    <% } %>
+  </main>
+
+  <%# Vanilla JS for adding / removing guest rows. The server treats
+      each row as guests[<index>][<field>] and ignores blanks. %>
+  <script>
+    (function () {
+      const container = document.getElementById('guest-rows');
+      const addBtn = document.getElementById('add-guest');
+      if (!container || !addBtn) return;
+
+      const tableOptions = <%- JSON.stringify(tables.map(t => ({ id: t.id, label: `Table ${String(t.table_number).padStart(2, '0')}${t.table_name ? ' · ' + t.table_name : ''}` }))) %>;
+
+      function nextIndex() {
+        return container.querySelectorAll('[data-row]').length;
+      }
+
+      function newRow() {
+        const i = nextIndex();
+        const row = document.createElement('div');
+        row.className = 'admin-guest-row';
+        row.setAttribute('data-row', '');
+        row.innerHTML = `
+          <input type="hidden" name="guests[${i}][id]" value="">
+          <label class="admin-field admin-field--inline">
+            <span class="admin-field-label">Name</span>
+            <input type="text" name="guests[${i}][display_name]" placeholder="Jane Doe">
+          </label>
+          <label class="admin-field admin-field--inline">
+            <span class="admin-field-label">Type</span>
+            <select name="guests[${i}][guest_type]">
+              <option value="adult">Adult</option>
+              <option value="child">Child</option>
+              <option value="plus_one">Plus one</option>
+            </select>
+          </label>
+          <label class="admin-field admin-field--inline">
+            <span class="admin-field-label">Table</span>
+            <select name="guests[${i}][table_id]">
+              <option value="">Unseated</option>
+              ${tableOptions.map(t => `<option value="${t.id}">${t.label}</option>`).join('')}
+            </select>
+          </label>
+          <button type="button" class="admin-btn admin-btn--ghost admin-btn--small" data-remove>Remove</button>
+        `;
+        container.appendChild(row);
+      }
+
+      addBtn.addEventListener('click', newRow);
+
+      container.addEventListener('click', (e) => {
+        if (e.target.matches('[data-remove]')) {
+          const row = e.target.closest('[data-row]');
+          if (row) row.remove();
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

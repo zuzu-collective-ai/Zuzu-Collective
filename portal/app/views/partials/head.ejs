@@ -1,0 +1,36 @@
+<%#
+  Shared <head> for every couple-portal page.
+  Locals expected:
+    - couple        the couples row
+    - title         page-specific title fragment, e.g. "Design"
+    - extraStyles   array of CSS files to load after the base trio (palette/whatever)
+%>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title ? `${title} — ` : '' %><%= couple.display_name %> — Zuzu Collective</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Fragment+Mono:ital@0;1&display=swap">
+
+  <link rel="stylesheet" href="/styles/tokens.css">
+  <link rel="stylesheet" href="/styles/base.css">
+  <link rel="stylesheet" href="/styles/landing.css">
+  <% (extraStyles || []).forEach(href => { %>
+    <link rel="stylesheet" href="/styles/<%= href %>">
+  <% }) %>
+
+  <%# Per-couple palette overrides — injected inline so tokens.css can
+      stay couple-agnostic in the dynamic build. %>
+  <style>
+    :root {
+      --couple-1: <%= couple.palette_color_1 %>;
+      --couple-2: <%= couple.palette_color_2 %>;
+      --couple-3: <%= couple.palette_color_3 %>;
+      --couple-4: <%= couple.palette_color_4 %>;
+      --couple-accent:    var(--couple-2);
+      --couple-accent-on: var(--couple-3);
+    }
+  </style>
+</head>

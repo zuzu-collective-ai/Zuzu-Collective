@@ -1,0 +1,35 @@
+<%#
+  Per-couple section nav. Sits at the top of every admin page that's
+  scoped to a specific couple (basics, vendors, and — in future phases
+  — checklist, budget, timeline, guests, design).
+
+  Locals:
+    - couple        the couples row
+    - currentTab    one of: basics | vendors | checklist | budget |
+                            timeline | guests | design
+%>
+<nav class="admin-tabs" aria-label="Couple sections">
+  <% const tabs = [
+    { id: 'basics',    href: '',           label: 'Basics' },
+    { id: 'design',    href: '/design',    label: 'Design' },
+    { id: 'vendors',   href: '/vendors',   label: 'Vendors' },
+    { id: 'checklist', href: '/checklist', label: 'Checklist' },
+    { id: 'budget',    href: '/budget',    label: 'Budget' },
+    { id: 'timeline',  href: '/timeline',  label: 'Timeline' },
+    { id: 'guests',    href: '/guests',    label: 'Guest list' },
+    { id: 'floor-plan',href: '/floor-plan',label: 'Floor plan' },
+  ]; %>
+  <% tabs.forEach(tab => {
+    const url = `/admin/couples/${couple.id}${tab.href}`;
+    const isCurrent = tab.id === currentTab;
+  %>
+    <% if (tab.disabled) { %>
+      <span class="admin-tab admin-tab--disabled" title="Coming soon"><%= tab.label %></span>
+    <% } else { %>
+      <a href="<%= url %>" class="admin-tab<%= isCurrent ? ' is-current' : '' %>"
+         <% if (isCurrent) { %>aria-current="page"<% } %>>
+        <%= tab.label %>
+      </a>
+    <% } %>
+  <% }) %>
+</nav>

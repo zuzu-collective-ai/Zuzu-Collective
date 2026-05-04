@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include('partials/head', { couple, title: 'Budget', extraStyles: ['palette.css', 'budget.css'] }) %>
+<body>
+
+  <%- include('partials/topbar', { couple, currentPage }) %>
+
+  <%
+    // Helper — render integer cents as "$30,000" (no decimals when whole;
+    // shows ".50" only if needed). Centralized here so every number on
+    // the page formats identically.
+    function fmtCurrency(cents) {
+      const dollars = (cents || 0) / 100;
+      const opts = Number.isInteger(dollars)
+        ? { maximumFractionDigits: 0 }
+        : { minimumFractionDigits: 2, maximumFractionDigits: 2 };
+      return '$' + dollars.toLocaleString('en-US', opts);
+    }
+  %>
+
+  <!-- ── Page header ─────────────────────────────────────────────────────── -->
+  <section class="page-header">
+    <span class="label page-eyebrow"><%= couple.display_name %></span>
+    <h1 class="page-title">Budget</h1>
+    <p class="page-subtitle">
+      Where the investment goes. Each category tracks Estimated, Actual, and
+      Remaining — updated as deposits are paid and final balances come due.
+    </p>
+  </section>
+
+  <!-- ── Summary stats ───────────────────────────────────────────────────── -->
+  <section class="section summary">
+    <div class="summary-stats">
+      <div class="stat">
+        <div class="stat-label">Total budget</div>
+        <div class="stat-number"><%= fmtCurrency(summary.totalBudget) %></div>
+        <div class="stat-note">Across <%= summary.categoryCount %> categor<%= summary.categoryCount === 1 ? 'y' : 'ies' %></div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Spent &amp; committed</div>
+        <div class="stat-number stat-number--accent"><%= fmtCurrency(summary.totalSpent) %></div>
+        <div class="stat-note"><%= summary.pctOfTotal %>% of total</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Remaining</div>
+        <div class="stat-number"><%= fmtCurrency(summary.totalRemaining) %></div>
+        <div class="stat-note">Across <%= summary.openCategories %> open categor<%= summary.openCategories === 1 ? 'y' : 'ies' %></div>
+      </div>
+    </div>
+
+    <!-- Generate-suggested-split affordance — wired to Claude API later -->
+    <div class="ai-allocator">
+      <button type="button" class="zz-button" disabled>
+        <span class="zz-button-label">Generate suggested split</span>
+      </button>
+      <p class="ai-allocator-note">
+        Auto-distributes a total budget across the 19 categories using
+        wedding-industry averages. <em>Coming soon — wired in once the portal
+        is on its backend.</em>
+      </p>
+    </div>
+  </section>
+
+  <!-- ── Categories ──────────────────────────────────────────────────────── -->
+  <% categories.forEach(cat => {
+       const stats = categoryStats.get(cat.id) || { estimated: 0, actual: 0, remaining: 0, pct: 0 };
+       const lines = linesByCategory.get(cat.id) || [];
+  %>
+    <section class="section category">
+      <div class="category-header">
+        <div class="category-meta">
+          <span class="label">Category <%= String(cat.category_number).padStart(2, '0') %></span>
+          <h2 class="category-title">
+            <%= cat.title %><% if (cat.title_emphasis) { %> <em><%= cat.title_emphasis %></em><% } %>
+          </h2>
+        </div>
+        <div class="category-amount">
+          <div class="amount-row">
+            <div class="amount-cell"><span class="amount-label">Estimated</span><span class="amount-value"><%= fmtCurrency(stats.estimated) %></span></div>
+            <div class="amount-cell"><span class="amount-label">Actual</span><span class="amount-value"><%= fmtCurrency(stats.actual) %></span></div>
+            <div class="amount-cell"><span class="amount-label">Remaining</span><span class="amount-value"><%= fmtCurrency(stats.remaining) %></span></div>
+          </div>
+          <div class="progress-bar"><span style="width: <%= stats.pct %>%;"></span></div>
+        </div>
+      </div>
+
+      <% if (lines.length > 0) { %>
+        <ul class="line-items">
+          <% lines.forEach(line => {
+               const statusClass = `status-${(line.status_kind || 'upcoming').replace(/[^a-z]/g, '')}`;
+          %>
+            <li>
+              <div class="line-name"><em><%= line.name %></em></div>
+              <div class="line-vendor"><%= line.vendor_label || '' %></div>
+              <div class="line-amount"><%= fmtCurrency(line.amount_cents) %></div>
+              <div class="line-status <%= statusClass %>"><%= line.status_label || '' %></div>
+            </li>
+          <% }) %>
+        </ul>
+      <% } %>
+    </section>
+  <% }) %>
+
+  <!-- ── Footnote ────────────────────────────────────────────────────────── -->
+  <% if (summary.totalBudget > 0) { %>
+    <section class="section budget-footnote">
+      <p>
+        <em>Total budget: <%= fmtCurrency(summary.totalBudget) %>.</em>
+        Categories adjust as vendors are booked, deposits are paid, and final
+        balances come due.
+      </p>
+    </section>
+  <% } %>
+
+
+  <%- include('partials/footer', { couple }) %>
+
+</body>
+</html>

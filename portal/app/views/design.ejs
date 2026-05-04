@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include('partials/head', { couple, title: 'Design', extraStyles: ['palette.css'] }) %>
+<body>
+
+  <%- include('partials/topbar', { couple, currentPage }) %>
+
+  <%
+    // Map a material's swatch_kind to an inline `style` background.
+    // Keeping the lookup here in the template (rather than in the route)
+    // means new kinds only need a one-line addition, and the data layer
+    // stays a flat enum string.
+    function materialSwatchStyle(kind) {
+      switch (kind) {
+        case 'silver':    return 'background: linear-gradient(135deg, #d9d7d3 0%, #b8b6b2 50%, #d9d7d3 100%);';
+        case 'gold':      return 'background: linear-gradient(135deg, #e6cf8a 0%, #b8983f 50%, #e6cf8a 100%);';
+        case 'brass':     return 'background: linear-gradient(135deg, #d4b56a 0%, #9c7c2e 50%, #d4b56a 100%);';
+        case 'white':     return 'background: #ffffff; border-color: var(--zz-finn-20);';
+        case 'ivory':     return 'background: #efede1;';
+        case 'clear':     return 'background: linear-gradient(135deg, #eee 0%, #ccc 50%, #eee 100%); opacity: 0.7;';
+        case 'palette-1': return 'background: var(--couple-1);';
+        case 'palette-2': return 'background: var(--couple-2);';
+        case 'palette-3': return 'background: var(--couple-3); border-color: var(--zz-finn-20);';
+        case 'palette-4': return 'background: var(--couple-4);';
+        default:          return 'background: var(--zz-finn-20);';
+      }
+    }
+  %>
+
+  <!-- ── Page header ─────────────────────────────────────────────────────── -->
+  <section class="page-header">
+    <span class="label page-eyebrow"><%= couple.display_name %></span>
+    <h1 class="page-title">Design</h1>
+    <% if (couple.design_subtitle) { %>
+      <p class="page-subtitle"><%= couple.design_subtitle %></p>
+    <% } %>
+  </section>
+
+  <!-- ── Primary palette — pulled from the couples row ────────────────────── -->
+  <section class="section palette-primary">
+    <div class="section-head">
+      <span class="label">The palette</span>
+      <h2 class="section-title">Four colors, one mood.</h2>
+    </div>
+
+    <div class="circle-swatches">
+      <% [1, 2, 3, 4].forEach(n => { %>
+        <div class="circle-swatch">
+          <div class="circle-swatch-disc" style="background: <%= couple[`palette_color_${n}`] %>; <% if (n === 3) { %>border-color: var(--zz-finn-20);<% } %>"></div>
+          <div class="circle-swatch-name"><%= couple[`palette_color_${n}_name`] || '' %></div>
+          <div class="circle-swatch-hex"><%= couple[`palette_color_${n}`].toUpperCase() %></div>
+        </div>
+      <% }) %>
+    </div>
+  </section>
+
+  <!-- ── Tone & Feeling ──────────────────────────────────────────────────── -->
+  <% if (couple.tone_keywords || couple.tone_statement || couple.design_tone_title) { %>
+    <section class="section tone-section">
+      <div class="section-head">
+        <span class="label">Tone &amp; Feeling</span>
+        <% if (couple.design_tone_title) { %>
+          <h2 class="section-title"><%= couple.design_tone_title %></h2>
+        <% } %>
+      </div>
+
+      <% if (couple.tone_keywords)  { %><p class="tone-keywords"><%= couple.tone_keywords %></p><% } %>
+      <% if (couple.tone_statement) { %><p class="tone-statement"><%= couple.tone_statement %></p><% } %>
+    </section>
+  <% } %>
+
+  <!-- ── Inspiration intro ───────────────────────────────────────────────── -->
+  <% if (galleries.length > 0) { %>
+    <section class="section">
+      <div class="section-head">
+        <span class="label">Inspiration</span>
+        <h2 class="section-title">Moments we're designing toward.</h2>
+        <p class="section-description">
+          <%= galleries.length %> categor<%= galleries.length === 1 ? 'y' : 'ies' %>.
+          Each one carries a hero reference and supporting frames. Photos land at
+          <code>portal/app/public/inspo/<%= couple.slug %>/</code>
+          as we shoot and source them.
+        </p>
+      </div>
+    </section>
+  <% } %>
+
+  <% galleries.forEach(g => {
+       const tiles = tilesByGallery.get(g.id) || [];
+  %>
+    <section class="section">
+      <div class="section-head">
+        <% if (g.eyebrow) { %><span class="label"><%= g.eyebrow %></span><% } %>
+        <h2 class="section-title"><em><%= g.title %></em></h2>
+        <% if (g.description) { %><p class="section-description"><%= g.description %></p><% } %>
+      </div>
+
+      <% if (tiles.length > 0) { %>
+        <div class="inspiration-grid">
+          <% tiles.forEach(tile => { %>
+            <div class="inspo-tile<%= tile.is_hero ? ' is-tall is-wide' : '' %>">
+              <% if (tile.note) { %><div class="inspo-tile-note"><%= tile.note %></div><% } %>
+              <span class="inspo-tile-label"><%= tile.label %></span>
+              <span class="inspo-tile-title"><%= tile.title %></span>
+            </div>
+          <% }) %>
+        </div>
+      <% } %>
+    </section>
+  <% }) %>
+
+  <!-- ── Materials ───────────────────────────────────────────────────────── -->
+  <% if (materials.length > 0) { %>
+    <section class="section">
+      <div class="section-head">
+        <span class="label">Metals &amp; Finishes</span>
+        <% if (couple.design_materials_title) { %>
+          <h2 class="section-title"><%= couple.design_materials_title %></h2>
+        <% } %>
+        <% if (couple.design_materials_note) { %>
+          <p class="section-description"><%= couple.design_materials_note %></p>
+        <% } %>
+      </div>
+
+      <div class="materials-grid">
+        <% materials.forEach(m => { %>
+          <div class="material">
+            <div class="material-swatch" style="<%= materialSwatchStyle(m.swatch_kind) %>"></div>
+            <div class="material-title"><%= m.name %></div>
+            <% if (m.detail) { %><div class="material-note"><%= m.detail %></div><% } %>
+          </div>
+        <% }) %>
+      </div>
+    </section>
+  <% } %>
+
+  <%- include('partials/footer', { couple }) %>
+
+</body>
+</html>

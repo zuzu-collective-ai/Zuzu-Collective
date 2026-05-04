@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include('partials/head', { couple, title: 'Timeline', extraStyles: ['palette.css', 'timeline.css'] }) %>
+<body>
+
+  <%- include('partials/topbar', { couple, currentPage }) %>
+
+  <%
+    const wd = new Date(couple.wedding_date);
+    const monthShort = wd.toLocaleDateString('en-US', { month: '2-digit', timeZone: 'UTC' });
+    const dayShort   = wd.toLocaleDateString('en-US', { day: '2-digit',  timeZone: 'UTC' });
+    const dateShort  = `${monthShort}.${dayShort}`;
+    // Assemble manually so the order matches the mockup exactly
+    // ("Saturday, October 2026") regardless of Intl locale ordering.
+    const weekdayName = wd.toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' });
+    const monthName   = wd.toLocaleDateString('en-US', { month:   'long', timeZone: 'UTC' });
+    const yearStr     = wd.toLocaleDateString('en-US', { year:    'numeric', timeZone: 'UTC' });
+    const dateLong    = `${weekdayName}, ${monthName} ${yearStr}`;
+    // The phase-count copy adjusts to whatever's in the DB rather than
+    // hardcoding "Six phases".
+    const phaseCountWord = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten'][summary.phaseCount] || summary.phaseCount;
+  %>
+
+  <!-- ── Page header ─────────────────────────────────────────────────────── -->
+  <section class="page-header">
+    <span class="label page-eyebrow"><%= couple.display_name %></span>
+    <h1 class="page-title">Timeline</h1>
+    <p class="page-subtitle">
+      The day, hour by hour. <%= phaseCountWord %> phase<%= summary.phaseCount === 1 ? '' : 's' %> —
+      built from the vendor contracts and locked two weeks before the wedding.
+    </p>
+  </section>
+
+  <!-- ── Summary stats ───────────────────────────────────────────────────── -->
+  <section class="section timeline-summary">
+    <div class="summary-stats">
+      <div class="stat">
+        <div class="stat-label">Date</div>
+        <div class="stat-number"><%= dateShort %></div>
+        <div class="stat-note"><%= dateLong %></div>
+      </div>
+      <% if (couple.timeline_ceremony_time || couple.timeline_ceremony_note) { %>
+        <div class="stat">
+          <div class="stat-label">Ceremony</div>
+          <div class="stat-number"><%= couple.timeline_ceremony_time || '' %></div>
+          <% if (couple.timeline_ceremony_note) { %>
+            <div class="stat-note"><%= couple.timeline_ceremony_note %></div>
+          <% } %>
+        </div>
+      <% } %>
+      <div class="stat">
+        <div class="stat-label">Events</div>
+        <div class="stat-number"><%= summary.eventCount %></div>
+        <div class="stat-note">Across <%= summary.phaseCount %> phase<%= summary.phaseCount === 1 ? '' : 's' %></div>
+      </div>
+      <% if (couple.timeline_lastcall_time || couple.timeline_lastcall_note) { %>
+        <div class="stat">
+          <div class="stat-label">Last call</div>
+          <div class="stat-number"><%= couple.timeline_lastcall_time || '' %></div>
+          <% if (couple.timeline_lastcall_note) { %>
+            <div class="stat-note"><%= couple.timeline_lastcall_note %></div>
+          <% } %>
+        </div>
+      <% } %>
+    </div>
+  </section>
+
+  <!-- ── Phases ──────────────────────────────────────────────────────────── -->
+  <section class="phases">
+    <% phases.forEach(phase => {
+         const events = eventsByPhase.get(phase.id) || [];
+         const variantClass = phase.variant === 'ceremony' ? ' phase--ceremony'
+                            : phase.variant === 'sendoff'  ? ' phase--sendoff'
+                            : '';
+    %>
+      <article class="phase<%= variantClass %>">
+        <header class="phase-head">
+          <span class="phase-num">Phase <%= String(phase.phase_number).padStart(2, '0') %></span>
+          <% if (phase.window_text) { %>
+            <span class="phase-window"><%= phase.window_text %></span>
+          <% } %>
+          <span class="phase-count"><%= events.length %> event<%= events.length === 1 ? '' : 's' %></span>
+          <h2 class="phase-title"><em><%= phase.title %></em></h2>
+          <% if (phase.note_text) { %>
+            <p class="phase-note"><%= phase.note_text %></p>
+          <% } %>
+        </header>
+
+        <% if (events.length > 0) { %>
+          <ul class="event-list">
+            <% events.forEach(ev => { %>
+              <li class="event">
+                <span class="event-time"><%= ev.time_text %><% if (ev.meridiem) { %><span class="event-time-meridiem"><%= ev.meridiem %></span><% } %></span>
+                <div class="event-body">
+                  <h3 class="event-title"><%= ev.title %></h3>
+                  <% const hasMeta = ev.where_label || ev.lead_label || ev.with_label; %>
+                  <% if (hasMeta) { %>
+                    <div class="event-meta">
+                      <% if (ev.where_label) { %>
+                        <span class="event-meta-item"><span class="event-meta-label">Where</span><span class="event-meta-value"><%= ev.where_label %></span></span>
+                      <% } %>
+                      <% if (ev.with_label) { %>
+                        <span class="event-meta-item"><span class="event-meta-label">With</span><span class="event-meta-value"><%= ev.with_label %></span></span>
+                      <% } %>
+                      <% if (ev.lead_label) { %>
+                        <span class="event-meta-item"><span class="event-meta-label">Lead</span><span class="event-meta-value"><%= ev.lead_label %></span></span>
+                      <% } %>
+                    </div>
+                  <% } %>
+                  <% if (ev.note_text) { %>
+                    <p class="event-note"><%= ev.note_text %></p>
+                  <% } %>
+                </div>
+              </li>
+            <% }) %>
+          </ul>
+        <% } %>
+      </article>
+    <% }) %>
+  </section>
+
+
+  <%- include('partials/footer', { couple }) %>
+
+</body>
+</html>

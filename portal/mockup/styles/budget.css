@@ -1,0 +1,306 @@
+/*
+ * Zuzu Collective portal — budget page
+ *
+ * The hardest page to make look good. Numbers want to read like a spreadsheet;
+ * this page treats them like editorial pull-quotes instead.
+ *
+ * Per category we show Estimated / Actual / Remaining (matches the Chris &
+ * Lindsay xlsx). Mono is restricted to small meta lines and status pills.
+ */
+
+/* ── Summary stats — 3 large numbers, hairline-separated ────────────────── */
+
+.summary {
+  padding-top: var(--space-lg);
+  padding-bottom: var(--space-lg);
+}
+
+.summary-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  max-width: var(--content-max);
+  margin: 0 auto;
+  gap: 0;
+}
+
+.stat {
+  text-align: center;
+  padding: var(--space-md) var(--space-md);
+  border-right: 1px solid var(--zz-finn-20);
+}
+.stat:last-child { border-right: 0; }
+
+.stat-label {
+  font-family: var(--zz-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--zz-finn-60);
+  margin-bottom: var(--space-md);
+}
+
+.stat-number {
+  font-family: var(--zz-display);
+  font-style: italic;
+  font-size: clamp(2.5rem, 5vw, 3.75rem);
+  line-height: 1;
+  color: var(--zz-finn);
+}
+.stat-number--accent { color: var(--zz-tobacco); }
+
+.stat-note {
+  margin-top: var(--space-sm);
+  font-family: var(--zz-display);
+  font-size: 0.95rem;
+  color: var(--zz-ink);
+  opacity: 0.75;
+}
+
+/* ── AI allocator — placeholder for the Claude-powered split generator ──── */
+
+.ai-allocator {
+  max-width: var(--content-max);
+  margin: var(--space-xl) auto 0;
+  padding: var(--space-md) var(--space-md);
+  text-align: center;
+}
+
+.zz-button {
+  display: inline-block;
+  padding: 14px 32px;
+  background: transparent;
+  border: 1px solid var(--zz-finn);
+  color: var(--zz-finn);
+  font-family: var(--zz-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 200ms ease, color 200ms ease;
+}
+.zz-button:hover:not(:disabled) {
+  background: var(--zz-finn);
+  color: var(--zz-moonlight);
+}
+.zz-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.ai-allocator-note {
+  margin-top: var(--space-sm);
+  font-family: var(--zz-display);
+  font-size: 0.95rem;
+  color: var(--zz-ink);
+  opacity: 0.8;
+}
+.ai-allocator-note em {
+  font-style: italic;
+  color: var(--zz-tobacco);
+}
+
+/* ── Category section — header on one row, 3-cell amount block on the right */
+
+.category {
+  max-width: var(--content-max);
+  margin-inline: auto;
+  padding-inline: var(--space-md);
+}
+
+.category-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+  gap: var(--space-lg);
+  align-items: end;
+  padding-bottom: var(--space-md);
+  border-bottom: 1px solid var(--zz-finn-20);
+}
+
+.category-meta .label { display: block; margin-bottom: var(--space-sm); }
+
+.category-title {
+  font-family: var(--zz-display);
+  font-size: clamp(1.75rem, 3.4vw, 2.5rem);
+  line-height: 1.05;
+  margin: 0;
+  color: var(--zz-finn);
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+}
+.category-title em {
+  font-style: italic;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* The 3-column Estimated / Actual / Remaining block — equal weight, mono
+   labels stacked above italic display numbers, hairline separators between. */
+.category-amount { text-align: left; }
+
+.amount-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0;
+}
+
+.amount-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0 var(--space-md);
+  border-right: 1px solid var(--zz-finn-20);
+}
+.amount-cell:first-child { padding-left: 0; }
+.amount-cell:last-child  { border-right: 0; padding-right: 0; }
+
+.amount-label {
+  font-family: var(--zz-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--zz-finn-60);
+  margin-bottom: 4px;
+}
+
+.amount-value {
+  font-family: var(--zz-display);
+  font-style: italic;
+  font-size: clamp(1.5rem, 2.8vw, 2rem);
+  line-height: 1;
+  color: var(--zz-finn);
+}
+
+/* Hairline progress bar — quiet indicator, not a filled gauge. */
+.progress-bar {
+  margin-top: var(--space-md);
+  height: 2px;
+  background: var(--zz-finn-20);
+  position: relative;
+  overflow: hidden;
+}
+.progress-bar > span {
+  display: block;
+  height: 100%;
+  background: var(--zz-finn);
+  transition: width 600ms ease;
+}
+
+/* ── Line items — like a magazine credits column ────────────────────────── */
+
+.line-items {
+  list-style: none;
+  margin: var(--space-md) 0 0;
+  padding: 0;
+}
+
+.line-items li {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 2.5fr) auto auto;
+  align-items: baseline;
+  gap: var(--space-md);
+  padding: var(--space-md) 0;
+  border-bottom: 1px solid var(--zz-finn-20);
+}
+.line-items li:last-child { border-bottom: 0; }
+
+.line-name {
+  font-family: var(--zz-display);
+  font-size: 1.125rem;
+  color: var(--zz-finn);
+}
+.line-name em { font-style: italic; font-weight: 500; }
+
+.line-vendor {
+  font-family: var(--zz-display);
+  font-style: italic;
+  font-size: 0.95rem;
+  color: var(--zz-ink);
+  opacity: 0.8;
+}
+
+.line-amount {
+  font-family: var(--zz-display);
+  font-size: 1.125rem;
+  font-style: italic;
+  color: var(--zz-finn);
+  text-align: right;
+  min-width: 6rem;
+}
+
+/* Status pill — thin border, mono, all caps. No fills. */
+.line-status {
+  font-family: var(--zz-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border: 1px solid currentColor;
+  white-space: nowrap;
+  min-width: 7rem;
+  text-align: center;
+}
+.status-paid      { color: var(--zz-finn); }
+.status-deposited { color: var(--zz-tobacco); }
+.status-upcoming  { color: var(--zz-smoky); }
+
+/* ── Budget footnote — quiet caption matching the spreadsheet pattern ───── */
+
+.budget-footnote {
+  max-width: var(--content-max);
+  margin-inline: auto;
+  padding: var(--space-lg) var(--space-md);
+  border-top: 1px solid var(--zz-finn-20);
+  text-align: center;
+  font-family: var(--zz-display);
+  font-size: 0.95rem;
+  color: var(--zz-ink);
+  opacity: 0.85;
+}
+.budget-footnote em { font-style: italic; }
+.budget-footnote strong { font-weight: 500; color: var(--zz-finn); }
+
+/* ── Responsive ─────────────────────────────────────────────────────────── */
+
+@media (max-width: 900px) {
+  .category-header {
+    grid-template-columns: 1fr;
+    gap: var(--space-md);
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 760px) {
+  .summary-stats {
+    grid-template-columns: 1fr;
+  }
+  .stat {
+    border-right: 0;
+    border-bottom: 1px solid var(--zz-finn-20);
+    padding: var(--space-md) 0;
+  }
+  .stat:last-child { border-bottom: 0; }
+
+  .amount-row {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .amount-cell {
+    padding: 0 var(--space-sm);
+  }
+  .amount-value {
+    font-size: 1.25rem;
+  }
+
+  .line-items li {
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "name amount"
+      "vendor vendor"
+      "status status";
+    row-gap: var(--space-xs);
+  }
+  .line-name   { grid-area: name; }
+  .line-amount { grid-area: amount; }
+  .line-vendor { grid-area: vendor; }
+  .line-status { grid-area: status; justify-self: start; }
+}

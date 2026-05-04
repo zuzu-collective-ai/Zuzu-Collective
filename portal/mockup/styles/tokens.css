@@ -1,0 +1,84 @@
+/*
+ * Zuzu Collective portal — design tokens
+ *
+ * Two layers:
+ *   1. Brand shell  — :root                    constant across every couple's portal
+ *   2. Couple layer — [data-couple] scope      overridden per wedding
+ *
+ * The shell is Moonlight + Finn, Romie + Art Company Mono (Cormorant Garamond +
+ * Fragment Mono as free fallbacks until the licensed fonts land in brand/fonts/).
+ * The couple layer theming goes through --couple-* variables — swap these and
+ * every accent on the site re-themes without touching markup.
+ */
+
+:root {
+  /* ── Zuzu brand shell (from brand/ZuzuCollective BrandAssets.pdf) ──────── */
+  --zz-moonlight: #EFEDE1; /* primary background, cream                     */
+  --zz-finn:      #412733; /* primary dark, deep plum — signature           */
+  --zz-tobacco:   #493933; /* secondary dark, warm brown                    */
+  --zz-smoky:     #565462; /* tertiary, muted purple-gray                   */
+  --zz-black:     #231F20; /* body text on light                            */
+
+  /* Tinted variants for hairlines, hovers, muted states                     */
+  --zz-finn-20:   rgba(65, 39, 51, 0.20);
+  --zz-finn-60:   rgba(65, 39, 51, 0.60);
+  --zz-ink:       var(--zz-black);
+  --zz-muted:     var(--zz-smoky);
+
+  /* ── Typography ───────────────────────────────────────────────────────── */
+  /* Primary fallbacks. Swap to Romie / ArtCompanyMono-Light when .woff2
+     files are dropped into ../assets/fonts/ and declared via @font-face.   */
+  --zz-display: 'Cormorant Garamond', 'EB Garamond', Georgia, serif;
+  --zz-mono:    'Fragment Mono', 'JetBrains Mono', ui-monospace, 'Courier New', monospace;
+  --zz-body:    var(--zz-display);
+
+  /* Scale — editorial, not SaaS. Large display, small supporting.          */
+  --fs-display-xl: clamp(4rem, 12vw, 10rem);
+  --fs-display-lg: clamp(2.5rem, 6vw, 5rem);
+  --fs-display-md: clamp(1.75rem, 3vw, 2.5rem);
+  --fs-body:       1.0625rem;
+  --fs-small:      0.875rem;
+  --fs-label:      0.75rem; /* small caps, wide-tracked — "FLORAL INSPIRATION" */
+
+  --lh-tight:   1.05;
+  --lh-body:    1.55;
+  --tracking-wide: 0.22em; /* for small-caps labels                         */
+
+  /* ── Spacing — generous whitespace per the deck ───────────────────────── */
+  --space-2xs: 0.25rem;
+  --space-xs:  0.5rem;
+  --space-sm:  1rem;
+  --space-md:  2rem;
+  --space-lg:  4rem;
+  --space-xl:  6rem;
+  --space-2xl: 10rem;
+
+  /* ── Motif — the arch shape recurs through the Alicia & Jack deck ─────── */
+  --arch-radius: 999px 999px 4px 4px;
+
+  /* ── Layout ──────────────────────────────────────────────────────────── */
+  --content-max: 1280px;
+  --prose-max:   52ch;
+}
+
+/*
+ * Couple overlay — defaults here are the Alicia & Jack example palette
+ * (ivory, chartreuse, crisp white, cream) from their design deck. The admin
+ * UI will set these on the portal root per couple. The brand shell above
+ * never changes.
+ */
+[data-couple="alicia-and-jack_2026"] {
+  --couple-name:   "Alicia & Jack";
+  --couple-date:   "October 10, 2026";
+  --couple-venue:  "La Playa, Carmel-by-the-Sea";
+
+  --couple-1: #EFEDE1; /* ivory       */
+  --couple-2: #64690C; /* chartreuse  */
+  --couple-3: #FFFFFF; /* crisp white */
+  --couple-4: #F5F0E4; /* cream       */
+
+  --couple-accent:    var(--couple-2);
+  --couple-accent-on: var(--couple-3);
+
+  --couple-style-keywords: "Elegant · Coastal · Candlelit · Californian · Timeless · Intentional";
+}

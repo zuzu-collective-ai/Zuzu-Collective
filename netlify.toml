@@ -1,0 +1,19 @@
+# Netlify deploy config for the Zuzu Collective portal mockup.
+#
+# Pinned here in the repo so the dashboard's manual fields can't drift out
+# of sync. Until the real Express/Postgres scaffold replaces this static
+# folder (§14 of the original brief), the entire site is portal/mockup/.
+
+[build]
+  # The static portal lives here. Everything outside this folder (brand
+  # PDFs, the assistant code, prompts) is excluded from the published site.
+  publish = "portal/mockup"
+
+# Land the bare URL on landing.html — our entry page. Without this, hitting
+# https://<site>.netlify.app/ returns Netlify's default 404 because the
+# folder has no index.html.
+[[redirects]]
+  from = "/"
+  to = "/landing.html"
+  status = 302
+  force = true

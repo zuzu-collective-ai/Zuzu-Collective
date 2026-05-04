@@ -1,0 +1,27 @@
+<%#
+  Footer — same on every page. Wedding-planner contact + signature
+  block. Sourced from a Zoe / settings table in Phase 3; for now
+  hardcoded since it doesn't change per-couple.
+%>
+<footer class="footer">
+  <p class="footer-cta">
+    Have questions? <a href="mailto:info@zuzucollective.com">Let's chat.</a>
+  </p>
+
+  <div class="footer-signature">
+    <div class="name display">Zoe McDaniel</div>
+    <div class="title">Founder &amp; Creative Director</div>
+    <div class="mono" style="margin-top: .25rem;">Zuzu Collective</div>
+
+    <div class="footer-taglines">
+      Bespoke weddings &amp; events that escape the mundane.<br>
+      Story-driven design rooted in intention.
+    </div>
+  </div>
+
+  <div class="footer-meta">
+    Zuzu Collective · San Diego
+    <span class="footer-sep">·</span>
+    portal.zuzucollective.com / <%= couple.slug %>
+  </div>
+</footer>

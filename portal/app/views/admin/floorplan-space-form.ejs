@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include('partials/head', { title: `${couple.display_name} — ${space ? space.title : 'New space'}` }) %>
+<body class="admin-body">
+
+  <%- include('partials/sidebar', { currentSection: 'couples' }) %>
+
+  <main class="admin-main">
+    <header class="admin-header">
+      <div>
+        <a href="/admin/couples/<%= couple.id %>/floor-plan" class="admin-back">← <%= couple.display_name %> · floor plan</a>
+        <h1 class="admin-title">
+          <%= space ? space.title : 'New space' %>
+        </h1>
+      </div>
+    </header>
+
+    <%- include('partials/couple-tabs', { couple, currentTab: 'floor-plan' }) %>
+
+    <%- include('partials/flash', { flash }) %>
+
+    <% if (error) { %>
+      <div class="admin-flash admin-flash--error" role="alert"><%= error %></div>
+    <% } %>
+
+    <% const KIND_LABELS = {
+        arch: 'Arch', stage: 'Stage / mark', chairs: 'Chairs', aisle: 'Aisle',
+        service: 'Service station', bar: 'Bar', hightop: 'High-top', dance: 'Dance floor',
+        table: 'Round table', 'head-table': 'Head table', door: 'Door / passage',
+       }; %>
+
+    <form action="<%= formAction %>" method="post" class="admin-form">
+      <fieldset class="admin-fieldset">
+        <legend class="admin-legend">Space</legend>
+
+        <div class="admin-row" style="display: grid; grid-template-columns: 1fr 1fr 110px; gap: 1rem;">
+          <label class="admin-field">
+            <span class="admin-field-label">Eyebrow</span>
+            <input type="text" name="eyebrow" value="<%= space?.eyebrow || '' %>" placeholder="Phase 03 · 4:00 PM">
+            <span class="admin-field-help">Small caps phase tag above the title.</span>
+          </label>
+          <label class="admin-field">
+            <span class="admin-field-label">Title *</span>
+            <input type="text" name="title" required value="<%= space?.title || '' %>" placeholder="The Ocean Lawn">
+          </label>
+          <label class="admin-field">
+            <span class="admin-field-label">Position</span>
+            <input type="number" name="position" min="0" value="<%= space?.position ?? suggestedPosition %>">
+          </label>
+        </div>
+
+        <div class="admin-row" style="display: grid; grid-template-columns: 110px 130px 1fr; gap: 1rem;">
+          <label class="admin-field">
+            <span class="admin-field-label">Capacity</span>
+            <input type="number" name="capacity" min="0" value="<%= space?.capacity ?? '' %>" placeholder="60">
+          </label>
+          <label class="admin-field">
+            <span class="admin-field-label">Square feet</span>
+            <input type="number" name="square_feet" min="0" value="<%= space?.square_feet ?? '' %>" placeholder="2400">
+          </label>
+          <label class="admin-field">
+            <span class="admin-field-label">Location label</span>
+            <input type="text" name="location_label" value="<%= space?.location_label || '' %>" placeholder="Outdoor / Indoor / Outdoor & covered">
+          </label>
+        </div>
+
+        <label class="admin-field">
+          <span class="admin-field-label">Top edge label</span>
+          <input type="text" name="edge_top_label" value="<%= space?.edge_top_label || '' %>" placeholder="Pacific Ocean">
+          <span class="admin-field-help">Optional flavor caption pinned to the top edge of the schematic. Leave blank to hide.</span>
+        </label>
+      </fieldset>
+
+      <fieldset class="admin-fieldset">
+        <legend class="admin-legend">Zones</legend>
+        <p class="admin-fieldset-note">
+          The shapes inside the schematic. <em>Position</em> and <em>size</em> are CSS percentages
+          ("12%", "8%") — leave any field blank that doesn't apply. Use <em>Round</em> with a width
+          (no height) for circular high-tops and round dinner tables. <em>Bottom-edge anchor</em> is
+          for door markers that sit against the bottom edge of the schematic with a dashed top.
+        </p>
+
+        <div id="zone-rows" class="admin-zone-rows">
+          <%
+            const initialZones = (zones && zones.length) ? zones : [
+              { kind: 'service', label: '', position_top: '', position_left: '', position_right: '', position_bottom: '',
+                size_width: '', size_height: '', is_circle: false, edge_anchor: null, position: 1 },
+            ];
+          %>
+          <% initialZones.forEach((z, i) => { %>
+            <div class="admin-zone-row" data-row>
+              <input type="hidden" name="zones[<%= i %>][id]" value="<%= z.id || '' %>">
+
+              <div class="admin-zone-row-line">
+                <label class="admin-field admin-field--inline" style="max-width: 160px;">
+                  <span class="admin-field-label">Kind</span>
+                  <select name="zones[<%= i %>][kind]">
+                    <% zoneKinds.forEach(k => { %>
+                      <option value="<%= k %>" <%= z.kind === k ? 'selected' : '' %>><%= KIND_LABELS[k] || k %></option>
+                    <% }) %>
+                  </select>
+                </label>
+                <label class="admin-field admin-field--inline" style="flex: 1;">
+                  <span class="admin-field-label">Label</span>
+                  <input type="text" name="zones[<%= i %>][label]" value="<%= z.label || '' %>" placeholder="The arch / 01 / L · 24 chairs">
+                </label>
+                <button type="button" class="admin-btn admin-btn--ghost admin-btn--small" data-remove>Remove</button>
+              </div>
+
+              <div class="admin-zone-row-line">
+                <label class="admin-field admin-field--inline" style="max-width: 110px;">
+                  <span class="admin-field-label">Top</span>
+                  <input type="text" name="zones[<%= i %>][position_top]" value="<%= z.position_top || '' %>" placeholder="12%">
+                </label>
+                <label class="admin-field admin-field--inline" style="max-width: 110px;">
+                  <span class="admin-field-label">Left</span>
+                  <input type="text" name="zones[<%= i %>][position_left]" value="<%= z.position_left || '' %>" placeholder="38%">
+                </label>
+                <label class="admin-field admin-field--inline" style="max-width: 110px;">
+                  <span class="admin-field-label">Right</span>
+                  <input type="text" name="zones[<%= i %>][position_right]" value="<%= z.position_right || '' %>" placeholder="">
+                </label>
+                <label class="admin-field admin-field--inline" style="max-width: 110px;">
+                  <span class="admin-field-label">Bottom</span>
+                  <input type="text" name="zones[<%= i %>][position_bottom]" value="<%= z.position_bottom || '' %>" placeholder="">
+                </label>
+                <label class="admin-field admin-field--inline" style="max-width: 110px;">
+                  <span class="admin-field-label">Width</span>
+                  <input type="text" name="zones[<%= i %>][size_width]" value="<%= z.size_width || '' %>" placeholder="24%">
+                </label>
+                <label class="admin-field admin-field--inline" style="max-width: 110px;">
+                  <span class="admin-field-label">Height</span>
+                  <input type="text" name="zones[<%= i %>][size_height]" value="<%= z.size_height || '' %>" placeholder="6%">
+                </label>
+              </div>
+
+              <div class="admin-zone-row-line">
+                <label class="admin-field admin-field--inline admin-field--checkbox">
+                  <input type="checkbox" name="zones[<%= i %>][is_circle]" value="true" <%= z.is_circle ? 'checked' : '' %>>
+                  <span class="admin-field-label">Round</span>
+                </label>
+                <label class="admin-field admin-field--inline" style="max-width: 200px;">
+                  <span class="admin-field-label">Edge anchor</span>
+                  <select name="zones[<%= i %>][edge_anchor]">
+                    <option value="" <%= !z.edge_anchor ? 'selected' : '' %>>None</option>
+                    <option value="bottom-edge" <%= z.edge_anchor === 'bottom-edge' ? 'selected' : '' %>>Bottom edge</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+          <% }) %>
+        </div>
+
+        <button type="button" id="add-zone" class="admin-btn admin-btn--ghost">+ Add zone</button>
+      </fieldset>
+
+      <fieldset class="admin-fieldset">
+        <legend class="admin-legend">Key items</legend>
+        <p class="admin-fieldset-note">
+          The numbered legend below the schematic. Order here = order on the page;
+          numbers are auto-assigned (01, 02, 03...).
+        </p>
+
+        <div id="key-rows" class="admin-key-rows">
+          <%
+            const initialKeys = (keys && keys.length) ? keys : [
+              { name: '', detail: '', position: 1 },
+            ];
+          %>
+          <% initialKeys.forEach((k, i) => { %>
+            <div class="admin-key-row" data-row>
+              <input type="hidden" name="keys[<%= i %>][id]" value="<%= k.id || '' %>">
+              <label class="admin-field admin-field--inline">
+                <span class="admin-field-label">Name</span>
+                <input type="text" name="keys[<%= i %>][name]" value="<%= k.name || '' %>" placeholder="The arch">
+              </label>
+              <label class="admin-field admin-field--inline">
+                <span class="admin-field-label">Detail</span>
+                <input type="text" name="keys[<%= i %>][detail]" value="<%= k.detail || '' %>" placeholder="Olive branches, ivory ribbon — built on site...">
+              </label>
+              <button type="button" class="admin-btn admin-btn--ghost admin-btn--small" data-remove>Remove</button>
+            </div>
+          <% }) %>
+        </div>
+
+        <button type="button" id="add-key" class="admin-btn admin-btn--ghost">+ Add key item</button>
+      </fieldset>
+
+      <div class="admin-form-actions">
+        <button type="submit" class="admin-btn admin-btn--primary">
+          <%= space ? 'Save changes' : 'Add space' %>
+        </button>
+        <a href="/admin/couples/<%= couple.id %>/floor-plan" class="admin-btn admin-btn--ghost">Cancel</a>
+      </div>
+    </form>
+
+    <% if (space) { %>
+      <div class="admin-danger-zone">
+        <h2 class="admin-legend">Danger zone</h2>
+        <p>Remove this space and all of its zones + key items from <%= couple.display_name %>'s floor plan.</p>
+        <form action="/admin/couples/<%= couple.id %>/floor-plan/<%= space.id %>/delete" method="post"
+              onsubmit="return confirm('Remove <%= space.title %>? This cannot be undone.');">
+          <button type="submit" class="admin-btn admin-btn--danger">Remove space</button>
+        </form>
+      </div>
+    <% } %>
+  </main>
+
+  <script>
+    (function () {
+      const KIND_OPTIONS = <%- JSON.stringify(zoneKinds.map(k => ({ value: k, label: KIND_LABELS[k] || k }))) %>;
+
+      function setupRepeater(containerId, addBtnId, makeRow) {
+        const container = document.getElementById(containerId);
+        const addBtn = document.getElementById(addBtnId);
+        if (!container || !addBtn) return;
+        function nextIndex() { return container.querySelectorAll('[data-row]').length; }
+        addBtn.addEventListener('click', () => {
+          const i = nextIndex();
+          const row = document.createElement('div');
+          const html = makeRow(i);
+          row.outerHTML = html;
+          container.insertAdjacentHTML('beforeend', html);
+        });
+        container.addEventListener('click', (e) => {
+          if (e.target.matches('[data-remove]')) {
+            const row = e.target.closest('[data-row]');
+            if (row) row.remove();
+          }
+        });
+      }
+
+      setupRepeater('zone-rows', 'add-zone', (i) => `
+        <div class="admin-zone-row" data-row>
+          <input type="hidden" name="zones[${i}][id]" value="">
+          <div class="admin-zone-row-line">
+            <label class="admin-field admin-field--inline" style="max-width: 160px;">
+              <span class="admin-field-label">Kind</span>
+              <select name="zones[${i}][kind]">
+                ${KIND_OPTIONS.map(k => `<option value="${k.value}">${k.label}</option>`).join('')}
+              </select>
+            </label>
+            <label class="admin-field admin-field--inline" style="flex: 1;">
+              <span class="admin-field-label">Label</span>
+              <input type="text" name="zones[${i}][label]" placeholder="">
+            </label>
+            <button type="button" class="admin-btn admin-btn--ghost admin-btn--small" data-remove>Remove</button>
+          </div>
+          <div class="admin-zone-row-line">
+            <label class="admin-field admin-field--inline" style="max-width: 110px;"><span class="admin-field-label">Top</span><input type="text" name="zones[${i}][position_top]"></label>
+            <label class="admin-field admin-field--inline" style="max-width: 110px;"><span class="admin-field-label">Left</span><input type="text" name="zones[${i}][position_left]"></label>
+            <label class="admin-field admin-field--inline" style="max-width: 110px;"><span class="admin-field-label">Right</span><input type="text" name="zones[${i}][position_right]"></label>
+            <label class="admin-field admin-field--inline" style="max-width: 110px;"><span class="admin-field-label">Bottom</span><input type="text" name="zones[${i}][position_bottom]"></label>
+            <label class="admin-field admin-field--inline" style="max-width: 110px;"><span class="admin-field-label">Width</span><input type="text" name="zones[${i}][size_width]"></label>
+            <label class="admin-field admin-field--inline" style="max-width: 110px;"><span class="admin-field-label">Height</span><input type="text" name="zones[${i}][size_height]"></label>
+          </div>
+          <div class="admin-zone-row-line">
+            <label class="admin-field admin-field--inline admin-field--checkbox">
+              <input type="checkbox" name="zones[${i}][is_circle]" value="true">
+              <span class="admin-field-label">Round</span>
+            </label>
+            <label class="admin-field admin-field--inline" style="max-width: 200px;">
+              <span class="admin-field-label">Edge anchor</span>
+              <select name="zones[${i}][edge_anchor]">
+                <option value="" selected>None</option>
+                <option value="bottom-edge">Bottom edge</option>
+              </select>
+            </label>
+          </div>
+        </div>
+      `);
+
+      setupRepeater('key-rows', 'add-key', (i) => `
+        <div class="admin-key-row" data-row>
+          <input type="hidden" name="keys[${i}][id]" value="">
+          <label class="admin-field admin-field--inline">
+            <span class="admin-field-label">Name</span>
+            <input type="text" name="keys[${i}][name]" placeholder="">
+          </label>
+          <label class="admin-field admin-field--inline">
+            <span class="admin-field-label">Detail</span>
+            <input type="text" name="keys[${i}][detail]" placeholder="">
+          </label>
+          <button type="button" class="admin-btn admin-btn--ghost admin-btn--small" data-remove>Remove</button>
+        </div>
+      `);
+    })();
+  </script>
+</body>
+</html>

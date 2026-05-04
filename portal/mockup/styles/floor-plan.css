@@ -1,0 +1,395 @@
+/*
+ * Zuzu Collective portal — floor plan
+ *
+ * Three top-down schematics — Ceremony (Ocean Lawn), Cocktail Hour
+ * (Upper Lawn & Loggia), Reception (Garden Ballroom). Each schematic is
+ * a relative-positioned container with absolutely-positioned zones, a
+ * compass marker, a scale bar, and a numbered key alongside.
+ *
+ * Anti-spreadsheet — the schematic uses the brand's hairlines (Finn at
+ * 20%) as the room outline, and zone fills are kept very quiet so the
+ * italic display labels carry the page.
+ */
+
+/* ── Section header for each venue space ────────────────────────────────── */
+
+.venue-space {
+  max-width: var(--content-max);
+  margin-inline: auto;
+  padding: var(--space-xl) var(--space-md);
+  border-bottom: 1px solid var(--zz-finn-20);
+}
+.venue-space:last-of-type { border-bottom: 0; }
+
+.venue-space-head {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas:
+    "eyebrow meta"
+    "title   meta";
+  align-items: baseline;
+  column-gap: var(--space-md);
+  row-gap: var(--space-xs);
+  margin-bottom: var(--space-lg);
+  padding-bottom: var(--space-md);
+  border-bottom: 1px dashed var(--zz-finn-20);
+}
+.venue-space-eyebrow { grid-area: eyebrow; display: block; }
+.venue-space-title {
+  grid-area: title;
+  font-family: var(--zz-display);
+  font-style: italic;
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 1;
+  color: var(--zz-finn);
+  margin: 0;
+  font-weight: 400;
+}
+.venue-space-meta {
+  grid-area: meta;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  font-family: var(--zz-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--zz-finn-60);
+  text-align: right;
+  justify-content: flex-end;
+}
+
+/* ── Scene — schematic + key, side by side ──────────────────────────────── */
+
+.floorplan-scene {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: var(--space-lg);
+  align-items: start;
+}
+
+/* ── The schematic itself ───────────────────────────────────────────────── */
+
+.floorplan {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  border: 1px solid var(--zz-finn);
+  background: var(--zz-moonlight);
+  /* Faint architectural grid — 20-cell horizontal / 12-cell vertical to
+     make the proportions read like an actual scaled drawing.            */
+  background-image:
+    linear-gradient(to right, rgba(65, 39, 51, 0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(65, 39, 51, 0.06) 1px, transparent 1px);
+  background-size: 5% 8.333%;
+  overflow: hidden;
+  font-family: var(--zz-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--zz-finn);
+}
+
+/* North arrow — top-right */
+.compass {
+  position: absolute;
+  top: var(--space-sm);
+  right: var(--space-sm);
+  font-family: var(--zz-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  color: var(--zz-finn);
+  background: var(--zz-moonlight);
+  padding: 4px 8px;
+  border: 1px solid var(--zz-finn-20);
+}
+
+/* Scale bar — bottom-right, where the schematic is consistently empty
+   in all three spaces. Was bottom-left; collided with table 10 in the
+   reception layout. */
+.scale-bar {
+  position: absolute;
+  bottom: var(--space-sm);
+  right: var(--space-sm);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  font-family: var(--zz-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.18em;
+  color: var(--zz-finn-60);
+}
+.scale-bar::before {
+  content: "";
+  display: block;
+  width: 50px;
+  height: 4px;
+  background:
+    linear-gradient(to right,
+      var(--zz-finn) 0 25px,
+      var(--zz-moonlight) 25px 25px,
+      var(--zz-finn) 25px 50px);
+  border: 1px solid var(--zz-finn);
+}
+
+/* Edge labels — cardinal direction tags */
+.edge-label {
+  position: absolute;
+  font-family: var(--zz-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.2em;
+  color: var(--zz-finn-60);
+  background: var(--zz-moonlight);
+  padding: 2px 6px;
+}
+.edge-label.is-top    { top: 4px;    left: 50%; transform: translateX(-50%); }
+.edge-label.is-bottom { bottom: 4px; left: 50%; transform: translateX(-50%); }
+.edge-label.is-left   { left: 4px;   top: 50%;  transform: translateY(-50%) rotate(-90deg); transform-origin: left center; }
+.edge-label.is-right  { right: 4px;  top: 50%;  transform: translateY(-50%) rotate(90deg);  transform-origin: right center; }
+
+/* ── Zones — absolutely positioned, labeled ─────────────────────────────── */
+
+.zone {
+  position: absolute;
+  border: 1px solid var(--zz-finn-60);
+  background: rgba(239, 237, 225, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2px;
+  font-family: var(--zz-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--zz-finn);
+  line-height: 1.1;
+  overflow: hidden;
+}
+
+/* Round table — circle */
+.zone.is-table {
+  border-radius: 50%;
+  background: rgba(73, 57, 51, 0.06);
+  border-color: var(--zz-finn);
+}
+/* Head table — filled Finn so it reads as the centerpiece */
+.zone.is-head-table {
+  border-radius: 999px;
+  background: var(--zz-finn);
+  color: var(--zz-moonlight);
+  border-color: var(--zz-finn);
+}
+
+/* Dance floor — checkered diagonal pattern */
+.zone.is-dance {
+  background:
+    repeating-linear-gradient(
+      45deg,
+      rgba(65, 39, 51, 0.08) 0 8px,
+      transparent 8px 16px);
+  border-style: solid;
+  border-color: var(--zz-finn);
+}
+
+/* Bar — solid Tobacco */
+.zone.is-bar {
+  background: var(--zz-tobacco);
+  color: var(--zz-moonlight);
+  border-color: var(--zz-tobacco);
+}
+
+/* DJ / stage / band — Finn outline + subtle fill */
+.zone.is-stage {
+  background: rgba(65, 39, 51, 0.12);
+  border-color: var(--zz-finn);
+}
+
+/* Doorway — dashed indicator */
+.zone.is-door {
+  background: transparent;
+  border: 0;
+  border-top: 2px dashed var(--zz-finn);
+  color: var(--zz-finn-60);
+  align-items: flex-start;
+  padding-top: 4px;
+}
+.zone.is-door.is-bottom-edge {
+  border-top: 0;
+  border-bottom: 2px dashed var(--zz-finn);
+  align-items: flex-end;
+  padding-bottom: 4px;
+  padding-top: 0;
+}
+
+/* Aisle — vertical stripe */
+.zone.is-aisle {
+  background: rgba(73, 57, 51, 0.04);
+  border-color: rgba(65, 39, 51, 0.2);
+  border-style: dashed;
+  color: var(--zz-finn-60);
+}
+
+/* Chair block — labeled as "L · 24" / "R · 24" */
+.zone.is-chairs {
+  background: transparent;
+  border-style: dotted;
+  border-color: var(--zz-finn-60);
+  color: var(--zz-finn);
+}
+
+/* Arch — horizontal Finn line */
+.zone.is-arch {
+  background: var(--zz-finn);
+  color: var(--zz-moonlight);
+  border-radius: 999px 999px 0 0;
+  border-color: var(--zz-finn);
+}
+
+/* High-tops — small hollow circles for cocktail hour */
+.zone.is-hightop {
+  border-radius: 50%;
+  background: transparent;
+  border-style: dotted;
+}
+
+/* Service zones — quieter, smoky border */
+.zone.is-service {
+  background: rgba(86, 84, 98, 0.08);
+  border-style: dashed;
+  border-color: var(--zz-smoky);
+  color: var(--zz-smoky);
+}
+
+/* Numbered table key marker — tiny corner badge */
+.zone-num {
+  position: absolute;
+  top: 2px;
+  left: 4px;
+  font-family: var(--zz-mono);
+  font-size: 0.55rem;
+  letter-spacing: 0.1em;
+  color: inherit;
+  opacity: 0.85;
+}
+
+/* ── Zone key — numbered list of every zone in the schematic ────────────── */
+
+.floorplan-key {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.floorplan-key li {
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  gap: var(--space-sm);
+  align-items: baseline;
+  padding: var(--space-xs) 0;
+  border-bottom: 1px dashed var(--zz-finn-20);
+}
+.floorplan-key li:last-child { border-bottom: 0; }
+
+.floorplan-key .key-num {
+  font-family: var(--zz-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  color: var(--zz-finn-60);
+  text-transform: uppercase;
+}
+
+.floorplan-key .key-name {
+  font-family: var(--zz-display);
+  font-style: italic;
+  font-size: 1.0625rem;
+  color: var(--zz-finn);
+}
+.floorplan-key .key-detail {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--zz-display);
+  font-style: normal;
+  font-size: 0.9375rem;
+  color: var(--zz-ink);
+  opacity: 0.85;
+}
+
+/* ── Summary stats ──────────────────────────────────────────────────────── */
+
+.floorplan-summary {
+  padding-top: var(--space-lg);
+  padding-bottom: var(--space-lg);
+}
+.floorplan-summary .summary-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  max-width: var(--content-max);
+  margin: 0 auto;
+}
+.floorplan-summary .stat {
+  text-align: center;
+  padding: var(--space-md);
+  border-right: 1px solid var(--zz-finn-20);
+}
+.floorplan-summary .stat:last-child { border-right: 0; }
+.floorplan-summary .stat-label {
+  font-family: var(--zz-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--zz-finn-60);
+  margin-bottom: var(--space-md);
+}
+.floorplan-summary .stat-number {
+  font-family: var(--zz-display);
+  font-style: italic;
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 1;
+  color: var(--zz-finn);
+}
+.floorplan-summary .stat-note {
+  margin-top: var(--space-sm);
+  font-family: var(--zz-display);
+  font-size: 0.95rem;
+  color: var(--zz-ink);
+  opacity: 0.75;
+}
+
+/* ── Print — the floor plan should print cleanly ────────────────────────── */
+
+@media print {
+  .topbar, .footer { display: none; }
+  body { background: #fff; color: #000; }
+  .venue-space { page-break-inside: avoid; }
+  .floorplan-scene { grid-template-columns: 1.4fr 1fr; }
+}
+
+/* ── Responsive — schematics stack the key below ────────────────────────── */
+
+@media (max-width: 900px) {
+  .floorplan-scene { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 760px) {
+  .floorplan-summary .summary-stats { grid-template-columns: 1fr 1fr; }
+  .floorplan-summary .stat { border-right: 0; border-bottom: 1px solid var(--zz-finn-20); }
+  .floorplan-summary .stat:nth-last-child(-n+2) { border-bottom: 0; }
+
+  .venue-space-head {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "eyebrow"
+      "title"
+      "meta";
+  }
+  .venue-space-meta { justify-content: flex-start; text-align: left; }
+
+  /* Hide ultra-tiny zone labels on small screens — the key carries the
+     content on mobile.                                                   */
+  .floorplan { font-size: 0; }
+  .compass, .scale-bar, .zone-num, .edge-label { font-size: 0.55rem; }
+}

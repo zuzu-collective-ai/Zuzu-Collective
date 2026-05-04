@@ -1,0 +1,276 @@
+/*
+ * Zuzu Collective portal — checklist page
+ *
+ * Eleven milestones from "12 months out" to "day of." Each milestone is its
+ * own block with custom checkboxes (thin Finn-outlined squares that fill
+ * with Finn when checked).
+ *
+ * Three milestone states:
+ *   .is-done      — all tasks complete, "Complete" badge on the right
+ *   .is-active    — current milestone, "You are here" indicator on top
+ *   .is-upcoming  — future, quieter visual weight
+ */
+
+/* ── Summary stats — reuse pattern from budget/vendors ──────────────────── */
+
+.checklist-summary {
+  padding-top: var(--space-lg);
+  padding-bottom: var(--space-lg);
+}
+.checklist-summary .summary-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  max-width: var(--content-max);
+  margin: 0 auto;
+}
+.checklist-summary .stat {
+  text-align: center;
+  padding: var(--space-md);
+  border-right: 1px solid var(--zz-finn-20);
+}
+.checklist-summary .stat:last-child { border-right: 0; }
+.checklist-summary .stat-label {
+  font-family: var(--zz-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--zz-finn-60);
+  margin-bottom: var(--space-md);
+}
+.checklist-summary .stat-number {
+  font-family: var(--zz-display);
+  font-style: italic;
+  font-size: clamp(2.5rem, 5vw, 3.75rem);
+  line-height: 1;
+  color: var(--zz-finn);
+}
+.checklist-summary .stat-number--accent { color: var(--zz-tobacco); }
+.checklist-summary .stat-note {
+  margin-top: var(--space-sm);
+  font-family: var(--zz-display);
+  font-size: 0.95rem;
+  color: var(--zz-ink);
+  opacity: 0.75;
+}
+
+/* ── Milestones container ───────────────────────────────────────────────── */
+
+.milestones {
+  max-width: var(--content-max);
+  margin-inline: auto;
+  padding: 0 var(--space-md) var(--space-2xl);
+}
+
+.milestone {
+  padding: var(--space-xl) 0;
+  border-bottom: 1px solid var(--zz-finn-20);
+}
+.milestone:first-child { padding-top: var(--space-md); }
+.milestone:last-child  { border-bottom: 0; }
+
+/* ── Milestone header ───────────────────────────────────────────────────── */
+
+.milestone-head {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas:
+    "here  here"
+    "date  badge"
+    "title progress"
+    "title progress";
+  gap: 6px var(--space-md);
+  align-items: baseline;
+  margin-bottom: var(--space-md);
+}
+
+.milestone-here {
+  grid-area: here;
+  font-family: var(--zz-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--zz-tobacco);
+  margin-bottom: 4px;
+}
+
+.milestone-date {
+  grid-area: date;
+  display: block;
+}
+
+.milestone-title {
+  grid-area: title;
+  font-family: var(--zz-display);
+  font-size: clamp(1.75rem, 3.4vw, 2.5rem);
+  line-height: 1.1;
+  color: var(--zz-finn);
+  margin: 0;
+}
+.milestone-title em {
+  font-style: italic;
+  font-weight: 500;
+}
+
+.milestone-progress {
+  grid-area: progress;
+  font-family: var(--zz-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--zz-finn-60);
+  text-align: right;
+  align-self: end;
+}
+
+.milestone-badge {
+  grid-area: badge;
+  justify-self: end;
+  font-family: var(--zz-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border: 1px solid var(--zz-finn);
+  color: var(--zz-finn);
+}
+
+/* ── Milestone state variations ─────────────────────────────────────────── */
+
+/* Done — slightly quieter, but tasks remain visible */
+.milestone.is-done .milestone-title { opacity: 0.85; }
+.milestone.is-done .milestone-date  { opacity: 0.85; }
+
+/* Active — full strength, prominent "you are here" tag */
+.milestone.is-active {
+  background: rgba(73, 57, 51, 0.04);
+  margin-inline: calc(-1 * var(--space-md));
+  padding-inline: var(--space-md);
+  padding-top: var(--space-xl);
+  padding-bottom: var(--space-xl);
+  border-top: 1px solid var(--zz-tobacco);
+  border-bottom: 1px solid var(--zz-tobacco);
+}
+
+/* Upcoming — quieter date and progress, full body */
+.milestone.is-upcoming .milestone-date     { opacity: 0.85; }
+.milestone.is-upcoming .milestone-progress { opacity: 0.7; }
+
+/* Day-of — special celebratory color treatment */
+.milestone.milestone--day-of {
+  text-align: center;
+}
+.milestone.milestone--day-of .milestone-head {
+  grid-template-columns: 1fr;
+  grid-template-areas:
+    "date"
+    "title"
+    "progress";
+  text-align: center;
+}
+.milestone.milestone--day-of .milestone-progress {
+  text-align: center;
+  margin-top: var(--space-sm);
+}
+.milestone.milestone--day-of .task-list { max-width: 24rem; margin-inline: auto; }
+.milestone.milestone--day-of .task-list li { justify-content: center; }
+.milestone.milestone--day-of .task-list label { justify-content: flex-start; }
+
+/* ── Task list ──────────────────────────────────────────────────────────── */
+
+.task-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.task-list li {
+  padding: var(--space-sm) 0;
+  border-bottom: 1px dashed var(--zz-finn-20);
+}
+.task-list li:last-child { border-bottom: 0; }
+
+.task-list label {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-md);
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Custom checkbox — thin Finn outline, fills Finn on check, no checkmark */
+.task-check {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 1px solid var(--zz-finn);
+  background: transparent;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin: 0;
+  transition: background 160ms ease;
+  position: relative;
+  top: 4px;
+}
+.task-check:checked {
+  background: var(--zz-finn);
+}
+.task-check:hover:not(:checked) {
+  background: rgba(65, 39, 51, 0.08);
+}
+
+.task-name {
+  font-family: var(--zz-display);
+  font-size: 1.0625rem;
+  color: var(--zz-finn);
+  flex: 1;
+}
+
+.task-sub {
+  font-family: var(--zz-display);
+  font-style: italic;
+  font-size: 0.95rem;
+  color: var(--zz-ink);
+  opacity: 0.75;
+  margin-left: var(--space-sm);
+}
+
+/* Done tasks — keep text legible, quiet color shift only */
+.task-check:checked ~ .task-name {
+  color: var(--zz-tobacco);
+  opacity: 0.8;
+}
+.task-check:checked ~ .task-sub { opacity: 0.6; }
+
+/* ── Responsive ─────────────────────────────────────────────────────────── */
+
+@media (max-width: 760px) {
+  .checklist-summary .summary-stats { grid-template-columns: 1fr; }
+  .checklist-summary .stat {
+    border-right: 0;
+    border-bottom: 1px solid var(--zz-finn-20);
+    padding: var(--space-md) 0;
+  }
+  .checklist-summary .stat:last-child { border-bottom: 0; }
+
+  .milestone-head {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "here"
+      "date"
+      "badge"
+      "title"
+      "progress";
+  }
+  .milestone-progress { text-align: left; }
+  .milestone-badge { justify-self: start; }
+
+  .task-list label {
+    flex-wrap: wrap;
+  }
+  .task-sub {
+    flex-basis: 100%;
+    margin-left: calc(16px + var(--space-md));
+    margin-top: 2px;
+  }
+}

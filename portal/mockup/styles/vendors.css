@@ -1,0 +1,215 @@
+/*
+ * Zuzu Collective portal — vendors page
+ *
+ * Single-column editorial list of the 17 vendor types. Anti-spreadsheet:
+ * no grid lines, no table cells, no dense rows. Each vendor gets generous
+ * vertical space, a big italic company name, and contact details set in
+ * mono small-caps with hairline labels.
+ *
+ * Booked vendors render with full contact info; TBC vendors show a short
+ * note about what's being looked for.
+ */
+
+/* ── Summary stats — reuse pattern from budget page ─────────────────────── */
+
+.vendors-summary {
+  padding-top: var(--space-lg);
+  padding-bottom: var(--space-lg);
+}
+
+/* (.summary-stats, .stat, .stat-* are styled in budget.css. We piggyback on
+   that; the budget stylesheet is loaded ahead of this one is irrelevant since
+   we don't use those classes here — but to keep the vendors page standalone
+   we duplicate the minimal styles below.)                                  */
+
+.vendors-summary .summary-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  max-width: var(--content-max);
+  margin: 0 auto;
+  gap: 0;
+}
+.vendors-summary .stat {
+  text-align: center;
+  padding: var(--space-md);
+  border-right: 1px solid var(--zz-finn-20);
+}
+.vendors-summary .stat:last-child { border-right: 0; }
+.vendors-summary .stat-label {
+  font-family: var(--zz-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--zz-finn-60);
+  margin-bottom: var(--space-md);
+}
+.vendors-summary .stat-number {
+  font-family: var(--zz-display);
+  font-style: italic;
+  font-size: clamp(2.5rem, 5vw, 3.75rem);
+  line-height: 1;
+  color: var(--zz-finn);
+}
+.vendors-summary .stat-number--accent { color: var(--zz-tobacco); }
+.vendors-summary .stat-note {
+  margin-top: var(--space-sm);
+  font-family: var(--zz-display);
+  font-size: 0.95rem;
+  color: var(--zz-ink);
+  opacity: 0.75;
+}
+
+/* ── Vendor list — single column, generous breathing room ───────────────── */
+
+.vendor-list {
+  max-width: var(--content-max);
+  margin-inline: auto;
+  padding-inline: var(--space-md);
+  padding-top: 0;
+  padding-bottom: var(--space-2xl);
+}
+
+.vendor {
+  display: grid;
+  grid-template-columns: 180px 1fr 140px;
+  gap: var(--space-lg);
+  align-items: start;
+  padding: var(--space-lg) 0;
+  border-bottom: 1px solid var(--zz-finn-20);
+}
+.vendor:last-child { border-bottom: 0; }
+
+/* Left column — small mono eyebrow */
+.vendor-meta { padding-top: 0.4rem; }
+.vendor-meta .label { display: block; }
+
+/* Middle column — big italic company name + contact list */
+.vendor-body {}
+
+.vendor-name {
+  font-family: var(--zz-display);
+  font-size: clamp(1.75rem, 3.4vw, 2.25rem);
+  line-height: 1.05;
+  margin: 0 0 var(--space-md);
+  color: var(--zz-finn);
+}
+.vendor-name em {
+  font-style: italic;
+  font-weight: 500;
+}
+.vendor-name--tbc em {
+  color: var(--zz-smoky);
+  font-weight: 400;
+}
+
+.vendor-note {
+  font-family: var(--zz-display);
+  font-style: italic;
+  font-size: 1rem;
+  color: var(--zz-tobacco);
+  opacity: 0.85;
+}
+
+/* Contact details — list of label + value pairs, no grid lines */
+.vendor-contact {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+}
+
+.vendor-contact li {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  gap: var(--space-sm);
+  align-items: baseline;
+  font-family: var(--zz-display);
+  font-size: 1rem;
+  color: var(--zz-ink);
+}
+
+.contact-label {
+  font-family: var(--zz-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--zz-finn-60);
+}
+
+.vendor-contact a {
+  color: var(--zz-finn);
+  border-bottom: 1px solid var(--zz-finn-20);
+  text-decoration: none;
+  transition: border-color 180ms ease;
+}
+.vendor-contact a:hover { border-bottom-color: var(--zz-finn); }
+
+/* TBC vendors — italic note instead of contact list */
+.vendor-tbc-note {
+  font-family: var(--zz-display);
+  font-style: italic;
+  font-size: 1.0625rem;
+  line-height: 1.55;
+  color: var(--zz-ink);
+  max-width: 52ch;
+  margin: 0;
+  opacity: 0.85;
+}
+
+/* Right column — status pill, top-aligned */
+.vendor-status {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 0.5rem;
+}
+
+.status-pill {
+  font-family: var(--zz-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  padding: 5px 12px;
+  border: 1px solid currentColor;
+  white-space: nowrap;
+}
+.status-booked     { color: var(--zz-finn); }
+.status-shortlist  { color: var(--zz-tobacco); }
+.status-pending    { color: var(--zz-smoky); }
+.status-na         { color: var(--zz-finn-60); }
+
+/* TBC and N/A vendors are quieter than booked */
+.vendor.is-tbc .vendor-meta .label,
+.vendor.is-na  .vendor-meta .label { opacity: 0.7; }
+
+.vendor.is-na { opacity: 0.7; }
+
+/* ── Responsive ─────────────────────────────────────────────────────────── */
+
+@media (max-width: 900px) {
+  .vendor {
+    grid-template-columns: 1fr;
+    gap: var(--space-sm);
+  }
+  .vendor-meta { padding-top: 0; }
+  .vendor-status {
+    justify-content: flex-start;
+    padding-top: 0;
+  }
+}
+
+@media (max-width: 760px) {
+  .vendors-summary .summary-stats { grid-template-columns: 1fr; }
+  .vendors-summary .stat {
+    border-right: 0;
+    border-bottom: 1px solid var(--zz-finn-20);
+    padding: var(--space-md) 0;
+  }
+  .vendors-summary .stat:last-child { border-bottom: 0; }
+
+  .vendor-contact li {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+}

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include('partials/head', { title: `${couple.display_name} — ${gallery ? gallery.title : 'New gallery'}` }) %>
+<body class="admin-body">
+
+  <%- include('partials/sidebar', { currentSection: 'couples' }) %>
+
+  <main class="admin-main">
+    <header class="admin-header">
+      <div>
+        <a href="/admin/couples/<%= couple.id %>/design" class="admin-back">← <%= couple.display_name %> · design</a>
+        <h1 class="admin-title">
+          <%= gallery ? gallery.title : 'New gallery' %>
+        </h1>
+      </div>
+    </header>
+
+    <%- include('partials/couple-tabs', { couple, currentTab: 'design' }) %>
+
+    <%- include('partials/flash', { flash }) %>
+
+    <% if (error) { %>
+      <div class="admin-flash admin-flash--error" role="alert"><%= error %></div>
+    <% } %>
+
+    <form action="<%= formAction %>" method="post" class="admin-form">
+      <fieldset class="admin-fieldset">
+        <legend class="admin-legend">Gallery</legend>
+
+        <div class="admin-row" style="display: grid; grid-template-columns: 1fr 2fr 110px; gap: 1rem;">
+          <label class="admin-field">
+            <span class="admin-field-label">Eyebrow</span>
+            <input type="text" name="eyebrow" value="<%= gallery?.eyebrow || '' %>" placeholder="Ceremony">
+          </label>
+          <label class="admin-field">
+            <span class="admin-field-label">Title *</span>
+            <input type="text" name="title" required value="<%= gallery?.title || '' %>" placeholder="An olive-branch arch over the aisle.">
+          </label>
+          <label class="admin-field">
+            <span class="admin-field-label">Position</span>
+            <input type="number" name="position" min="0" value="<%= gallery?.position ?? suggestedPosition %>">
+          </label>
+        </div>
+
+        <label class="admin-field">
+          <span class="admin-field-label">Description</span>
+          <textarea name="description" rows="3"><%= gallery?.description || '' %></textarea>
+          <span class="admin-field-help">Editorial paragraph under the gallery title.</span>
+        </label>
+      </fieldset>
+
+      <fieldset class="admin-fieldset">
+        <legend class="admin-legend">Tiles</legend>
+        <p class="admin-fieldset-note">
+          One row per visual reference. Mark exactly one tile as the <em>hero</em> to
+          give it the larger 2×2 layout in the grid. The <em>note</em> field holds the
+          file-path placeholder ("img → ceremony / hero") until real photos drop into
+          <code>portal/app/public/inspo/<%= couple.slug %>/</code>.
+        </p>
+
+        <div id="tile-rows" class="admin-tile-rows">
+          <%
+            const initialTiles = (tiles && tiles.length) ? tiles : [
+              { label: '', title: '', note: '', is_hero: false, position: 1 },
+            ];
+          %>
+          <% initialTiles.forEach((t, i) => { %>
+            <div class="admin-tile-row" data-row>
+              <input type="hidden" name="tiles[<%= i %>][id]" value="<%= t.id || '' %>">
+              <label class="admin-field admin-field--inline admin-field--checkbox">
+                <input type="checkbox" name="tiles[<%= i %>][is_hero]" value="true" <%= t.is_hero ? 'checked' : '' %>>
+                <span class="admin-field-label">Hero</span>
+              </label>
+              <label class="admin-field admin-field--inline" style="max-width: 160px;">
+                <span class="admin-field-label">Label</span>
+                <input type="text" name="tiles[<%= i %>][label]" value="<%= t.label || '' %>" placeholder="Hero / Aisle / ...">
+              </label>
+              <label class="admin-field admin-field--inline" style="flex: 2;">
+                <span class="admin-field-label">Title</span>
+                <input type="text" name="tiles[<%= i %>][title]" value="<%= t.title || '' %>" placeholder="An olive-branch arch over the aisle.">
+              </label>
+              <label class="admin-field admin-field--inline" style="flex: 1;">
+                <span class="admin-field-label">Note / file path</span>
+                <input type="text" name="tiles[<%= i %>][note]" value="<%= t.note || '' %>" placeholder="img → ceremony / hero">
+              </label>
+              <button type="button" class="admin-btn admin-btn--ghost admin-btn--small" data-remove>Remove</button>
+            </div>
+          <% }) %>
+        </div>
+
+        <button type="button" id="add-tile" class="admin-btn admin-btn--ghost">+ Add tile</button>
+      </fieldset>
+
+      <div class="admin-form-actions">
+        <button type="submit" class="admin-btn admin-btn--primary">
+          <%= gallery ? 'Save changes' : 'Add gallery' %>
+        </button>
+        <a href="/admin/couples/<%= couple.id %>/design" class="admin-btn admin-btn--ghost">Cancel</a>
+      </div>
+    </form>
+
+    <% if (gallery) { %>
+      <div class="admin-danger-zone">
+        <h2 class="admin-legend">Danger zone</h2>
+        <p>Remove this gallery and all of its tiles from <%= couple.display_name %>'s design page.</p>
+        <form action="/admin/couples/<%= couple.id %>/design/galleries/<%= gallery.id %>/delete" method="post"
+              onsubmit="return confirm('Remove <%= gallery.title %>? This cannot be undone.');">
+          <button type="submit" class="admin-btn admin-btn--danger">Remove gallery</button>
+        </form>
+      </div>
+    <% } %>
+  </main>
+
+  <script>
+    (function () {
+      const container = document.getElementById('tile-rows');
+      const addBtn = document.getElementById('add-tile');
+      if (!container || !addBtn) return;
+
+      function nextIndex() { return container.querySelectorAll('[data-row]').length; }
+
+      addBtn.addEventListener('click', () => {
+        const i = nextIndex();
+        const html = `
+          <div class="admin-tile-row" data-row>
+            <input type="hidden" name="tiles[${i}][id]" value="">
+            <label class="admin-field admin-field--inline admin-field--checkbox">
+              <input type="checkbox" name="tiles[${i}][is_hero]" value="true">
+              <span class="admin-field-label">Hero</span>
+            </label>
+            <label class="admin-field admin-field--inline" style="max-width: 160px;">
+              <span class="admin-field-label">Label</span>
+              <input type="text" name="tiles[${i}][label]" placeholder="">
+            </label>
+            <label class="admin-field admin-field--inline" style="flex: 2;">
+              <span class="admin-field-label">Title</span>
+              <input type="text" name="tiles[${i}][title]" placeholder="">
+            </label>
+            <label class="admin-field admin-field--inline" style="flex: 1;">
+              <span class="admin-field-label">Note / file path</span>
+              <input type="text" name="tiles[${i}][note]" placeholder="">
+            </label>
+            <button type="button" class="admin-btn admin-btn--ghost admin-btn--small" data-remove>Remove</button>
+          </div>
+        `;
+        container.insertAdjacentHTML('beforeend', html);
+      });
+
+      container.addEventListener('click', (e) => {
+        if (e.target.matches('[data-remove]')) {
+          const row = e.target.closest('[data-row]');
+          if (row) row.remove();
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
