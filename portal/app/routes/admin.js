@@ -10,6 +10,7 @@
 import express from 'express';
 import { pool } from '../db/pool.js';
 import { requireAdmin, passwordsMatch } from '../middleware/auth.js';
+import { generateAllocation, isConfigured as anthropicConfigured, STANDARD_CATEGORIES } from '../lib/anthropic.js';
 
 const router = express.Router();
 
@@ -895,6 +896,7 @@ router.get('/couples/:id/budget/new', async (req, res, next) => {
 
 // Edit category form
 router.get('/couples/:id/budget/:cid', async (req, res, next) => {
+  if (!isUuid(req.params.cid)) return next();  // let static paths like /budget/allocate fall through
   try {
     const couple = await findCoupleById(req.params.id);
     if (!couple) return res.status(404).send('Couple not found.');
@@ -999,6 +1001,7 @@ router.post('/couples/:id/budget', async (req, res, next) => {
 
 // Update category (replace line items wholesale — same approach as households)
 router.post('/couples/:id/budget/:cid', async (req, res, next) => {
+  if (!isUuid(req.params.cid)) return next();
   const client = await pool.connect();
   try {
     const couple = await findCoupleById(req.params.id);
@@ -1059,6 +1062,7 @@ router.post('/couples/:id/budget/:cid', async (req, res, next) => {
 });
 
 router.post('/couples/:id/budget/:cid/delete', async (req, res, next) => {
+  if (!isUuid(req.params.cid)) return next();
   try {
     const { rows } = await pool.query(
       'delete from budget_categories where id = $1 and couple_id = $2 returning title',
@@ -1067,6 +1071,240 @@ router.post('/couples/:id/budget/:cid/delete', async (req, res, next) => {
     if (rows[0]) setFlash(req, 'success', `Removed ${rows[0].title}.`);
     res.redirect(`/admin/couples/${req.params.id}/budget`);
   } catch (err) { next(err); }
+});
+
+// ── AI budget allocator (Phase 4a) ────────────────────────────────────
+//
+// NOTE on route ordering: these handlers must be declared BEFORE the
+// generic `/budget/:cid` routes above — Express matches in declaration
+// order, so `/budget/allocate` would otherwise be intercepted by the
+// `:cid` route with cid="allocate" and 500 on the non-UUID lookup. They
+// stay here in this file because they're conceptually part of the budget
+// admin surface; the route order is enforced by an explicit route-level
+// guard at the top of each `/budget/:cid` handler that 404s on non-UUID
+// `:cid` values.
+
+// GET — show the input form. Pre-fills from the couple's existing fields
+// (total budget, venue, guest count from accepted households) so Zoe can
+// click Generate without retyping anything she's already entered.
+router.get('/couples/:id/budget/allocate', async (req, res, next) => {
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+
+    const { rows: guestRows } = await pool.query(
+      `select count(g.*)::int as guest_count
+         from guests g
+         join households h on h.id = g.household_id
+        where h.couple_id = $1 and h.status = 'accepted'`,
+      [couple.id],
+    );
+
+    res.render('admin/budget-allocate-form', {
+      couple,
+      configured: anthropicConfigured(),
+      guestCountSuggestion: guestRows[0]?.guest_count || null,
+      proposal: null,
+      submitted: null,
+      formAction: `/admin/couples/${couple.id}/budget/allocate`,
+      error: null,
+      flash: consumeFlash(req),
+    });
+  } catch (err) { next(err); }
+});
+
+// POST — call Claude, render the same view with the proposal.
+router.post('/couples/:id/budget/allocate', async (req, res, next) => {
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+
+    if (!anthropicConfigured()) {
+      return res.status(400).render('admin/budget-allocate-form', {
+        couple,
+        configured: false,
+        guestCountSuggestion: null,
+        proposal: null,
+        submitted: null,
+        formAction: `/admin/couples/${couple.id}/budget/allocate`,
+        error: 'ANTHROPIC_API_KEY is not set on the server. Add it under Render → Environment to enable the allocator.',
+        flash: null,
+      });
+    }
+
+    const submitted = {
+      total_dollars: req.body.total_dollars?.trim() || '',
+      guest_count: req.body.guest_count?.trim() || '',
+      notes: req.body.notes?.trim() || '',
+    };
+
+    const totalCents = dollarsToCents(submitted.total_dollars);
+    if (totalCents <= 0) {
+      return res.status(400).render('admin/budget-allocate-form', {
+        couple,
+        configured: true,
+        guestCountSuggestion: null,
+        proposal: null,
+        submitted,
+        formAction: `/admin/couples/${couple.id}/budget/allocate`,
+        error: 'Total budget is required and must be greater than zero.',
+        flash: null,
+      });
+    }
+
+    const guestCount = parseInt(submitted.guest_count, 10) || null;
+    const weddingDate = couple.wedding_date
+      ? new Date(couple.wedding_date).toLocaleDateString('en-US', {
+          year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC',
+        })
+      : null;
+
+    let result;
+    try {
+      result = await generateAllocation({
+        totalCents,
+        displayName: couple.display_name,
+        weddingDate,
+        venueName: couple.venue_name,
+        venueLocation: couple.venue_location,
+        guestCount,
+        notes: submitted.notes || null,
+      });
+    } catch (err) {
+      console.error('[allocator] Claude API call failed:', err);
+      return res.status(502).render('admin/budget-allocate-form', {
+        couple,
+        configured: true,
+        guestCountSuggestion: null,
+        proposal: null,
+        submitted,
+        formAction: `/admin/couples/${couple.id}/budget/allocate`,
+        error: `Claude API call failed: ${err.message}. Try again, or save the figures manually on the budget tab.`,
+        flash: null,
+      });
+    }
+
+    // Reconcile the proposal against the standard category list and any
+    // existing categories on the couple. Fall back to the standard order
+    // so a malformed response from the model doesn't break the preview.
+    const { rows: existing } = await pool.query(
+      'select id, category_number, title, estimated_cents from budget_categories where couple_id = $1',
+      [couple.id],
+    );
+    const existingByNumber = new Map(existing.map(c => [c.category_number, c]));
+
+    const proposalRows = STANDARD_CATEGORIES.map(std => {
+      const fromAi = result.categories.find(c => c.category_number === std.number);
+      const current = existingByNumber.get(std.number) || null;
+      return {
+        category_number: std.number,
+        title: std.title,
+        emphasis: std.emphasis,
+        proposed_cents: fromAi ? Math.max(0, parseInt(fromAi.estimated_cents, 10) || 0) : 0,
+        rationale: fromAi ? fromAi.rationale : '(not generated)',
+        current_cents: current ? current.estimated_cents : null,
+        exists: !!current,
+      };
+    });
+
+    const proposedTotal = proposalRows.reduce((s, r) => s + r.proposed_cents, 0);
+
+    res.render('admin/budget-allocate-form', {
+      couple,
+      configured: true,
+      guestCountSuggestion: null,
+      proposal: {
+        rationale_summary: result.rationale_summary,
+        rows: proposalRows,
+        proposedTotal,
+        requestedTotal: totalCents,
+        usage: result.usage,
+      },
+      submitted,
+      formAction: `/admin/couples/${couple.id}/budget/allocate`,
+      error: null,
+      flash: null,
+    });
+  } catch (err) { next(err); }
+});
+
+// POST /apply — write the proposal to budget_categories. For matching
+// existing categories it updates `estimated_cents` only (leaves line items
+// alone); for missing categories it creates them with no line items. Does
+// NOT delete categories outside the proposal — Zoe stays in control of
+// removals.
+router.post('/couples/:id/budget/allocate/apply', async (req, res, next) => {
+  const client = await pool.connect();
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+
+    // Body shape: rows[i] = { category_number, title, estimated_dollars, apply }
+    // Only rows with apply=true get persisted.
+    const raw = req.body.rows || {};
+    const indices = Object.keys(raw).map(Number).filter(n => !Number.isNaN(n)).sort((a, b) => a - b);
+    const toApply = indices
+      .map(i => raw[i])
+      .filter(r => r && r.apply)
+      .map(r => ({
+        category_number: parseInt(r.category_number, 10),
+        title: r.title?.trim() || '',
+        estimated_cents: dollarsToCents(r.estimated_dollars),
+      }))
+      .filter(r => r.category_number && r.title);
+
+    if (toApply.length === 0) {
+      setFlash(req, 'info', 'Nothing was selected to apply.');
+      return res.redirect(`/admin/couples/${couple.id}/budget`);
+    }
+
+    // Need each standard category's emphasis + position when creating new
+    // rows. Look the standards up by number.
+    const stdByNumber = new Map(STANDARD_CATEGORIES.map(c => [c.number, c]));
+
+    await client.query('begin');
+    let updated = 0;
+    let created = 0;
+    for (const r of toApply) {
+      const { rowCount } = await client.query(
+        `update budget_categories
+            set estimated_cents = $1, updated_at = now()
+          where couple_id = $2 and category_number = $3`,
+        [r.estimated_cents, couple.id, r.category_number],
+      );
+      if (rowCount > 0) {
+        updated += 1;
+        continue;
+      }
+      const std = stdByNumber.get(r.category_number);
+      await client.query(
+        `insert into budget_categories
+           (couple_id, category_number, title, title_emphasis, estimated_cents, position)
+         values ($1, $2, $3, $4, $5, $6)`,
+        [
+          couple.id,
+          r.category_number,
+          std?.title || r.title,
+          std?.emphasis || null,
+          r.estimated_cents,
+          r.category_number,
+        ],
+      );
+      created += 1;
+    }
+    await client.query('commit');
+
+    const parts = [];
+    if (updated > 0) parts.push(`updated ${updated} estimate${updated === 1 ? '' : 's'}`);
+    if (created > 0) parts.push(`created ${created} categor${created === 1 ? 'y' : 'ies'}`);
+    setFlash(req, 'success', `Applied AI allocation — ${parts.join(', ')}.`);
+    res.redirect(`/admin/couples/${couple.id}/budget`);
+  } catch (err) {
+    await client.query('rollback').catch(() => {});
+    next(err);
+  } finally {
+    client.release();
+  }
 });
 
 // ── Checklist (per couple — milestones with inline tasks) ─────────────
@@ -1549,6 +1787,13 @@ function intOrNull(s) {
   const n = parseInt(String(s).replace(/[^\d-]/g, ''), 10);
   return Number.isNaN(n) ? null : n;
 }
+
+// UUID guard — used in `/.../:something` routes that share a prefix with
+// hardcoded paths (e.g. `/budget/:cid` vs `/budget/allocate`). Express
+// matches declaration order; this check lets static paths fall through
+// to their own handlers without triggering a UUID-lookup 500 first.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function isUuid(s) { return typeof s === 'string' && UUID_RE.test(s); }
 
 function parseFpZonesFromBody(body) {
   const raw = body.zones || {};

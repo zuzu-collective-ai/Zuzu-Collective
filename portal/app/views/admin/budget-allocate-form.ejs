@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include('partials/head', { title: `${couple.display_name} — AI budget allocator` }) %>
+<body class="admin-body">
+
+  <%- include('partials/sidebar', { currentSection: 'couples' }) %>
+
+  <main class="admin-main">
+    <header class="admin-header">
+      <div>
+        <a href="/admin/couples/<%= couple.id %>/budget" class="admin-back">← <%= couple.display_name %> · budget</a>
+        <h1 class="admin-title">AI budget allocator</h1>
+        <p class="admin-subtitle">Phase 4a · Claude Opus 4.7 · adaptive thinking</p>
+      </div>
+    </header>
+
+    <%- include('partials/couple-tabs', { couple, currentTab: 'budget' }) %>
+
+    <%- include('partials/flash', { flash }) %>
+
+    <% if (error) { %>
+      <div class="admin-flash admin-flash--error" role="alert"><%= error %></div>
+    <% } %>
+
+    <%
+      function fmtCurrency(cents) {
+        const dollars = (cents || 0) / 100;
+        const opts = Number.isInteger(dollars)
+          ? { maximumFractionDigits: 0 }
+          : { minimumFractionDigits: 2, maximumFractionDigits: 2 };
+        return '$' + dollars.toLocaleString('en-US', opts);
+      }
+      function dollarsValue(cents) {
+        if (cents === null || cents === undefined) return '';
+        const n = Number(cents) / 100;
+        if (Number.isNaN(n)) return '';
+        return n.toFixed(n % 1 === 0 ? 0 : 2);
+      }
+      const initialTotal = submitted?.total_dollars
+        || (couple.budget_total_cents ? dollarsValue(couple.budget_total_cents) : '');
+      const initialGuests = submitted?.guest_count
+        || (guestCountSuggestion ? String(guestCountSuggestion) : '');
+    %>
+
+    <% if (!configured) { %>
+      <div class="admin-flash admin-flash--info" style="margin-bottom: 1.5rem;">
+        <strong>ANTHROPIC_API_KEY not set.</strong>
+        Add it under Render → Environment to enable the allocator. Without it,
+        the form below will still render but Generate is disabled.
+      </div>
+    <% } %>
+
+    <!-- ── Input form ─────────────────────────────────────────────────── -->
+    <form action="<%= formAction %>" method="post" class="admin-form" style="margin-bottom: 2rem;">
+      <fieldset class="admin-fieldset">
+        <legend class="admin-legend">Inputs</legend>
+        <p class="admin-fieldset-note">
+          Claude takes the total budget plus any context you provide and proposes a split
+          across the 19 standard wedding categories — Venue, Catering, Photography, etc.
+          The proposal renders below; you can edit any line, untick anything you don't want
+          to apply, and hit Apply to write to the budget.
+        </p>
+
+        <div class="admin-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <label class="admin-field">
+            <span class="admin-field-label">Total budget (USD) *</span>
+            <input type="text" name="total_dollars" inputmode="decimal" required
+                   value="<%= initialTotal %>" placeholder="120000">
+            <span class="admin-field-help">
+              Defaults to the couple's saved headline. Edit to model a different total.
+            </span>
+          </label>
+          <label class="admin-field">
+            <span class="admin-field-label">Guest count</span>
+            <input type="number" name="guest_count" min="0" value="<%= initialGuests %>" placeholder="100">
+            <span class="admin-field-help">
+              <% if (guestCountSuggestion) { %>
+                Pre-filled from accepted RSVPs (<%= guestCountSuggestion %>). Override as needed.
+              <% } else { %>
+                Optional. Helps Claude size catering, rentals, and stationery.
+              <% } %>
+            </span>
+          </label>
+        </div>
+
+        <label class="admin-field">
+          <span class="admin-field-label">Priorities &amp; notes</span>
+          <textarea name="notes" rows="4" placeholder="e.g. The couple cares deeply about florals and is happy to skip a videographer. Mother of the bride wants a separate rehearsal-dinner budget. Honeymoon is paid separately."><%= submitted?.notes || '' %></textarea>
+          <span class="admin-field-help">
+            Free text. Anything you'd say in a planning session — what they care about, what's
+            handled outside this budget, constraints, the kind of wedding they want.
+          </span>
+        </label>
+      </fieldset>
+
+      <div class="admin-form-actions">
+        <button type="submit" class="admin-btn admin-btn--primary" <% if (!configured) { %>disabled<% } %>>
+          <%= proposal ? 'Generate again' : 'Generate suggested split' %>
+        </button>
+        <a href="/admin/couples/<%= couple.id %>/budget" class="admin-btn admin-btn--ghost">Back to budget</a>
+      </div>
+    </form>
+
+    <!-- ── Proposal preview ──────────────────────────────────────────── -->
+    <% if (proposal) { %>
+      <div class="admin-flash admin-flash--info" style="margin-bottom: 1rem;">
+        <strong>Proposal:</strong> <%= proposal.rationale_summary %>
+      </div>
+
+      <p class="admin-empty" style="font-style: normal; color: var(--zz-finn-60); padding: 0 0 1rem;">
+        Proposal sums to <strong style="color: var(--zz-finn);"><%= fmtCurrency(proposal.proposedTotal) %></strong>
+        against requested <strong style="color: var(--zz-finn);"><%= fmtCurrency(proposal.requestedTotal) %></strong>
+        <% const diff = proposal.proposedTotal - proposal.requestedTotal; %>
+        <% if (diff !== 0) { %>
+          (<%= diff > 0 ? '+' : '' %><%= fmtCurrency(diff) %> off — edit any line below before applying)
+        <% } %>
+        &nbsp;·&nbsp; tokens: <%= proposal.usage.input_tokens %> in, <%= proposal.usage.output_tokens %> out<% if (proposal.usage.cache_read_input_tokens > 0) { %>, <%= proposal.usage.cache_read_input_tokens %> cached<% } %>
+      </p>
+
+      <form action="<%= formAction %>/apply" method="post" class="admin-form">
+        <fieldset class="admin-fieldset">
+          <legend class="admin-legend">Proposed allocation</legend>
+          <p class="admin-fieldset-note">
+            One row per standard category. <em>Apply</em> writes the row to the budget on save —
+            for matching existing categories it updates the estimate (line items stay intact);
+            for missing ones it creates a fresh category with no line items. Categories not in
+            this proposal are not deleted.
+          </p>
+
+          <div class="admin-allocate-rows">
+            <% proposal.rows.forEach((row, i) => { %>
+              <div class="admin-allocate-row">
+                <input type="hidden" name="rows[<%= i %>][category_number]" value="<%= row.category_number %>">
+                <input type="hidden" name="rows[<%= i %>][title]"           value="<%= row.title %>">
+
+                <label class="admin-field admin-field--inline admin-field--checkbox">
+                  <input type="checkbox" name="rows[<%= i %>][apply]" value="true" checked>
+                  <span class="admin-field-label">Apply</span>
+                </label>
+
+                <div class="admin-allocate-row-meta">
+                  <div class="admin-allocate-row-title">
+                    <span class="admin-allocate-row-num"><%= String(row.category_number).padStart(2, '0') %></span>
+                    <%= row.title %><% if (row.emphasis) { %> <em><%= row.emphasis %></em><% } %>
+                    <% if (row.exists) { %><span class="admin-allocate-row-tag">existing</span><% } else { %><span class="admin-allocate-row-tag admin-allocate-row-tag--new">new</span><% } %>
+                  </div>
+                  <div class="admin-allocate-row-rationale"><em><%= row.rationale %></em></div>
+                  <% if (row.exists && row.current_cents !== row.proposed_cents) { %>
+                    <div class="admin-allocate-row-current">
+                      Current estimate: <%= fmtCurrency(row.current_cents) %>
+                      <% const delta = row.proposed_cents - row.current_cents; %>
+                      <% if (delta !== 0) { %>
+                        (<%= delta > 0 ? '+' : '' %><%= fmtCurrency(delta) %>)
+                      <% } %>
+                    </div>
+                  <% } %>
+                </div>
+
+                <label class="admin-field admin-field--inline" style="max-width: 140px;">
+                  <span class="admin-field-label">Estimate (USD)</span>
+                  <input type="text" name="rows[<%= i %>][estimated_dollars]" inputmode="decimal"
+                         value="<%= dollarsValue(row.proposed_cents) %>">
+                </label>
+              </div>
+            <% }) %>
+          </div>
+        </fieldset>
+
+        <div class="admin-form-actions">
+          <button type="submit" class="admin-btn admin-btn--primary">Apply selected to budget</button>
+          <a href="/admin/couples/<%= couple.id %>/budget" class="admin-btn admin-btn--ghost">Cancel</a>
+        </div>
+      </form>
+    <% } %>
+
+  </main>
+
+</body>
+</html>
