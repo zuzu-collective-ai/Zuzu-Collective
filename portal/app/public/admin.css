@@ -635,6 +635,86 @@ code {
   }
 }
 
+/* ── AI palette generator preview rows ──────────────────────────────────── */
+
+.admin-palette-preview {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.admin-palette-row {
+  display: grid;
+  grid-template-columns: 60px 64px 1fr;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid var(--zz-finn-20);
+  border-radius: 2px;
+}
+
+.admin-palette-disc {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+}
+
+.admin-palette-meta {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.admin-palette-name {
+  font-family: var(--zz-display);
+  font-size: 1.05rem;
+  color: var(--zz-finn);
+}
+
+.admin-palette-hex {
+  font-family: var(--zz-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.16em;
+  color: var(--zz-finn-60);
+}
+
+.admin-palette-current {
+  font-family: var(--zz-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  color: var(--zz-finn-60);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.admin-palette-current-disc {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+}
+
+.admin-palette-tone-keywords {
+  font-family: var(--zz-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--zz-finn);
+  margin: 0;
+}
+
+.admin-palette-tone-statement {
+  font-family: var(--zz-display);
+  font-size: 1.4rem;
+  color: var(--zz-finn);
+  margin: 0.5rem 0 0;
+}
+
+@media (max-width: 760px) {
+  .admin-palette-row {
+    grid-template-columns: 1fr;
+  }
+}
+
 .admin-field-help {
   font-size: 0.85rem;
   color: var(--zz-tobacco);

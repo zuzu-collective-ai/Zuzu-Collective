@@ -10,7 +10,7 @@
 import express from 'express';
 import { pool } from '../db/pool.js';
 import { requireAdmin, passwordsMatch } from '../middleware/auth.js';
-import { generateAllocation, isConfigured as anthropicConfigured, STANDARD_CATEGORIES } from '../lib/anthropic.js';
+import { generateAllocation, generatePalette, isConfigured as anthropicConfigured, STANDARD_CATEGORIES } from '../lib/anthropic.js';
 
 const router = express.Router();
 
@@ -2356,6 +2356,145 @@ router.post('/couples/:id/design/materials', async (req, res, next) => {
   } finally {
     client.release();
   }
+});
+
+// ── AI palette + tone generator (Phase 4b) ────────────────────────────
+
+// GET — show the input form. Pre-fills brief from the couple's existing
+// tone fields so re-runs feel like iteration on what's there.
+router.get('/couples/:id/design/generate', async (req, res, next) => {
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+
+    res.render('admin/design-generate-form', {
+      couple,
+      configured: anthropicConfigured(),
+      proposal: null,
+      submitted: null,
+      formAction: `/admin/couples/${couple.id}/design/generate`,
+      error: null,
+      flash: consumeFlash(req),
+    });
+  } catch (err) { next(err); }
+});
+
+// POST — call Claude, render the same view with the proposal preview.
+router.post('/couples/:id/design/generate', async (req, res, next) => {
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+
+    if (!anthropicConfigured()) {
+      return res.status(400).render('admin/design-generate-form', {
+        couple,
+        configured: false,
+        proposal: null,
+        submitted: null,
+        formAction: `/admin/couples/${couple.id}/design/generate`,
+        error: 'ANTHROPIC_API_KEY is not set on the server. Add it under Render → Environment to enable the generator.',
+        flash: null,
+      });
+    }
+
+    const submitted = {
+      season: req.body.season?.trim() || '',
+      brief: req.body.brief?.trim() || '',
+    };
+
+    const weddingDate = couple.wedding_date
+      ? new Date(couple.wedding_date).toLocaleDateString('en-US', {
+          year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC',
+        })
+      : null;
+
+    let result;
+    try {
+      result = await generatePalette({
+        displayName: couple.display_name,
+        weddingDate,
+        venueName: couple.venue_name,
+        venueLocation: couple.venue_location,
+        season: submitted.season || null,
+        brief: submitted.brief || null,
+      });
+    } catch (err) {
+      console.error('[palette] Claude API call failed:', err);
+      return res.status(502).render('admin/design-generate-form', {
+        couple,
+        configured: true,
+        proposal: null,
+        submitted,
+        formAction: `/admin/couples/${couple.id}/design/generate`,
+        error: `Claude API call failed: ${err.message}. Try again, or edit the palette directly on the Basics tab.`,
+        flash: null,
+      });
+    }
+
+    res.render('admin/design-generate-form', {
+      couple,
+      configured: true,
+      proposal: result,
+      submitted,
+      formAction: `/admin/couples/${couple.id}/design/generate`,
+      error: null,
+      flash: null,
+    });
+  } catch (err) { next(err); }
+});
+
+// POST /apply — write the palette + tone to the couple row. The form
+// uses checkboxes per field so Zoe can selectively apply (e.g. take the
+// palette but keep the existing tone keywords).
+router.post('/couples/:id/design/generate/apply', async (req, res, next) => {
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+
+    // Field-level apply checkboxes. For palette colors we apply hex +
+    // name as a pair so the database doesn't end up with a hex from a
+    // new proposal next to a name from the previous one.
+    const updates = {};
+    const wantsPalette = (n) => req.body[`apply_palette_${n}`] === 'true';
+    const wantsTone    = req.body.apply_tone === 'true';
+
+    for (const n of [1, 2, 3, 4]) {
+      if (wantsPalette(n)) {
+        const hex  = (req.body[`palette_color_${n}`] || '').trim();
+        const name = (req.body[`palette_color_${n}_name`] || '').trim() || null;
+        if (hex) {
+          updates[`palette_color_${n}`] = hex;
+          updates[`palette_color_${n}_name`] = name;
+        }
+      }
+    }
+    if (wantsTone) {
+      const kw  = (req.body.tone_keywords || '').trim() || null;
+      const stm = (req.body.tone_statement || '').trim() || null;
+      updates.tone_keywords = kw;
+      updates.tone_statement = stm;
+    }
+
+    const fields = Object.keys(updates);
+    if (fields.length === 0) {
+      setFlash(req, 'info', 'Nothing was selected to apply.');
+      return res.redirect(`/admin/couples/${couple.id}/design`);
+    }
+
+    const setClause = fields.map((f, i) => `${f} = $${i + 1}`).join(', ');
+    const values = [...fields.map(f => updates[f]), couple.id];
+    await pool.query(
+      `update couples set ${setClause}, updated_at = now() where id = $${fields.length + 1}`,
+      values,
+    );
+
+    const summary = [];
+    const paletteCount = [1, 2, 3, 4].filter(wantsPalette).length;
+    if (paletteCount > 0) summary.push(`${paletteCount} palette color${paletteCount === 1 ? '' : 's'}`);
+    if (wantsTone) summary.push('tone copy');
+    setFlash(req, 'success', `Applied AI palette — updated ${summary.join(' + ')}.`);
+    res.redirect(`/admin/couples/${couple.id}/design`);
+  } catch (err) { next(err); }
 });
 
 // ── Couple delete (kept at the bottom so vendor routes match first) ───

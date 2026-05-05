@@ -193,3 +193,137 @@ export async function generateAllocation(input) {
     },
   };
 }
+
+// ── Palette + tone generator (Phase 4b) ────────────────────────────────
+//
+// Single Claude call. Takes the couple's brief — venue, season, vibe,
+// anything they've said — and proposes a 4-color palette plus tone
+// keywords and a one-line tone statement. Output drops directly into the
+// `palette_color_1..4`, `palette_color_*_name`, `tone_keywords`, and
+// `tone_statement` columns on `couples`.
+//
+// The system prompt encodes Zuzu's editorial sensibility (warm, coastal,
+// candlelit, restrained) so couple briefs that don't specify a direction
+// still produce on-brand suggestions. Couples who explicitly want a
+// different direction (modern, garden, mountain) get it because the user
+// message overrides the brand defaults.
+
+function paletteSystemPrompt() {
+  return `You are the design lead at Zuzu Collective, a boutique wedding planning studio. You're proposing a starting palette and tone for a new couple — colors, names, tone keywords, and a one-line tone statement that captures the feeling of their wedding.
+
+Zuzu's editorial sensibility, when no other direction is given:
+  • Warm and grounded — ivories, creams, soft greens, dusty neutrals. Avoid cold blues, neons, or saturated jewel tones unless the couple explicitly asks for them.
+  • Candlelit, intimate, considered — never glossy or over-produced.
+  • Coastal California is the house comfort zone (think Carmel, Big Sur, Ojai), but the studio also designs ranch weddings, garden weddings, urban venues — adapt to the brief.
+
+The 4-color palette must include:
+  • A dominant neutral (color_1) — ivory, cream, oat, dove, or similar.
+  • A primary accent (color_2) — the color that carries the wedding's emotional weight (a soft sage, a dusty terracotta, a deep garnet, etc.). This is the most expressive of the four.
+  • A clean light (color_3) — usually a near-white (#FFFFFF, #FAF7F2) that gives the page room to breathe.
+  • A complementary neutral (color_4) — slightly warmer or cooler than color_1, used for variation in linens, stationery, and supporting elements.
+
+For each color: hex code (uppercase, with leading #), and a friendly name (1-2 words, evocative not literal — "Chartreuse" beats "Olive Green", "Tobacco" beats "Brown").
+
+Tone keywords: 5-7 single-word or short-phrase descriptors separated by " · " (a middle dot with spaces on either side). Should evoke the wedding's feeling — "Elegant · Coastal · Candlelit · Californian · Timeless · Intentional" is a model. Mix mood, place, and aesthetic. Avoid generic words like "beautiful" or "fun".
+
+Tone statement: a single sentence (under 12 words) that distills the design intent. "All warmth reliant on candlelight." is the model. Should feel quotable — something the couple would write down. Avoid pull-quote clichés ("love is...", "happily ever after").
+
+Also include a 1-2 sentence rationale_summary explaining how the palette and tone connect to the couple's brief.`;
+}
+
+const PALETTE_RESPONSE_SCHEMA = {
+  type: 'object',
+  properties: {
+    rationale_summary: {
+      type: 'string',
+      description: '1-2 sentence overview of how the palette + tone connect to the couple brief.',
+    },
+    palette_color_1:      { type: 'string', description: 'Hex code (uppercase, leading #) for the dominant neutral.' },
+    palette_color_1_name: { type: 'string', description: 'Friendly name for color 1 (1-2 evocative words).' },
+    palette_color_2:      { type: 'string', description: 'Hex code (uppercase, leading #) for the primary accent.' },
+    palette_color_2_name: { type: 'string', description: 'Friendly name for color 2.' },
+    palette_color_3:      { type: 'string', description: 'Hex code (uppercase, leading #) for the clean light.' },
+    palette_color_3_name: { type: 'string', description: 'Friendly name for color 3.' },
+    palette_color_4:      { type: 'string', description: 'Hex code (uppercase, leading #) for the complementary neutral.' },
+    palette_color_4_name: { type: 'string', description: 'Friendly name for color 4.' },
+    tone_keywords:        { type: 'string', description: '5-7 keywords joined by " · " (middle dot with spaces).' },
+    tone_statement:       { type: 'string', description: 'Single sentence under 12 words distilling the design intent.' },
+  },
+  required: [
+    'rationale_summary',
+    'palette_color_1', 'palette_color_1_name',
+    'palette_color_2', 'palette_color_2_name',
+    'palette_color_3', 'palette_color_3_name',
+    'palette_color_4', 'palette_color_4_name',
+    'tone_keywords',
+    'tone_statement',
+  ],
+  additionalProperties: false,
+};
+
+function paletteUserMessage({ displayName, weddingDate, venueName, venueLocation, season, brief }) {
+  const lines = [
+    `Couple: ${displayName || 'Unnamed couple'}`,
+  ];
+  if (weddingDate)    lines.push(`Wedding date: ${weddingDate}`);
+  if (venueName)      lines.push(`Venue: ${venueName}${venueLocation ? ` (${venueLocation})` : ''}`);
+  if (season)         lines.push(`Season: ${season}`);
+  if (brief && brief.trim()) {
+    lines.push('');
+    lines.push('Brief from the couple:');
+    lines.push(brief.trim());
+  }
+  lines.push('');
+  lines.push('Generate the palette, tone keywords, and tone statement now.');
+  return lines.join('\n');
+}
+
+/**
+ * Generate a palette + tone for a couple.
+ *
+ * @param {object} input
+ * @param {string} [input.displayName]
+ * @param {string} [input.weddingDate]
+ * @param {string} [input.venueName]
+ * @param {string} [input.venueLocation]
+ * @param {string} [input.season]
+ * @param {string} [input.brief]            free-text couple brief / vibe
+ * @returns {Promise<{rationale_summary, palette_color_1..4, palette_color_*_name, tone_keywords, tone_statement, usage}>}
+ */
+export async function generatePalette(input) {
+  const response = await client().messages.create({
+    model: 'claude-opus-4-7',
+    max_tokens: 4000,
+    thinking: { type: 'adaptive' },
+    output_config: {
+      format: { type: 'json_schema', schema: PALETTE_RESPONSE_SCHEMA },
+      effort: 'medium',
+    },
+    system: [
+      {
+        type: 'text',
+        text: paletteSystemPrompt(),
+        cache_control: { type: 'ephemeral' },
+      },
+    ],
+    messages: [
+      { role: 'user', content: paletteUserMessage(input) },
+    ],
+  });
+
+  const textBlock = response.content.find(b => b.type === 'text');
+  if (!textBlock) {
+    throw new Error('No text block in Claude response');
+  }
+  const parsed = JSON.parse(textBlock.text);
+
+  return {
+    ...parsed,
+    usage: {
+      input_tokens: response.usage.input_tokens,
+      output_tokens: response.usage.output_tokens,
+      cache_creation_input_tokens: response.usage.cache_creation_input_tokens || 0,
+      cache_read_input_tokens: response.usage.cache_read_input_tokens || 0,
+    },
+  };
+}

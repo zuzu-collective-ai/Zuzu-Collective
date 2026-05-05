@@ -14,7 +14,10 @@
           <a href="/p/<%= couple.slug %>/design" target="_blank" rel="noopener">View live portal ↗</a>
         </p>
       </div>
-      <a href="/admin/couples/<%= couple.id %>/design/galleries/new" class="admin-btn admin-btn--primary">+ Add gallery</a>
+      <div style="display: flex; gap: 0.5rem;">
+        <a href="/admin/couples/<%= couple.id %>/design/generate" class="admin-btn admin-btn--ghost">✦ AI palette</a>
+        <a href="/admin/couples/<%= couple.id %>/design/galleries/new" class="admin-btn admin-btn--primary">+ Add gallery</a>
+      </div>
     </header>
 
     <%- include('partials/couple-tabs', { couple, currentTab: 'design' }) %>
