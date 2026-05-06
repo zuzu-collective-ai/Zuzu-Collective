@@ -38,6 +38,17 @@ services:
       # a value; or set your own with `openssl rand -hex 32`.
       - key: ANALYTICS_SALT
         generateValue: true
+      # First-view email notifications — sent to Zoe when a couple opens
+      # their portal for the first time. All three must be set to enable.
+      # NOTIFY_EMAIL must be a verified SendGrid sender.
+      - key: SENDGRID_API_KEY
+        sync: false
+      - key: NOTIFY_EMAIL
+        sync: false
+      # Public URL of the app — included in first-view notification links.
+      # e.g. https://portal.zuzucollective.com
+      - key: APP_URL
+        sync: false
 
 databases:
   - name: zuzu-portal-db

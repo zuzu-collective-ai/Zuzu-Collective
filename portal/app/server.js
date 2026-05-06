@@ -83,10 +83,9 @@ app.get('/healthz', (_req, res) => res.json({ ok: true }));
 app.use('/admin', adminRoutes);
 app.use('/', portalRoutes);
 
-// Root → couples list for admins, otherwise the demo couple.
 app.get('/', (req, res) => {
   if (req.session?.isAdmin) return res.redirect('/admin');
-  res.redirect('/p/alicia-and-jack-2026');
+  res.status(404).render('404');
 });
 
 app.use((_req, res) => {

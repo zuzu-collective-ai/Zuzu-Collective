@@ -1,18 +1,54 @@
-// Couple-facing portal routes — /p/:slug/...
+// Couple-facing portal routes — /p/:slug/*
 //
-// Phase 2: all eight pages render. Each page reuses the same couple
-// lookup and a single render call into its own EJS template. Per-page
-// data (vendor rows, budget categories, checklist tasks, etc.) is
-// hardcoded in the templates for now — Phase 3 migrates each section
-// into its own table and wires admin forms to write them.
+// All eight pages read live from Postgres; the admin writes, the portal
+// reflects immediately. Analytics are stored in portal_events (hashed IP).
 
 import express from 'express';
 import { createHash } from 'node:crypto';
+import { request as httpsRequest } from 'node:https';
 import { pool } from '../db/pool.js';
 
 const router = express.Router();
 
 // ── Helpers ────────────────────────────────────────────────────────────
+
+// Fire-and-forget POST to SendGrid when a couple's portal is viewed for
+// the first time. Silently no-ops if SENDGRID_API_KEY / NOTIFY_EMAIL
+// are not set — nothing breaks, Zoe just won't get the email.
+function sendFirstViewNotification(couple, section) {
+  const apiKey     = process.env.SENDGRID_API_KEY;
+  const notifyTo   = process.env.NOTIFY_EMAIL;
+  if (!apiKey || !notifyTo) return;
+
+  const appUrl    = process.env.APP_URL || '';
+  const adminLink = appUrl ? `${appUrl}/admin/couples/${couple.id}` : '';
+  const bodyLines = [
+    `${couple.display_name} opened their portal for the first time.`,
+    `Page: ${section}`,
+    adminLink,
+  ].filter(Boolean).join('\n\n');
+
+  const payload = JSON.stringify({
+    personalizations: [{ to: [{ email: notifyTo }] }],
+    from: { email: notifyTo, name: 'Zuzu Collective' },
+    subject: `${couple.display_name} just opened their portal`,
+    content: [{ type: 'text/plain', value: bodyLines }],
+  });
+
+  const req = httpsRequest({
+    hostname: 'api.sendgrid.com',
+    path: '/v3/mail/send',
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+      'Content-Length': Buffer.byteLength(payload),
+    },
+  });
+  req.on('error', () => {});
+  req.write(payload);
+  req.end();
+}
 
 async function findCoupleBySlug(slug) {
   const { rows } = await pool.query(
@@ -62,7 +98,15 @@ function logPageView(req, res, next) {
     pool.query(
       'insert into portal_events (couple_id, section, ip_hash) values ($1, $2, $3)',
       [couple.id, section, ipHash],
-    ).catch(() => {});
+    ).then(async () => {
+      try {
+        const { rows } = await pool.query(
+          'select count(*)::int as n from portal_events where couple_id = $1',
+          [couple.id],
+        );
+        if (rows[0]?.n === 1) sendFirstViewNotification(couple, section);
+      } catch {}
+    }).catch(() => {});
   } catch {}
   next();
 }
