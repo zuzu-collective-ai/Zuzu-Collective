@@ -474,13 +474,16 @@ create table if not exists inspiration_tiles (
 
   label           text not null,           -- "Hero" / "Aisle" / "Recessional"
   title           text not null,           -- "An olive-branch arch over the aisle."
-  note            text,                     -- "img → ceremony / hero"
+  note            text,                     -- optional caption / file-path placeholder
+  image_url       text,                     -- hosted photo URL (Cloudinary etc.)
   is_hero         boolean not null default false,
 
   position        integer not null default 0,
   created_at      timestamptz not null default now(),
   updated_at      timestamptz not null default now()
 );
+
+alter table inspiration_tiles add column if not exists image_url text;
 
 create index if not exists inspiration_tiles_gallery_id_idx on inspiration_tiles(gallery_id);
 

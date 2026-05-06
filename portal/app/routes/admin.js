@@ -2361,6 +2361,7 @@ function parseTilesFromBody(body) {
       label: t.label?.trim() || '',
       title: t.title.trim(),
       note: nullIfEmpty(t.note),
+      image_url: nullIfEmpty(t.image_url),
       is_hero: !!(t.is_hero && t.is_hero !== '' && t.is_hero !== 'false'),
       position: idx + 1,
     }));
@@ -2485,9 +2486,9 @@ router.post('/couples/:id/design/galleries', async (req, res, next) => {
     const galleryId = rows[0].id;
     for (const t of tiles) {
       await client.query(
-        `insert into inspiration_tiles (gallery_id, label, title, note, is_hero, position)
-         values ($1, $2, $3, $4, $5, $6)`,
-        [galleryId, t.label, t.title, t.note, t.is_hero, t.position],
+        `insert into inspiration_tiles (gallery_id, label, title, note, image_url, is_hero, position)
+         values ($1, $2, $3, $4, $5, $6, $7)`,
+        [galleryId, t.label, t.title, t.note, t.image_url, t.is_hero, t.position],
       );
     }
     await client.query('commit');
@@ -2535,9 +2536,9 @@ router.post('/couples/:id/design/galleries/:gid', async (req, res, next) => {
     await client.query('delete from inspiration_tiles where gallery_id = $1', [req.params.gid]);
     for (const t of tiles) {
       await client.query(
-        `insert into inspiration_tiles (gallery_id, label, title, note, is_hero, position)
-         values ($1, $2, $3, $4, $5, $6)`,
-        [req.params.gid, t.label, t.title, t.note, t.is_hero, t.position],
+        `insert into inspiration_tiles (gallery_id, label, title, note, image_url, is_hero, position)
+         values ($1, $2, $3, $4, $5, $6, $7)`,
+        [req.params.gid, t.label, t.title, t.note, t.image_url, t.is_hero, t.position],
       );
     }
     await client.query('commit');

@@ -177,6 +177,21 @@
 .inspo-tile.is-tall { grid-row: span 2; }
 .inspo-tile.is-wide { grid-column: span 2; }
 
+/* Photo tiles — URL pasted into admin; background-image set inline */
+.inspo-tile--photo {
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  color: var(--zz-moonlight);
+  border-color: transparent;
+}
+.inspo-tile-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.52) 0%, rgba(0,0,0,0.08) 55%, transparent 100%);
+  pointer-events: none;
+}
+
 .inspo-tile-label {
   font-family: var(--zz-mono);
   font-size: 0.7rem;
