@@ -134,7 +134,12 @@ router.use(requireAdmin);
 router.get('/', async (_req, res, next) => {
   try {
     const { rows: couples } = await pool.query(
-      'select id, slug, display_name, wedding_date, venue_name, venue_location, updated_at from couples order by wedding_date asc',
+      `select c.id, c.slug, c.display_name, c.wedding_date, c.venue_name, c.venue_location, c.updated_at,
+              (select max(e.created_at) from portal_events e where e.couple_id = c.id) as last_viewed_at,
+              (select count(*) from portal_events e where e.couple_id = c.id
+                and e.created_at > now() - interval '7 days')::int as views_7d
+         from couples c
+        order by c.wedding_date asc`,
     );
     res.render('admin/couples-list', {
       couples,
@@ -148,7 +153,8 @@ router.get('/', async (_req, res, next) => {
 // New couple form
 router.get('/couples/new', (req, res) => {
   res.render('admin/couple-form', {
-    couple: null,                 // null => "new" mode
+    couple: null,
+    activity: null,
     formAction: '/admin/couples',
     error: null,
     flash: consumeFlash(req),
@@ -162,6 +168,7 @@ router.post('/couples', async (req, res, next) => {
     if (!data.slug || !data.display_name || !data.wedding_date) {
       return res.status(400).render('admin/couple-form', {
         couple: { ...data },
+        activity: null,
         formAction: '/admin/couples',
         error: 'Slug, display name, and wedding date are required.',
         flash: null,
@@ -183,6 +190,7 @@ router.post('/couples', async (req, res, next) => {
       // unique_violation on slug
       return res.status(400).render('admin/couple-form', {
         couple: { ...req.body },
+        activity: null,
         formAction: '/admin/couples',
         error: 'That slug is already in use. Pick a different one.',
         flash: null,
@@ -195,13 +203,25 @@ router.post('/couples', async (req, res, next) => {
 // Edit couple form
 router.get('/couples/:id', async (req, res, next) => {
   try {
-    const { rows } = await pool.query('select * from couples where id = $1', [
-      req.params.id,
+    const [coupleRes, activityRes] = await Promise.all([
+      pool.query('select * from couples where id = $1', [req.params.id]),
+      pool.query(
+        `select
+           count(*)::int                                                     as views_7d,
+           count(distinct ip_hash)::int                                      as unique_7d,
+           max(created_at)                                                   as last_viewed_at,
+           count(*) filter (where created_at > now() - interval '1 day')::int as views_24h
+         from portal_events
+        where couple_id = $1
+          and created_at > now() - interval '7 days'`,
+        [req.params.id],
+      ),
     ]);
-    if (!rows[0]) return res.status(404).send('Couple not found.');
+    if (!coupleRes.rows[0]) return res.status(404).send('Couple not found.');
     res.render('admin/couple-form', {
-      couple: rows[0],
-      formAction: `/admin/couples/${rows[0].id}`,
+      couple: coupleRes.rows[0],
+      activity: activityRes.rows[0],
+      formAction: `/admin/couples/${coupleRes.rows[0].id}`,
       error: null,
       flash: consumeFlash(req),
     });
@@ -217,6 +237,7 @@ router.post('/couples/:id', async (req, res, next) => {
     if (!data.slug || !data.display_name || !data.wedding_date) {
       return res.status(400).render('admin/couple-form', {
         couple: { id: req.params.id, ...data },
+        activity: null,
         formAction: `/admin/couples/${req.params.id}`,
         error: 'Slug, display name, and wedding date are required.',
         flash: null,
@@ -238,6 +259,7 @@ router.post('/couples/:id', async (req, res, next) => {
     if (err.code === '23505') {
       return res.status(400).render('admin/couple-form', {
         couple: { id: req.params.id, ...req.body },
+        activity: null,
         formAction: `/admin/couples/${req.params.id}`,
         error: 'That slug is already in use by another couple.',
         flash: null,

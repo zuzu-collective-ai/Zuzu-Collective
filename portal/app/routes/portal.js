@@ -7,6 +7,7 @@
 // into its own table and wires admin forms to write them.
 
 import express from 'express';
+import { createHash } from 'node:crypto';
 import { pool } from '../db/pool.js';
 
 const router = express.Router();
@@ -37,7 +38,7 @@ async function loadCouple(req, res, next) {
   try {
     const couple = await findCoupleBySlug(req.params.slug);
     if (!couple) {
-      return res.status(404).send('Portal not found.');
+      return res.status(404).render('404');
     }
     res.locals.couple = couple;
     res.locals.formattedDate = formatWeddingDate(couple.wedding_date);
@@ -47,7 +48,26 @@ async function loadCouple(req, res, next) {
   }
 }
 
-router.use('/p/:slug', loadCouple);
+// Fire-and-forget analytics for every client page view.
+// Uses sha256(ip + salt) so no raw IPs are stored.
+function logPageView(req, res, next) {
+  if (req.method !== 'GET') return next();
+  try {
+    const couple = res.locals.couple;
+    const suffix = req.path.slice(`/p/${req.params.slug}`.length);
+    const section = suffix.split('/').filter(Boolean)[0] || 'landing';
+    const ip = (req.headers['x-forwarded-for'] || req.ip || '').split(',')[0].trim();
+    const salt = process.env.ANALYTICS_SALT || 'zuzu-portal';
+    const ipHash = createHash('sha256').update(ip + salt).digest('hex').slice(0, 16);
+    pool.query(
+      'insert into portal_events (couple_id, section, ip_hash) values ($1, $2, $3)',
+      [couple.id, section, ipHash],
+    ).catch(() => {});
+  } catch {}
+  next();
+}
+
+router.use('/p/:slug', loadCouple, logPageView);
 
 // ── Pages ──────────────────────────────────────────────────────────────
 
@@ -210,6 +230,29 @@ router.get('/p/:slug/checklist', async (req, res, next) => {
         daysToWedding,
       },
     });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Task toggle — clients check/uncheck directly from the portal.
+// Validates ownership via the milestone → couple join so arbitrary
+// task IDs from other couples can't be toggled.
+router.post('/p/:slug/checklist/tasks/:tid/toggle', async (req, res, next) => {
+  try {
+    const coupleId = res.locals.couple.id;
+    const { rows } = await pool.query(
+      `update checklist_tasks t
+          set is_done = not t.is_done, updated_at = now()
+         from checklist_milestones m
+        where t.id = $1
+          and t.milestone_id = m.id
+          and m.couple_id = $2
+        returning t.is_done`,
+      [req.params.tid, coupleId],
+    );
+    if (rows.length === 0) return res.status(404).json({ error: 'Not found.' });
+    res.json({ is_done: rows[0].is_done });
   } catch (err) {
     next(err);
   }

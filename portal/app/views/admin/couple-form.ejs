@@ -32,6 +32,30 @@
       <div class="admin-flash admin-flash--error" role="alert"><%= error %></div>
     <% } %>
 
+    <% if (couple && activity) { %>
+      <%
+        function timeAgo(d) {
+          if (!d) return null;
+          const secs = Math.floor((Date.now() - new Date(d)) / 1000);
+          if (secs < 60)    return 'just now';
+          if (secs < 3600)  return `${Math.floor(secs / 60)}m ago`;
+          if (secs < 86400) return `${Math.floor(secs / 3600)}h ago`;
+          return `${Math.floor(secs / 86400)}d ago`;
+        }
+      %>
+      <div class="admin-activity-bar">
+        <span>Portal activity (7 days)</span>
+        <span><strong><%= activity.views_7d %></strong> view<%= activity.views_7d === 1 ? '' : 's' %></span>
+        <span><strong><%= activity.unique_7d %></strong> unique visitor<%= activity.unique_7d === 1 ? '' : 's' %></span>
+        <span><strong><%= activity.views_24h %></strong> in last 24 h</span>
+        <% if (activity.last_viewed_at) { %>
+          <span>Last seen <strong><%= timeAgo(activity.last_viewed_at) %></strong></span>
+        <% } else { %>
+          <span style="opacity: 0.6;">Not yet viewed</span>
+        <% } %>
+      </div>
+    <% } %>
+
     <form action="<%= formAction %>" method="post" class="admin-form">
 
       <fieldset class="admin-fieldset">

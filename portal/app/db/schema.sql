@@ -511,3 +511,22 @@ create table if not exists design_materials (
 );
 
 create index if not exists design_materials_couple_id_idx on design_materials(couple_id);
+
+-- ── Portal events (analytics) ────────────────────────────────────────────
+--
+-- Append-only log of client page views. ip_hash is SHA-256(ip + salt)
+-- truncated to 16 hex chars — enough for session-level deduplication,
+-- not enough to recover the original IP. No PII stored.
+-- `section` is the page slug: landing | design | vendors | checklist |
+-- budget | timeline | floor-plan | guest-list.
+
+create table if not exists portal_events (
+  id          bigserial primary key,
+  couple_id   uuid not null references couples(id) on delete cascade,
+  section     text not null,
+  ip_hash     text,
+  created_at  timestamptz not null default now()
+);
+
+create index if not exists portal_events_couple_created_idx
+  on portal_events(couple_id, created_at desc);

@@ -65,7 +65,10 @@
            progressLabel = `${state.done} of ${state.total}`;
          }
     %>
-      <article class="<%= cls %>">
+      <article class="<%= cls %>"
+               data-milestone-id="<%= m.id %>"
+               data-total="<%= state.total %>"
+               data-done="<%= state.done %>">
         <header class="milestone-head">
           <% if (state.state === 'active') { %>
             <span class="milestone-here">You are here</span>
@@ -82,7 +85,9 @@
             <% tasks.forEach(t => { %>
               <li>
                 <label>
-                  <input type="checkbox" class="task-check" <%= t.is_done ? 'checked' : '' %> disabled>
+                  <input type="checkbox" class="task-check"
+                         data-task-id="<%= t.id %>"
+                         <%= t.is_done ? 'checked' : '' %>>
                   <span class="task-name"><%= t.name %></span>
                   <% if (t.sub_text) { %><span class="task-sub"><%= t.sub_text %></span><% } %>
                 </label>
@@ -96,6 +101,68 @@
 
 
   <%- include('partials/footer', { couple }) %>
+
+  <script>
+    (function () {
+      const slug = '<%= couple.slug %>';
+
+      // Find the single stat number that shows completed task count.
+      // It's the second .stat-number on the page (index 1).
+      const statNums = document.querySelectorAll('.stat-number');
+      const completeStat = statNums[1] || null;
+      const pctNote = completeStat ? completeStat.nextElementSibling : null;
+      const totalTasks = parseInt((statNums[0] || {}).textContent || '0', 10);
+
+      function progressText(done, total) {
+        if (done === total && total > 0) return `${done} of ${total} complete`;
+        return `${done} of ${total}`;
+      }
+
+      document.querySelector('.milestones').addEventListener('change', async (e) => {
+        const cb = e.target;
+        if (!cb.matches('.task-check')) return;
+
+        const taskId = cb.dataset.taskId;
+        const article = cb.closest('[data-milestone-id]');
+        const prevChecked = !cb.checked; // browser already toggled it
+
+        try {
+          const r = await fetch(`/p/${slug}/checklist/tasks/${taskId}/toggle`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+          });
+          if (!r.ok) throw new Error('Server error');
+          const { is_done } = await r.json();
+
+          // Sync checkbox in case server disagreed
+          cb.checked = is_done;
+
+          // Update milestone progress counter
+          if (article) {
+            let done = parseInt(article.dataset.done, 10);
+            done = is_done ? done + 1 : done - 1;
+            article.dataset.done = done;
+            const prog = article.querySelector('.milestone-progress');
+            if (prog) prog.textContent = progressText(done, parseInt(article.dataset.total, 10));
+          }
+
+          // Update page-level "Complete" stat
+          if (completeStat) {
+            let totalDone = parseInt(completeStat.textContent, 10);
+            totalDone = is_done ? totalDone + 1 : totalDone - 1;
+            completeStat.textContent = totalDone;
+            if (pctNote && totalTasks > 0) {
+              const pct = Math.round((totalDone / totalTasks) * 100);
+              pctNote.textContent = pct + '%' + (pct > 0 && pct < 100 ? ' — on track' : '');
+            }
+          }
+        } catch {
+          // Revert optimistic toggle on failure
+          cb.checked = prevChecked;
+        }
+      });
+    })();
+  </script>
 
 </body>
 </html>

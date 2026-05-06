@@ -790,6 +790,34 @@ code {
   align-items: center;
 }
 
+/* ── Activity bar — portal analytics strip on couple detail page ────────── */
+
+.admin-activity-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 2rem;
+  align-items: center;
+  padding: 0.75rem 1.25rem;
+  margin-bottom: 1.5rem;
+  background: rgba(73, 57, 51, 0.04);
+  border: 1px solid var(--zz-finn-20);
+  border-radius: 2px;
+  font-size: 0.825rem;
+  color: var(--zz-tobacco);
+}
+.admin-activity-bar > span:first-child {
+  font-family: var(--zz-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--zz-finn-60);
+  margin-right: 0.5rem;
+}
+.admin-activity-bar strong {
+  color: var(--zz-finn);
+  font-weight: 600;
+}
+
 /* ── Danger zone ────────────────────────────────────────────────────────── */
 
 .admin-danger-zone {
