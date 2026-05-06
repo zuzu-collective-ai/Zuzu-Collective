@@ -41,10 +41,20 @@
                   </span>
                 <% } %>
                 <span class="admin-list-slug">/p/<%= couple.slug %></span>
+                <% if (couple.vendor_total > 0) { %>
+                  <span style="color: var(--zz-tobacco); font-size: 0.75rem;">
+                    <%= couple.vendor_booked %>/<%= couple.vendor_total %> vendors booked
+                  </span>
+                <% } %>
+                <% if (couple.task_total > 0) { %>
+                  <span style="color: var(--zz-tobacco); font-size: 0.75rem;">
+                    <%= Math.round(couple.task_done / couple.task_total * 100) %>% checklist
+                  </span>
+                <% } %>
                 <% if (couple.last_viewed_at) { %>
                   <span style="color: var(--zz-tobacco); font-size: 0.75rem;">
                     Last seen <%= timeAgo(couple.last_viewed_at) %>
-                    <% if (couple.views_7d > 0) { %> · <%= couple.views_7d %> view<%= couple.views_7d === 1 ? '' : 's' %> this week<% } %>
+                    <% if (couple.views_7d > 0) { %> · <%= couple.views_7d %>v this week<% } %>
                   </span>
                 <% } %>
               </div>

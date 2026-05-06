@@ -138,7 +138,17 @@ router.get('/', async (_req, res, next) => {
       `select c.id, c.slug, c.display_name, c.wedding_date, c.venue_name, c.venue_location, c.updated_at,
               (select max(e.created_at) from portal_events e where e.couple_id = c.id) as last_viewed_at,
               (select count(*) from portal_events e where e.couple_id = c.id
-                and e.created_at > now() - interval '7 days')::int as views_7d
+                and e.created_at > now() - interval '7 days')::int as views_7d,
+              -- Vendor stats
+              (select count(*) from vendors v where v.couple_id = c.id)::int as vendor_total,
+              (select count(*) from vendors v where v.couple_id = c.id and v.status = 'booked')::int as vendor_booked,
+              -- Checklist stats
+              (select count(*) from checklist_tasks t
+                 join checklist_milestones m on m.id = t.milestone_id
+                where m.couple_id = c.id)::int as task_total,
+              (select count(*) from checklist_tasks t
+                 join checklist_milestones m on m.id = t.milestone_id
+                where m.couple_id = c.id and t.is_done = true)::int as task_done
          from couples c
         order by c.wedding_date asc`,
     );
