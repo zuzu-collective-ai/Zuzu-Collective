@@ -93,6 +93,16 @@ app.use((_req, res) => {
   res.status(404).render('404');
 });
 
+// Global error handler — catches anything passed to next(err).
+// Logs server-side; never exposes internals to the browser.
+// eslint-disable-next-line no-unused-vars
+app.use((err, _req, res, _next) => {
+  console.error('[zuzu-portal] unhandled error:', err);
+  res.status(500).render('500').catch(() => {
+    res.status(500).send('An unexpected error occurred. Please try again.');
+  });
+});
+
 const PORT = Number(process.env.PORT) || 3000;
 
 (async () => {
