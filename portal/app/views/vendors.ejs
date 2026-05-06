@@ -68,9 +68,9 @@
       const isTbc = !v.display_name;
       const isBooked = v.status === 'booked';
       const stateClass = isBooked ? 'is-booked' : (v.status === 'na' ? 'is-na' : 'is-tbc');
-      // Notes are admin-internal for pending/shortlisting vendors
-      // (they may contain AI outreach drafts). Only surface notes for booked vendors.
-      const showNote = isBooked && v.note;
+      // Outreach drafts are admin-internal regardless of booking status.
+      // Only surface a note to the client if it's booked AND not a draft.
+      const showNote = isBooked && v.note && !v.note.startsWith('=== Outreach draft ===');
     %>
       <article class="vendor <%= stateClass %>">
         <div class="vendor-meta">
@@ -80,9 +80,7 @@
           <% if (isTbc) { %>
             <h2 class="vendor-name vendor-name--tbc"><em>To be confirmed</em></h2>
           <% } else { %>
-            <h2 class="vendor-name">
-              <em><%= v.display_name %></em><% if (showNote) { %><span class="vendor-note"> · <%= v.note %></span><% } %>
-            </h2>
+            <h2 class="vendor-name"><em><%= v.display_name %></em></h2>
             <ul class="vendor-contact">
               <% if (v.contact_name) { %>
                 <li><span class="contact-label">Contact</span><%= v.contact_name %></li>
@@ -97,6 +95,7 @@
                 <li><span class="contact-label">Address</span><%= v.address %></li>
               <% } %>
             </ul>
+            <% if (showNote) { %><p class="vendor-note"><%= v.note %></p><% } %>
           <% } %>
         </div>
         <div class="vendor-status">

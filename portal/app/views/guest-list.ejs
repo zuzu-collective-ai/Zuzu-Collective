@@ -125,7 +125,6 @@
           %>
             <li class="household<%= status === 'declined' ? ' is-declined' : '' %>"
                 data-side="<%= (h.side || '').toLowerCase() %>"
-                data-has-bridal="<%= guests.some(g => g.guest_type === 'bridal_party') ? '1' : '0' %>"
                 data-has-child="<%= guests.some(g => g.guest_type === 'child') ? '1' : '0' %>">
               <div class="household-meta">
                 <span class="label">Household</span>
@@ -242,16 +241,15 @@
         groups.forEach(group => {
           let anyVisible = false;
           group.querySelectorAll('li.household').forEach(li => {
-            const side = li.dataset.side || '';
-            const hasBridal = li.dataset.hasBridal === '1';
-            const hasChild  = li.dataset.hasChild  === '1';
+            const side     = li.dataset.side || '';
+            const hasChild = li.dataset.hasChild === '1';
             let show = false;
             switch (filter) {
               case 'all':     show = true; break;
               case 'bride':   show = side.includes('bride'); break;
               case 'groom':   show = side.includes('groom'); break;
               case 'both':    show = side.includes('both');  break;
-              case 'bridal':  show = hasBridal; break;
+              case 'bridal':  show = side.includes('bridal'); break;
               case 'children':show = hasChild;  break;
               default:        show = true;
             }
