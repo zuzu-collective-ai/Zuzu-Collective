@@ -66,7 +66,11 @@
     <% vendors.forEach((v, i) => {
       const pill = statusPill(v.status);
       const isTbc = !v.display_name;
-      const stateClass = v.status === 'booked' ? 'is-booked' : (v.status === 'na' ? 'is-na' : 'is-tbc');
+      const isBooked = v.status === 'booked';
+      const stateClass = isBooked ? 'is-booked' : (v.status === 'na' ? 'is-na' : 'is-tbc');
+      // Notes are admin-internal for pending/shortlisting vendors
+      // (they may contain AI outreach drafts). Only surface notes for booked vendors.
+      const showNote = isBooked && v.note;
     %>
       <article class="vendor <%= stateClass %>">
         <div class="vendor-meta">
@@ -74,13 +78,10 @@
         </div>
         <div class="vendor-body">
           <% if (isTbc) { %>
-            <h2 class="vendor-name vendor-name--tbc"><em><%= v.note ? 'See note' : 'To be booked' %></em></h2>
-            <% if (v.note) { %>
-              <p class="vendor-tbc-note"><%= v.note %></p>
-            <% } %>
+            <h2 class="vendor-name vendor-name--tbc"><em>To be confirmed</em></h2>
           <% } else { %>
             <h2 class="vendor-name">
-              <em><%= v.display_name %></em><% if (v.note) { %><span class="vendor-note"> · <%= v.note %></span><% } %>
+              <em><%= v.display_name %></em><% if (showNote) { %><span class="vendor-note"> · <%= v.note %></span><% } %>
             </h2>
             <ul class="vendor-contact">
               <% if (v.contact_name) { %>
