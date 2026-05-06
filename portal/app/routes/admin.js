@@ -10,7 +10,7 @@
 import express from 'express';
 import { pool } from '../db/pool.js';
 import { requireAdmin, passwordsMatch } from '../middleware/auth.js';
-import { generateAllocation, generatePalette, isConfigured as anthropicConfigured, STANDARD_CATEGORIES } from '../lib/anthropic.js';
+import { generateAllocation, generatePalette, generateChecklist, isConfigured as anthropicConfigured, STANDARD_CATEGORIES } from '../lib/anthropic.js';
 
 const router = express.Router();
 
@@ -1378,6 +1378,160 @@ router.get('/couples/:id/checklist/new', async (req, res, next) => {
       error: null,
       flash: consumeFlash(req),
     });
+  } catch (err) { next(err); }
+});
+
+// ── AI checklist generator (Phase 4c) ─────────────────────────────────
+// Static paths `/checklist/generate` declared before `/:mid` so Express
+// doesn't swallow them as the parameterized milestone-id route.
+
+router.get('/couples/:id/checklist/generate', async (req, res, next) => {
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+    res.render('admin/checklist-generate-form', {
+      couple,
+      configured: anthropicConfigured(),
+      proposal:   null,
+      submitted:  null,
+      error:      null,
+      flash:      consumeFlash(req),
+      formAction: `/admin/couples/${couple.id}/checklist/generate`,
+    });
+  } catch (err) { next(err); }
+});
+
+router.post('/couples/:id/checklist/generate', async (req, res, next) => {
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+
+    const renderForm = (extra) => res.status(extra.error ? 400 : 200).render('admin/checklist-generate-form', {
+      couple,
+      configured: anthropicConfigured(),
+      proposal:   null,
+      submitted:  req.body,
+      flash:      consumeFlash(req),
+      formAction: `/admin/couples/${couple.id}/checklist/generate`,
+      ...extra,
+    });
+
+    if (!anthropicConfigured()) {
+      return renderForm({ error: 'ANTHROPIC_API_KEY is not set. Add it under Render → Environment.' });
+    }
+
+    const weddingDate = couple.wedding_date
+      ? new Date(couple.wedding_date).toISOString().split('T')[0]
+      : null;
+    if (!weddingDate) {
+      return renderForm({ error: 'This couple has no wedding date set. Add one in the couple form first.' });
+    }
+
+    const { rows: guestRows } = await pool.query(
+      `select count(*) as cnt from guests g
+         join households h on h.id = g.household_id
+        where h.couple_id = $1 and h.status = 'accepted'`,
+      [couple.id],
+    );
+    const guestCount = Number(guestRows[0]?.cnt) || null;
+
+    let result;
+    try {
+      result = await generateChecklist({
+        weddingDate,
+        weddingDateFormatted: couple.wedding_date
+          ? new Date(couple.wedding_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })
+          : undefined,
+        displayName:   couple.display_name,
+        venueName:     couple.venue_name,
+        venueLocation: couple.venue_location,
+        guestCount,
+        brief: (req.body.brief || '').trim() || undefined,
+      });
+    } catch (err) {
+      console.error('[checklist-gen] Claude API error:', err);
+      return renderForm({ error: `AI call failed: ${err.message}` });
+    }
+
+    const totalTasks = result.milestones.reduce((s, m) => s + m.tasks.length, 0);
+    res.render('admin/checklist-generate-form', {
+      couple,
+      configured: true,
+      proposal: { ...result, totalTasks },
+      submitted: req.body,
+      error: null,
+      flash: consumeFlash(req),
+      formAction: `/admin/couples/${couple.id}/checklist/generate`,
+    });
+  } catch (err) { next(err); }
+});
+
+router.post('/couples/:id/checklist/generate/apply', async (req, res, next) => {
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+
+    // Parse milestones from hidden form fields: milestones[i][*] and milestones[i][tasks][j][*]
+    const raw = req.body.milestones || {};
+    const milestones = Object.keys(raw)
+      .map(Number)
+      .sort((a, b) => a - b)
+      .map(i => {
+        const m = raw[i];
+        const tasksRaw = m.tasks || {};
+        const tasks = Object.keys(tasksRaw)
+          .map(Number)
+          .sort((a, b) => a - b)
+          .map(j => ({
+            position: Number(tasksRaw[j].position),
+            name:     (tasksRaw[j].name     || '').trim(),
+            sub_text: (tasksRaw[j].sub_text || '').trim() || null,
+          }))
+          .filter(t => t.name);
+        return {
+          position:   Number(m.position),
+          date_label: (m.date_label || '').trim(),
+          title:      (m.title      || '').trim(),
+          tasks,
+        };
+      })
+      .filter(m => m.title);
+
+    if (milestones.length === 0) {
+      setFlash(req, 'info', 'Nothing to apply — no milestones received.');
+      return res.redirect(`/admin/couples/${couple.id}/checklist`);
+    }
+
+    // Replace all existing milestones + tasks for this couple in a transaction.
+    await pool.query('begin');
+    try {
+      await pool.query(
+        'delete from checklist_milestones where couple_id = $1',
+        [couple.id],
+      );
+      for (const m of milestones) {
+        const { rows: [ms] } = await pool.query(
+          `insert into checklist_milestones (couple_id, date_label, title, position)
+           values ($1, $2, $3, $4) returning id`,
+          [couple.id, m.date_label, m.title, m.position],
+        );
+        for (const t of m.tasks) {
+          await pool.query(
+            `insert into checklist_tasks (milestone_id, name, sub_text, position)
+             values ($1, $2, $3, $4)`,
+            [ms.id, t.name, t.sub_text, t.position],
+          );
+        }
+      }
+      await pool.query('commit');
+    } catch (err) {
+      await pool.query('rollback');
+      throw err;
+    }
+
+    const totalTasks = milestones.reduce((s, m) => s + m.tasks.length, 0);
+    setFlash(req, 'success', `Applied AI checklist — ${milestones.length} milestones, ${totalTasks} tasks.`);
+    res.redirect(`/admin/couples/${couple.id}/checklist`);
   } catch (err) { next(err); }
 });
 

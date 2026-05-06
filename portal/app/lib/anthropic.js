@@ -1,4 +1,4 @@
-// AI budget allocator — Phase 4a.
+// AI features — Phase 4a/4b/4c.
 //
 // Single Anthropic API call: takes a couple's wedding total, venue, guest
 // count, optional priorities/notes, and asks Claude to propose an
@@ -324,6 +324,140 @@ export async function generatePalette(input) {
       output_tokens: response.usage.output_tokens,
       cache_creation_input_tokens: response.usage.cache_creation_input_tokens || 0,
       cache_read_input_tokens: response.usage.cache_read_input_tokens || 0,
+    },
+  };
+}
+
+// ── Checklist generator (Phase 4c) ─────────────────────────────────────
+
+function checklistSystemPrompt() {
+  return `You are the lead planner at Zuzu Collective, a boutique wedding planning studio. You're building a custom planning checklist for a new couple — a month-by-month arc from booking to wedding day.
+
+Structure: exactly 11 milestones, ordered from furthest-out to the wedding day.
+
+Milestone arc:
+  • Milestone 1 — Foundation: venue, date lock, planner retained, key family decisions.
+  • Milestones 2–3 — Priority vendors: photographer, videographer, caterer, band/DJ.
+  • Milestone 4 — Design direction + guest list draft.
+  • Milestone 5 — Supporting vendors: florals, officiant, hair & makeup, transportation.
+  • Milestone 6 — Invitations, registry, attire ordered.
+  • Milestone 7 — RSVP deadline, seating chart, menu finalized.
+  • Milestone 8 — Vendor confirmations, final payments, wedding-day timeline drafted.
+  • Milestone 9 — Final fittings, rehearsal logistics, welcome bag assembly.
+  • Milestone 10 — Week-of details: deliveries, vendor contacts sheet, marriage license.
+  • Milestone 11 — Wedding day: morning prep, ceremony, reception send-off.
+
+date_label format — follow exactly: "Month Year · N Months Out" (e.g. "October 2025 · 12 Months Out"). Use "6 Weeks Out", "2 Weeks Out", "1 Week Out", or "Wedding Day" for the final milestones. The user message gives target dates for each milestone position.
+
+Tasks:
+  • 3–6 tasks for early milestones; 5–8 for the 4-to-6-month crunch; 3–5 for final weeks.
+  • Names are specific and actionable: "Book the officiant" not "Consider officiant options". Sentence case.
+  • sub_text: vendor name + location once booked, a deadline note, or null. One short phrase only.
+  • Tailor to venue type (full-service hotel vs. raw venue changes rental/coordination tasks), guest count, and the couple's brief.
+  • Aim for 45–55 tasks total across all 11 milestones.`;
+}
+
+const CHECKLIST_RESPONSE_SCHEMA = {
+  type: 'object',
+  properties: {
+    planning_summary: { type: 'string', description: '1–2 sentence overview of the planning arc.' },
+    milestones: {
+      type: 'array',
+      description: 'Exactly 11 milestones in planning order (furthest-out first).',
+      items: {
+        type: 'object',
+        properties: {
+          position:   { type: 'integer' },
+          date_label: { type: 'string' },
+          title:      { type: 'string' },
+          tasks: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                position: { type: 'integer' },
+                name:     { type: 'string' },
+                sub_text: { type: ['string', 'null'] },
+              },
+              required: ['position', 'name', 'sub_text'],
+              additionalProperties: false,
+            },
+          },
+        },
+        required: ['position', 'date_label', 'title', 'tasks'],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ['planning_summary', 'milestones'],
+  additionalProperties: false,
+};
+
+function milestoneDates(weddingDate) {
+  const wd = new Date(weddingDate);
+  const monthsOut = [12, 10, 8, 6, 5, 4, 3, 2];
+  const labels = monthsOut.map(n => {
+    const d = new Date(wd);
+    d.setMonth(d.getMonth() - n);
+    const month = d.toLocaleString('en-US', { month: 'long', timeZone: 'UTC' });
+    return `${month} ${d.getUTCFullYear()} · ${n} Month${n === 1 ? '' : 's'} Out`;
+  });
+  labels.push('6 Weeks Out', '2 Weeks Out', 'Wedding Day');
+  return labels;
+}
+
+function checklistUserMessage({ displayName, weddingDate, weddingDateFormatted, venueName, venueLocation, guestCount, brief }) {
+  const lines = [
+    `Couple: ${displayName || 'Unnamed couple'}`,
+    `Wedding date: ${weddingDateFormatted || weddingDate}`,
+  ];
+  if (venueName)  lines.push(`Venue: ${venueName}${venueLocation ? ` (${venueLocation})` : ''}`);
+  if (guestCount) lines.push(`Guest count: ${guestCount}`);
+  if (brief?.trim()) { lines.push('', 'Brief:', brief.trim()); }
+  lines.push('', 'Target dates for the 11 milestones:');
+  milestoneDates(weddingDate).forEach((d, i) => lines.push(`  Milestone ${i + 1}: ${d}`));
+  lines.push('', 'Generate the 11-milestone planning checklist now.');
+  return lines.join('\n');
+}
+
+/**
+ * Generate a planning checklist for a couple.
+ * @param {object} input
+ * @param {string} input.weddingDate          ISO date e.g. "2026-10-10"
+ * @param {string} [input.weddingDateFormatted]
+ * @param {string} [input.displayName]
+ * @param {string} [input.venueName]
+ * @param {string} [input.venueLocation]
+ * @param {number} [input.guestCount]
+ * @param {string} [input.brief]
+ */
+export async function generateChecklist(input) {
+  if (!input?.weddingDate) throw new Error('weddingDate is required');
+
+  const response = await client().messages.create({
+    model: 'claude-opus-4-7',
+    max_tokens: 8000,
+    thinking: { type: 'adaptive' },
+    output_config: {
+      format: { type: 'json_schema', schema: CHECKLIST_RESPONSE_SCHEMA },
+      effort: 'medium',
+    },
+    system: [{ type: 'text', text: checklistSystemPrompt(), cache_control: { type: 'ephemeral' } }],
+    messages: [{ role: 'user', content: checklistUserMessage(input) }],
+  });
+
+  const textBlock = response.content.find(b => b.type === 'text');
+  if (!textBlock) throw new Error('No text block in Claude response');
+  const parsed = JSON.parse(textBlock.text);
+
+  return {
+    planning_summary: parsed.planning_summary,
+    milestones:       parsed.milestones,
+    usage: {
+      input_tokens:                response.usage.input_tokens,
+      output_tokens:               response.usage.output_tokens,
+      cache_creation_input_tokens: response.usage.cache_creation_input_tokens || 0,
+      cache_read_input_tokens:     response.usage.cache_read_input_tokens     || 0,
     },
   };
 }
