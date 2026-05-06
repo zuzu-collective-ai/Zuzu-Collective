@@ -88,10 +88,8 @@ app.get('/', (req, res) => {
   res.redirect('/p/alicia-and-jack-2026');
 });
 
-// Anything we don't recognize gets a small 404. Real product would have
-// a styled page; for now the editorial 404 can wait.
 app.use((_req, res) => {
-  res.status(404).send('Not found.');
+  res.status(404).render('404');
 });
 
 const PORT = Number(process.env.PORT) || 3000;
