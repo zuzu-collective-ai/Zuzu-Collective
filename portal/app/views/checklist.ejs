@@ -137,13 +137,30 @@
           // Sync checkbox in case server disagreed
           cb.checked = is_done;
 
-          // Update milestone progress counter
+          // Update milestone progress counter + state badge
           if (article) {
             let done = parseInt(article.dataset.done, 10);
             done = is_done ? done + 1 : done - 1;
+            done = Math.max(0, done);
             article.dataset.done = done;
+            const total = parseInt(article.dataset.total, 10);
             const prog = article.querySelector('.milestone-progress');
-            if (prog) prog.textContent = progressText(done, parseInt(article.dataset.total, 10));
+            if (prog) prog.textContent = progressText(done, total);
+
+            // Add / remove the "Complete" badge
+            const allDone = total > 0 && done === total;
+            let badge = article.querySelector('.milestone-badge');
+            if (allDone && !badge) {
+              badge = document.createElement('span');
+              badge.className = 'milestone-badge';
+              badge.textContent = 'Complete';
+              article.querySelector('.milestone-head').appendChild(badge);
+              article.classList.add('is-done');
+              article.classList.remove('is-active', 'is-upcoming');
+            } else if (!allDone && badge) {
+              badge.remove();
+              article.classList.remove('is-done');
+            }
           }
 
           // Update page-level "Complete" stat
