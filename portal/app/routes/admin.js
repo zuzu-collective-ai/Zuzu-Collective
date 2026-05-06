@@ -117,7 +117,12 @@ router.post('/login', (req, res) => {
   req.session.isAdmin = true;
   // Regenerate the session id on login to harden against fixation.
   req.session.save(() => {
-    res.redirect(req.body.next || '/admin');
+    // Restrict redirect to same-origin paths only — never follow external URLs.
+    const raw = req.body.next || '';
+    const safePath = typeof raw === 'string' && raw.startsWith('/') && !raw.startsWith('//')
+      ? raw
+      : '/admin';
+    res.redirect(safePath);
   });
 });
 
