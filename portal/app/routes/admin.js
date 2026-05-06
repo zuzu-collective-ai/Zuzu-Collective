@@ -10,7 +10,7 @@
 import express from 'express';
 import { pool } from '../db/pool.js';
 import { requireAdmin, passwordsMatch } from '../middleware/auth.js';
-import { generateAllocation, generatePalette, generateChecklist, isConfigured as anthropicConfigured, STANDARD_CATEGORIES } from '../lib/anthropic.js';
+import { generateAllocation, generatePalette, generateChecklist, generateVendorOutreach, isConfigured as anthropicConfigured, STANDARD_CATEGORIES } from '../lib/anthropic.js';
 
 const router = express.Router();
 
@@ -364,6 +364,126 @@ router.post('/couples/:id/vendors', async (req, res, next) => {
   } catch (err) {
     next(err);
   }
+});
+
+// ── AI vendor outreach generator (Phase 4d) ───────────────────────────
+// Static `/vendors/outreach` must appear before `/:vid`.
+
+router.get('/couples/:id/vendors/outreach', async (req, res, next) => {
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+    const { rows: vendors } = await pool.query(
+      `select * from vendors where couple_id = $1
+         and status in ('pending', 'shortlist')
+       order by position asc`,
+      [couple.id],
+    );
+    res.render('admin/vendor-outreach-form', {
+      couple, vendors,
+      configured: anthropicConfigured(),
+      proposal: null, submitted: null, error: null,
+      flash: consumeFlash(req),
+      formAction: `/admin/couples/${couple.id}/vendors/outreach`,
+    });
+  } catch (err) { next(err); }
+});
+
+router.post('/couples/:id/vendors/outreach', async (req, res, next) => {
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+
+    const { rows: allPending } = await pool.query(
+      `select * from vendors where couple_id = $1
+         and status in ('pending', 'shortlist')
+       order by position asc`,
+      [couple.id],
+    );
+
+    const renderForm = (extra) => res.status(extra.error ? 400 : 200).render('admin/vendor-outreach-form', {
+      couple, vendors: allPending,
+      configured: anthropicConfigured(),
+      proposal: null, submitted: req.body,
+      flash: consumeFlash(req),
+      formAction: `/admin/couples/${couple.id}/vendors/outreach`,
+      ...extra,
+    });
+
+    if (!anthropicConfigured()) {
+      return renderForm({ error: 'ANTHROPIC_API_KEY is not set. Add it under Render → Environment.' });
+    }
+
+    // Which vendor IDs did Zoe select?
+    const selectedIds = new Set(
+      Array.isArray(req.body.vendor_ids) ? req.body.vendor_ids : [req.body.vendor_ids].filter(Boolean),
+    );
+    const selected = allPending.filter(v => selectedIds.has(v.id));
+    if (selected.length === 0) {
+      return renderForm({ error: 'Select at least one vendor to generate outreach for.' });
+    }
+
+    let result;
+    try {
+      result = await generateVendorOutreach({
+        displayName:    couple.display_name,
+        weddingDate:    couple.wedding_date
+          ? new Date(couple.wedding_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })
+          : undefined,
+        venueName:      couple.venue_name,
+        venueLocation:  couple.venue_location,
+        toneKeywords:   couple.tone_keywords,
+        vendors:        selected.map(v => ({ id: v.id, vendor_type: v.vendor_type, note: v.note })),
+        brief:          (req.body.brief || '').trim() || undefined,
+      });
+    } catch (err) {
+      console.error('[outreach-gen] Claude API error:', err);
+      return renderForm({ error: `AI call failed: ${err.message}` });
+    }
+
+    // Merge generated drafts back with vendor rows for the preview
+    const draftMap = new Map(result.drafts.map(d => [d.vendor_type, d]));
+    const rows = selected.map(v => ({
+      ...v,
+      draft: draftMap.get(v.vendor_type) || { subject: '', body: '' },
+    }));
+
+    res.render('admin/vendor-outreach-form', {
+      couple, vendors: allPending,
+      configured: true,
+      proposal: { rows, usage: result.usage },
+      submitted: req.body, error: null,
+      flash: consumeFlash(req),
+      formAction: `/admin/couples/${couple.id}/vendors/outreach`,
+    });
+  } catch (err) { next(err); }
+});
+
+router.post('/couples/:id/vendors/outreach/apply', async (req, res, next) => {
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+
+    // Save each selected draft to vendor.note
+    const raw = req.body.drafts || {};
+    let saved = 0;
+    for (const [vid, d] of Object.entries(raw)) {
+      if (req.body[`save_${vid}`] !== 'true') continue;
+      const note = `=== Outreach draft ===\nSubject: ${(d.subject || '').trim()}\n\n${(d.body || '').trim()}`;
+      await pool.query(
+        'update vendors set note = $1, updated_at = now() where id = $2 and couple_id = $3',
+        [note, vid, couple.id],
+      );
+      saved++;
+    }
+
+    if (saved === 0) {
+      setFlash(req, 'info', 'Nothing saved — no drafts were selected.');
+    } else {
+      setFlash(req, 'success', `Saved ${saved} outreach draft${saved === 1 ? '' : 's'} to vendor notes.`);
+    }
+    res.redirect(`/admin/couples/${couple.id}/vendors`);
+  } catch (err) { next(err); }
 });
 
 // Edit vendor form

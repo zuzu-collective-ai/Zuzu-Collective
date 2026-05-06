@@ -461,3 +461,109 @@ export async function generateChecklist(input) {
     },
   };
 }
+
+// ── Vendor outreach generator (Phase 4d) ───────────────────────────────
+//
+// Generates draft intro emails for pending/shortlist vendor slots.
+// One email per vendor type. Output saved to vendor.note via apply route.
+
+function vendorOutreachSystemPrompt() {
+  return `You are Zoe McDaniel, founder and lead planner at Zuzu Collective, a boutique wedding and event planning company in San Diego. You're drafting initial outreach emails to potential vendors for a new couple.
+
+Zuzu's email voice:
+  • Warm but confident — never overly eager or gushing.
+  • Selective — Zuzu is the expert, the vendor would be lucky to work with this wedding.
+  • Concise — 3–4 short paragraphs, no fluff, no excessive adjectives.
+  • Professional — you're one vendor to another, not a bride emailing cold.
+  • Specific — mention the date, venue, and something concrete about what makes this wedding interesting.
+
+Email structure:
+  1. Opening: who you are, who the couple is, the date and venue. One sentence.
+  2. Brief: what makes this wedding distinctive (palette, scale, vibe, any unusual logistics). Two to three sentences.
+  3. Ask: what you're looking for from this vendor type specifically. One to two sentences.
+  4. Close: propose a call or availability check. One sentence. Sign off as Zoe.
+
+Use [Contact Name] as the salutation placeholder (will be filled in when sending).
+Subject line: "{Couple names} | {Wedding date} | {Vendor type} Inquiry" — clean and direct.
+
+Do not invent vendor-specific details you weren't given. Do not over-promise exclusivity or uniqueness.`;
+}
+
+const VENDOR_OUTREACH_SCHEMA = {
+  type: 'object',
+  properties: {
+    drafts: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          vendor_type: { type: 'string', description: 'Matches the input vendor_type exactly.' },
+          subject:     { type: 'string', description: 'Email subject line.' },
+          body:        { type: 'string', description: 'Full email body including salutation and sign-off.' },
+        },
+        required: ['vendor_type', 'subject', 'body'],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ['drafts'],
+  additionalProperties: false,
+};
+
+function vendorOutreachUserMessage({ displayName, weddingDate, venueName, venueLocation, toneKeywords, vendors, brief }) {
+  const lines = [
+    `Couple: ${displayName || 'Unnamed couple'}`,
+    `Wedding date: ${weddingDate || 'TBD'}`,
+  ];
+  if (venueName)     lines.push(`Venue: ${venueName}${venueLocation ? ` (${venueLocation})` : ''}`);
+  if (toneKeywords)  lines.push(`Wedding tone: ${toneKeywords}`);
+  if (brief?.trim()) { lines.push('', 'Additional context:', brief.trim()); }
+  lines.push('', 'Generate outreach emails for these vendor types:');
+  vendors.forEach(v => {
+    const line = `  • ${v.vendor_type}${v.note ? ` — ${v.note}` : ''}`;
+    lines.push(line);
+  });
+  lines.push('', 'One email per vendor type listed above.');
+  return lines.join('\n');
+}
+
+/**
+ * Generate vendor outreach draft emails.
+ * @param {object} input
+ * @param {string} [input.displayName]
+ * @param {string} [input.weddingDate]   formatted date string
+ * @param {string} [input.venueName]
+ * @param {string} [input.venueLocation]
+ * @param {string} [input.toneKeywords]
+ * @param {Array}  input.vendors         [{id, vendor_type, note}]
+ * @param {string} [input.brief]
+ */
+export async function generateVendorOutreach(input) {
+  if (!input?.vendors?.length) throw new Error('vendors array is required');
+
+  const response = await client().messages.create({
+    model: 'claude-opus-4-7',
+    max_tokens: 8000,
+    thinking: { type: 'adaptive' },
+    output_config: {
+      format: { type: 'json_schema', schema: VENDOR_OUTREACH_SCHEMA },
+      effort: 'medium',
+    },
+    system: [{ type: 'text', text: vendorOutreachSystemPrompt(), cache_control: { type: 'ephemeral' } }],
+    messages: [{ role: 'user', content: vendorOutreachUserMessage(input) }],
+  });
+
+  const textBlock = response.content.find(b => b.type === 'text');
+  if (!textBlock) throw new Error('No text block in Claude response');
+  const parsed = JSON.parse(textBlock.text);
+
+  return {
+    drafts: parsed.drafts,
+    usage: {
+      input_tokens:                response.usage.input_tokens,
+      output_tokens:               response.usage.output_tokens,
+      cache_creation_input_tokens: response.usage.cache_creation_input_tokens || 0,
+      cache_read_input_tokens:     response.usage.cache_read_input_tokens     || 0,
+    },
+  };
+}
