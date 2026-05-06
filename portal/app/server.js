@@ -36,7 +36,8 @@ app.use(
         defaultSrc: ["'self'"],
         styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
         fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
-        imgSrc: ["'self'", 'data:'],
+        // 'https:' allows Cloudinary URLs and any other CDN for couple photos
+        imgSrc: ["'self'", 'data:', 'https:'],
         // Inline scripts are limited to admin form helpers (add/remove
         // guest rows). Move to external files + nonces if the admin
         // ever needs anything more substantial.
