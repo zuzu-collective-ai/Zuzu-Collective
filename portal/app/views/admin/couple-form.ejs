@@ -212,6 +212,14 @@
       <fieldset class="admin-fieldset">
         <legend class="admin-legend">Landing copy</legend>
         <label class="admin-field">
+          <span class="admin-field-label">Hero photo URL</span>
+          <input type="url" name="hero_photo_url" value="<%= couple?.hero_photo_url || '' %>" placeholder="https://res.cloudinary.com/…">
+          <span class="admin-field-help">
+            Full-bleed hero photo. Paste a hosted URL (Cloudinary etc.).
+            Leave blank to show the palette gradient.
+          </span>
+        </label>
+        <label class="admin-field">
           <span class="admin-field-label">Hero subtitle</span>
           <input type="text" name="hero_subtitle" value="<%= couple?.hero_subtitle || 'Wedding Portal' %>">
         </label>

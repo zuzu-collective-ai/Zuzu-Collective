@@ -10,8 +10,8 @@
     <span class="label page-eyebrow"><%= couple.display_name %></span>
     <h1 class="page-title">Vendors</h1>
     <p class="page-subtitle">
-      The team behind October tenth. Each vendor with their contact details — booked,
-      in conversation, or still on the shortlist.
+      The team behind <%= new Date(couple.wedding_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', timeZone: 'UTC' }) %>.
+      Each vendor with their contact details — booked, in conversation, or still on the shortlist.
     </p>
   </section>
 

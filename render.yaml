@@ -29,12 +29,15 @@ services:
       # Change anytime via Settings → Environment.
       - key: ADMIN_PASSWORD
         sync: false
-      # Anthropic API key — powers the AI budget allocator (Phase 4a) and
-      # any future Claude-powered features. Optional: without it the
-      # allocator button is disabled with a "missing key" hint, the rest
-      # of the app keeps working.
+      # Anthropic API key — powers all AI features (budget allocator,
+      # palette generator, checklist generator, vendor outreach). Optional:
+      # without it the AI buttons are disabled, the rest of the app works.
       - key: ANTHROPIC_API_KEY
         sync: false
+      # Random salt for portal analytics IP hashing. Render auto-generates
+      # a value; or set your own with `openssl rand -hex 32`.
+      - key: ANALYTICS_SALT
+        generateValue: true
 
 databases:
   - name: zuzu-portal-db

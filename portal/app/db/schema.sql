@@ -70,6 +70,11 @@ create table if not exists couples (
   design_materials_title  text,   -- "Polished silver. Matte white. Clear glass."
   design_materials_note   text,   -- "All warmth reliant on candlelight."
 
+  -- Landing page hero photo — hosted URL (Cloudinary etc.). When set, the
+  -- hero section shows the photo as a background; when absent, the
+  -- couple-palette gradient renders instead.
+  hero_photo_url          text,
+
   created_at      timestamptz not null default now(),
   updated_at      timestamptz not null default now()
 );
@@ -89,6 +94,7 @@ alter table couples add column if not exists design_subtitle text;
 alter table couples add column if not exists design_tone_title text;
 alter table couples add column if not exists design_materials_title text;
 alter table couples add column if not exists design_materials_note text;
+alter table couples add column if not exists hero_photo_url text;
 
 create index if not exists couples_slug_idx on couples(slug);
 
