@@ -743,6 +743,13 @@ code {
   cursor: pointer;
 }
 
+.admin-swatch-hex {
+  width: 90px;
+  font-family: var(--zz-mono, monospace);
+  font-size: 0.8rem;
+  letter-spacing: 0.05em;
+}
+
 .admin-swatch-name {
   flex: 1;
   max-width: 240px;

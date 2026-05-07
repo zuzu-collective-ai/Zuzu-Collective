@@ -184,12 +184,19 @@
         <legend class="admin-legend">Palette</legend>
         <p class="admin-fieldset-note">Four colors plus optional friendly names. The portal recolors itself wherever <code>--couple-1..4</code> is referenced.</p>
 
-        <% [1, 2, 3, 4].forEach(n => { %>
+        <% [1, 2, 3, 4].forEach(n => {
+             const colorVal = couple?.[`palette_color_${n}`] || (n === 1 ? '#EFEDE1' : n === 2 ? '#64690C' : n === 3 ? '#FFFFFF' : '#F5F0E4');
+        %>
           <div class="admin-row admin-row--palette">
             <label class="admin-field admin-field--swatch">
               <span class="admin-field-label">Color <%= n %></span>
               <span class="admin-swatch-row">
-                <input type="color" name="palette_color_<%= n %>" value="<%= couple?.[`palette_color_${n}`] || (n === 1 ? '#EFEDE1' : n === 2 ? '#64690C' : n === 3 ? '#FFFFFF' : '#F5F0E4') %>">
+                <input type="color" id="color-pick-<%= n %>" value="<%= colorVal %>"
+                       oninput="document.getElementById('color-hex-<%= n %>').value=this.value">
+                <input type="text" id="color-hex-<%= n %>" name="palette_color_<%= n %>"
+                       value="<%= colorVal %>" maxlength="7" class="admin-swatch-hex"
+                       placeholder="#EFEDE1"
+                       oninput="if(/^#[0-9a-fA-F]{6}$/.test(this.value))document.getElementById('color-pick-<%= n %>').value=this.value">
                 <input type="text" name="palette_color_<%= n %>_name" value="<%= couple?.[`palette_color_${n}_name`] || '' %>" placeholder="Ivory" class="admin-swatch-name">
               </span>
             </label>
