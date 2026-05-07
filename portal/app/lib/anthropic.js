@@ -625,3 +625,35 @@ Use empty string "" for any field you cannot find.`,
   if (!textBlock) throw new Error('No text in Claude response');
   return JSON.parse(textBlock.text);
 }
+
+const TILE_DESCRIBE_SCHEMA = {
+  type: 'object',
+  properties: {
+    label: { type: 'string' },
+    title: { type: 'string' },
+    note:  { type: 'string' },
+  },
+  required: ['label', 'title', 'note'],
+  additionalProperties: false,
+};
+
+export async function describeTileImage({ buffer, mimeType }) {
+  const response = await client().messages.create({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 512,
+    output_config: { format: { type: 'json_schema', schema: TILE_DESCRIBE_SCHEMA } },
+    system: `You are a creative director writing editorial copy for a luxury wedding design page.
+Given an inspiration image, return three short text fields:
+label: a 1-3 word category tag in ALL CAPS (e.g. CEREMONY · FLORALS · TABLESCAPE · LIGHTING)
+title: a single evocative sentence describing the visual mood (max 12 words, no full stop)
+note: an optional short caption with a specific detail visible in the image (max 10 words, or empty string)
+Write in a refined, editorial tone — poetic but concrete. No clichés.`,
+    messages: [{ role: 'user', content: [
+      { type: 'image', source: { type: 'base64', media_type: mimeType, data: buffer.toString('base64') } },
+      { type: 'text', text: 'Describe this wedding inspiration image.' },
+    ] }],
+  });
+  const textBlock = response.content.find(b => b.type === 'text');
+  if (!textBlock) throw new Error('No text in Claude response');
+  return JSON.parse(textBlock.text);
+}

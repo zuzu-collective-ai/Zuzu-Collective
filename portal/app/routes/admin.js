@@ -11,7 +11,7 @@ import express from 'express';
 import multer from 'multer';
 import { pool } from '../db/pool.js';
 import { requireAdmin, passwordsMatch } from '../middleware/auth.js';
-import { generateAllocation, generatePalette, generateChecklist, generateVendorOutreach, extractVendorInfo, isConfigured as anthropicConfigured, STANDARD_CATEGORIES } from '../lib/anthropic.js';
+import { generateAllocation, generatePalette, generateChecklist, generateVendorOutreach, extractVendorInfo, describeTileImage, isConfigured as anthropicConfigured, STANDARD_CATEGORIES } from '../lib/anthropic.js';
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -2483,6 +2483,19 @@ router.get('/couples/:id/design', async (req, res, next) => {
 });
 
 // ── Galleries (with inline tiles) ─────────────────────────────────────
+
+// AI tile description — POST an image, get back label/title/note JSON.
+router.post('/couples/:id/design/galleries/describe-tile', upload.single('file'), async (req, res) => {
+  if (!anthropicConfigured()) return res.status(503).json({ error: 'ANTHROPIC_API_KEY not set.' });
+  if (!req.file) return res.status(400).json({ error: 'No file uploaded.' });
+  try {
+    const data = await describeTileImage({ buffer: req.file.buffer, mimeType: req.file.mimetype });
+    res.json(data);
+  } catch (err) {
+    console.error('[tile-describe]', err);
+    res.status(500).json({ error: 'Description failed — fill in manually.' });
+  }
+});
 
 router.get('/couples/:id/design/galleries/new', async (req, res, next) => {
   try {
