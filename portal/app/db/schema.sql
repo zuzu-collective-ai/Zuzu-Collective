@@ -95,6 +95,7 @@ alter table couples add column if not exists design_tone_title text;
 alter table couples add column if not exists design_materials_title text;
 alter table couples add column if not exists design_materials_note text;
 alter table couples add column if not exists hero_photo_url text;
+alter table couples add column if not exists hero_text_color text default 'dark';
 
 create index if not exists couples_slug_idx on couples(slug);
 

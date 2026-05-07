@@ -237,6 +237,14 @@
           </span>
         </div>
         <label class="admin-field">
+          <span class="admin-field-label">Hero text color</span>
+          <select name="hero_text_color">
+            <option value="dark" <%= (couple?.hero_text_color || 'dark') === 'dark' ? 'selected' : '' %>>Dark plum — for light photos</option>
+            <option value="light" <%= couple?.hero_text_color === 'light' ? 'selected' : '' %>>Cream — for dark photos</option>
+          </select>
+          <span class="admin-field-help">Switch to Cream if the hero text disappears against a dark photo.</span>
+        </label>
+        <label class="admin-field">
           <span class="admin-field-label">Hero subtitle</span>
           <input type="text" name="hero_subtitle" value="<%= couple?.hero_subtitle || 'Wedding Portal' %>">
         </label>

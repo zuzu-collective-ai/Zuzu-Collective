@@ -182,6 +182,13 @@
   color: var(--zz-tobacco);
 }
 
+/* Light-text variant — set in admin when hero photo is dark */
+.hero--light-text .hero-inner,
+.hero--light-text .hero-venue,
+.hero--light-text .hero-names,
+.hero--light-text .hero-subtitle,
+.hero--light-text .hero-date { color: var(--couple-1); }
+
 /* ── Intro strip ─────────────────────────────────────────────────────────── */
 
 .intro {

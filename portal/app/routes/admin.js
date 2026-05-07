@@ -67,6 +67,7 @@ const COUPLE_FIELDS = [
   'design_materials_title',
   'design_materials_note',
   'hero_photo_url',
+  'hero_text_color',
 ];
 
 // Currency parsing — admin enters dollars (e.g. "120000", "$120,000",
