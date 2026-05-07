@@ -8,9 +8,19 @@
 // (express-session, signed with SESSION_SECRET).
 
 import express from 'express';
+import multer from 'multer';
 import { pool } from '../db/pool.js';
 import { requireAdmin, passwordsMatch } from '../middleware/auth.js';
-import { generateAllocation, generatePalette, generateChecklist, generateVendorOutreach, isConfigured as anthropicConfigured, STANDARD_CATEGORIES } from '../lib/anthropic.js';
+import { generateAllocation, generatePalette, generateChecklist, generateVendorOutreach, extractVendorInfo, isConfigured as anthropicConfigured, STANDARD_CATEGORIES } from '../lib/anthropic.js';
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 8 * 1024 * 1024 }, // 8 MB max
+  fileFilter: (_req, file, cb) => {
+    const ok = file.mimetype.startsWith('image/') || ['text/plain', 'application/pdf'].includes(file.mimetype);
+    cb(null, ok);
+  },
+});
 
 const router = express.Router();
 
@@ -79,6 +89,12 @@ function pickCoupleFields(body) {
     const v = body[f];
     if (f === 'budget_total_cents') {
       out[f] = dollarsToCents(v);
+    } else if (f === 'tone_keywords') {
+      // Normalize any separator (comma, dash, pipe, slash, existing ·) to " · "
+      const raw = (v || '').trim();
+      if (!raw) { out[f] = null; continue; }
+      const words = raw.split(/\s*[,\-·|\/]\s*/).map(w => w.trim()).filter(Boolean);
+      out[f] = words.length > 0 ? words.join(' · ') : null;
     } else {
       out[f] = v === '' || v === undefined ? null : v;
     }
@@ -362,6 +378,7 @@ router.get('/couples/:id/vendors/new', async (req, res, next) => {
       formAction: `/admin/couples/${couple.id}/vendors`,
       vendorTypes: COMMON_VENDOR_TYPES,
       statuses: VENDOR_STATUSES,
+      configured: anthropicConfigured(),
       error: null,
       flash: consumeFlash(req),
     });
@@ -384,6 +401,7 @@ router.post('/couples/:id/vendors', async (req, res, next) => {
         formAction: `/admin/couples/${couple.id}/vendors`,
         vendorTypes: COMMON_VENDOR_TYPES,
         statuses: VENDOR_STATUSES,
+        configured: anthropicConfigured(),
         error: 'Vendor type is required.',
         flash: null,
       });
@@ -401,6 +419,28 @@ router.post('/couples/:id/vendors', async (req, res, next) => {
     res.redirect(`/admin/couples/${couple.id}/vendors`);
   } catch (err) {
     next(err);
+  }
+});
+
+// ── AI vendor smart import ────────────────────────────────────────────
+// POST a photo or text file, get back extracted fields as JSON.
+// The vendor form JS reads the JSON and pre-fills the inputs.
+router.post('/couples/:id/vendors/import', upload.single('file'), async (req, res) => {
+  if (!anthropicConfigured()) {
+    return res.status(503).json({ error: 'ANTHROPIC_API_KEY is not set.' });
+  }
+  if (!req.file) {
+    return res.status(400).json({ error: 'No file uploaded.' });
+  }
+  try {
+    const data = await extractVendorInfo({
+      buffer:   req.file.buffer,
+      mimeType: req.file.mimetype,
+    });
+    res.json(data);
+  } catch (err) {
+    console.error('[vendor-import]', err);
+    res.status(500).json({ error: 'Extraction failed. Try again or fill in manually.' });
   }
 });
 
@@ -542,6 +582,7 @@ router.get('/couples/:id/vendors/:vid', async (req, res, next) => {
       formAction: `/admin/couples/${couple.id}/vendors/${rows[0].id}`,
       vendorTypes: COMMON_VENDOR_TYPES,
       statuses: VENDOR_STATUSES,
+      configured: anthropicConfigured(),
       error: null,
       flash: consumeFlash(req),
     });
