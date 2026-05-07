@@ -182,12 +182,31 @@
         const file = e.target.files[0];
         if (!file) return;
         const row = e.target.closest('[data-row]');
-        const urlInput = row.querySelector('input[type="url"]');
-        const statusEl = row.querySelector('[data-cld-status]');
-        const btn = row.querySelector('[data-cld-btn]');
+        const urlInput  = row.querySelector('input[type="url"]');
+        const statusEl  = row.querySelector('[data-cld-status]');
+        const btn       = row.querySelector('[data-cld-btn]');
+        const titleInput = row.querySelector('input[name*="[title]"]');
+        const labelInput = row.querySelector('input[name*="[label]"]');
+        const noteInput  = row.querySelector('input[name*="[note]"]');
         if (btn) btn.disabled = true;
         try {
           await window.zzCloudinary.upload(file, urlInput, statusEl);
+          // Auto-describe via Claude
+          if (statusEl) statusEl.textContent = 'Describing…';
+          const fd = new FormData();
+          fd.append('file', file);
+          const r = await fetch(`/admin/couples/<%= couple.id %>/design/galleries/describe-tile`, {
+            method: 'POST', body: fd,
+          });
+          if (r.ok) {
+            const d = await r.json();
+            if (d.label && labelInput && !labelInput.value) labelInput.value = d.label;
+            if (d.title && titleInput && !titleInput.value) titleInput.value = d.title;
+            if (d.note  && noteInput  && !noteInput.value)  noteInput.value  = d.note;
+            if (statusEl) { statusEl.textContent = '✓ Uploaded & described'; setTimeout(() => { statusEl.textContent = ''; }, 3000); }
+          } else {
+            if (statusEl) { statusEl.textContent = '✓ Uploaded'; setTimeout(() => { statusEl.textContent = ''; }, 3000); }
+          }
         } catch (_) {}
         if (btn) btn.disabled = false;
         e.target.value = '';

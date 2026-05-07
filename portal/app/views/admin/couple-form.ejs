@@ -313,6 +313,17 @@
           preview.style.display = 'none';
         }
       });
+
+      // Auto-format tone keywords to " · " on blur
+      const kwInput = document.querySelector('[name="tone_keywords"]');
+      if (kwInput) {
+        kwInput.addEventListener('blur', () => {
+          const raw = kwInput.value.trim();
+          if (!raw) return;
+          const words = raw.split(/\s*[,\-·|\/]\s*/).map(w => w.trim()).filter(Boolean);
+          if (words.length) kwInput.value = words.join(' · ');
+        });
+      }
     })();
   </script>
 </body>
