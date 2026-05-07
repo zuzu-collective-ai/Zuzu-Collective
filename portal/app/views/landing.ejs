@@ -7,7 +7,9 @@
 
   <!-- ── Hero ────────────────────────────────────────────────────────────── -->
   <section class="hero">
-    <div class="hero-photo" aria-hidden="true"></div>
+    <div class="hero-photo" aria-hidden="true"
+         <% if (couple.hero_photo_url) { %>style="background-image: linear-gradient(to bottom, rgba(65,39,51,0.12) 0%, rgba(65,39,51,0) 30%, rgba(65,39,51,0) 60%, rgba(65,39,51,0.35) 100%), url('<%= couple.hero_photo_url %>');"<% } %>>
+    </div>
 
     <div class="hero-inner">
       <div class="hero-venue">
@@ -18,10 +20,6 @@
       <h1 class="hero-names"><%= couple.display_name %></h1>
       <div class="hero-subtitle"><%= couple.hero_subtitle %></div>
       <div class="hero-date"><%= formattedDate %></div>
-    </div>
-
-    <div class="hero-placeholder-note">
-      Couple photo → portal/app/public/hero/<%= couple.slug %>.jpg
     </div>
   </section>
 

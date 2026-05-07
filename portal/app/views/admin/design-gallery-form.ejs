@@ -53,9 +53,8 @@
         <legend class="admin-legend">Tiles</legend>
         <p class="admin-fieldset-note">
           One row per visual reference. Mark exactly one tile as the <em>hero</em> to
-          give it the larger 2×2 layout in the grid. The <em>note</em> field holds the
-          file-path placeholder ("img → ceremony / hero") until real photos drop into
-          <code>portal/app/public/inspo/<%= couple.slug %>/</code>.
+          give it the larger 2×2 layout in the grid. Paste a hosted image URL
+          (e.g. Cloudinary) to show a real photo on the design page.
         </p>
 
         <div id="tile-rows" class="admin-tile-rows">
@@ -79,9 +78,13 @@
                 <span class="admin-field-label">Title</span>
                 <input type="text" name="tiles[<%= i %>][title]" value="<%= t.title || '' %>" placeholder="An olive-branch arch over the aisle.">
               </label>
+              <label class="admin-field admin-field--inline" style="flex: 1.5;">
+                <span class="admin-field-label">Image URL</span>
+                <input type="url" name="tiles[<%= i %>][image_url]" value="<%= t.image_url || '' %>" placeholder="https://res.cloudinary.com/…">
+              </label>
               <label class="admin-field admin-field--inline" style="flex: 1;">
-                <span class="admin-field-label">Note / file path</span>
-                <input type="text" name="tiles[<%= i %>][note]" value="<%= t.note || '' %>" placeholder="img → ceremony / hero">
+                <span class="admin-field-label">Note</span>
+                <input type="text" name="tiles[<%= i %>][note]" value="<%= t.note || '' %>" placeholder="optional caption">
               </label>
               <button type="button" class="admin-btn admin-btn--ghost admin-btn--small" data-remove>Remove</button>
             </div>
@@ -136,9 +139,13 @@
               <span class="admin-field-label">Title</span>
               <input type="text" name="tiles[${i}][title]" placeholder="">
             </label>
+            <label class="admin-field admin-field--inline" style="flex: 1.5;">
+              <span class="admin-field-label">Image URL</span>
+              <input type="url" name="tiles[${i}][image_url]" placeholder="https://res.cloudinary.com/…">
+            </label>
             <label class="admin-field admin-field--inline" style="flex: 1;">
-              <span class="admin-field-label">Note / file path</span>
-              <input type="text" name="tiles[${i}][note]" placeholder="">
+              <span class="admin-field-label">Note</span>
+              <input type="text" name="tiles[${i}][note]" placeholder="optional caption">
             </label>
             <button type="button" class="admin-btn admin-btn--ghost admin-btn--small" data-remove>Remove</button>
           </div>

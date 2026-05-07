@@ -36,7 +36,8 @@ app.use(
         defaultSrc: ["'self'"],
         styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
         fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
-        imgSrc: ["'self'", 'data:'],
+        // 'https:' allows Cloudinary URLs and any other CDN for couple photos
+        imgSrc: ["'self'", 'data:', 'https:'],
         // Inline scripts are limited to admin form helpers (add/remove
         // guest rows). Move to external files + nonces if the admin
         // ever needs anything more substantial.
@@ -82,16 +83,23 @@ app.get('/healthz', (_req, res) => res.json({ ok: true }));
 app.use('/admin', adminRoutes);
 app.use('/', portalRoutes);
 
-// Root → couples list for admins, otherwise the demo couple.
 app.get('/', (req, res) => {
   if (req.session?.isAdmin) return res.redirect('/admin');
-  res.redirect('/p/alicia-and-jack-2026');
+  res.status(404).render('404');
 });
 
-// Anything we don't recognize gets a small 404. Real product would have
-// a styled page; for now the editorial 404 can wait.
 app.use((_req, res) => {
-  res.status(404).send('Not found.');
+  res.status(404).render('404');
+});
+
+// Global error handler — catches anything passed to next(err).
+// Logs server-side; never exposes internals to the browser.
+// eslint-disable-next-line no-unused-vars
+app.use((err, _req, res, _next) => {
+  console.error('[zuzu-portal] unhandled error:', err);
+  res.status(500).render('500').catch(() => {
+    res.status(500).send('An unexpected error occurred. Please try again.');
+  });
 });
 
 const PORT = Number(process.env.PORT) || 3000;

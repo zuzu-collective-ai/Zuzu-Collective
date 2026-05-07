@@ -76,10 +76,8 @@
         <span class="label">Inspiration</span>
         <h2 class="section-title">Moments we're designing toward.</h2>
         <p class="section-description">
-          <%= galleries.length %> categor<%= galleries.length === 1 ? 'y' : 'ies' %>.
-          Each one carries a hero reference and supporting frames. Photos land at
-          <code>portal/app/public/inspo/<%= couple.slug %>/</code>
-          as we shoot and source them.
+          <%= galleries.length %> categor<%= galleries.length === 1 ? 'y' : 'ies' %> of
+          reference imagery — moments, moods, and details that capture what we're building toward.
         </p>
       </div>
     </section>
@@ -98,7 +96,9 @@
       <% if (tiles.length > 0) { %>
         <div class="inspiration-grid">
           <% tiles.forEach(tile => { %>
-            <div class="inspo-tile<%= tile.is_hero ? ' is-tall is-wide' : '' %>">
+            <div class="inspo-tile<%= tile.is_hero ? ' is-tall is-wide' : '' %><%= tile.image_url ? ' inspo-tile--photo' : '' %>"
+                 <% if (tile.image_url) { %>style="background-image: url('<%= tile.image_url %>');"<% } %>>
+              <% if (tile.image_url) { %><div class="inspo-tile-overlay"></div><% } %>
               <% if (tile.note) { %><div class="inspo-tile-note"><%= tile.note %></div><% } %>
               <span class="inspo-tile-label"><%= tile.label %></span>
               <span class="inspo-tile-title"><%= tile.title %></span>

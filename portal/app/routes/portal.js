@@ -1,17 +1,54 @@
-// Couple-facing portal routes — /p/:slug/...
+// Couple-facing portal routes — /p/:slug/*
 //
-// Phase 2: all eight pages render. Each page reuses the same couple
-// lookup and a single render call into its own EJS template. Per-page
-// data (vendor rows, budget categories, checklist tasks, etc.) is
-// hardcoded in the templates for now — Phase 3 migrates each section
-// into its own table and wires admin forms to write them.
+// All eight pages read live from Postgres; the admin writes, the portal
+// reflects immediately. Analytics are stored in portal_events (hashed IP).
 
 import express from 'express';
+import { createHash } from 'node:crypto';
+import { request as httpsRequest } from 'node:https';
 import { pool } from '../db/pool.js';
 
 const router = express.Router();
 
 // ── Helpers ────────────────────────────────────────────────────────────
+
+// Fire-and-forget POST to SendGrid when a couple's portal is viewed for
+// the first time. Silently no-ops if SENDGRID_API_KEY / NOTIFY_EMAIL
+// are not set — nothing breaks, Zoe just won't get the email.
+function sendFirstViewNotification(couple, section) {
+  const apiKey     = process.env.SENDGRID_API_KEY;
+  const notifyTo   = process.env.NOTIFY_EMAIL;
+  if (!apiKey || !notifyTo) return;
+
+  const appUrl    = process.env.APP_URL || '';
+  const adminLink = appUrl ? `${appUrl}/admin/couples/${couple.id}` : '';
+  const bodyLines = [
+    `${couple.display_name} opened their portal for the first time.`,
+    `Page: ${section}`,
+    adminLink,
+  ].filter(Boolean).join('\n\n');
+
+  const payload = JSON.stringify({
+    personalizations: [{ to: [{ email: notifyTo }] }],
+    from: { email: notifyTo, name: 'Zuzu Collective' },
+    subject: `${couple.display_name} just opened their portal`,
+    content: [{ type: 'text/plain', value: bodyLines }],
+  });
+
+  const req = httpsRequest({
+    hostname: 'api.sendgrid.com',
+    path: '/v3/mail/send',
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+      'Content-Length': Buffer.byteLength(payload),
+    },
+  });
+  req.on('error', () => {});
+  req.write(payload);
+  req.end();
+}
 
 async function findCoupleBySlug(slug) {
   const { rows } = await pool.query(
@@ -37,7 +74,7 @@ async function loadCouple(req, res, next) {
   try {
     const couple = await findCoupleBySlug(req.params.slug);
     if (!couple) {
-      return res.status(404).send('Portal not found.');
+      return res.status(404).render('404');
     }
     res.locals.couple = couple;
     res.locals.formattedDate = formatWeddingDate(couple.wedding_date);
@@ -47,7 +84,34 @@ async function loadCouple(req, res, next) {
   }
 }
 
-router.use('/p/:slug', loadCouple);
+// Fire-and-forget analytics for every client page view.
+// Uses sha256(ip + salt) so no raw IPs are stored.
+function logPageView(req, res, next) {
+  if (req.method !== 'GET') return next();
+  try {
+    const couple = res.locals.couple;
+    const suffix = req.path.slice(`/p/${req.params.slug}`.length);
+    const section = suffix.split('/').filter(Boolean)[0] || 'landing';
+    const ip = (req.headers['x-forwarded-for'] || req.ip || '').split(',')[0].trim();
+    const salt = process.env.ANALYTICS_SALT || 'zuzu-portal';
+    const ipHash = createHash('sha256').update(ip + salt).digest('hex').slice(0, 16);
+    pool.query(
+      'insert into portal_events (couple_id, section, ip_hash) values ($1, $2, $3)',
+      [couple.id, section, ipHash],
+    ).then(async () => {
+      try {
+        const { rows } = await pool.query(
+          'select count(*)::int as n from portal_events where couple_id = $1',
+          [couple.id],
+        );
+        if (rows[0]?.n === 1) sendFirstViewNotification(couple, section);
+      } catch {}
+    }).catch(() => {});
+  } catch {}
+  next();
+}
+
+router.use('/p/:slug', loadCouple, logPageView);
 
 // ── Pages ──────────────────────────────────────────────────────────────
 
@@ -210,6 +274,29 @@ router.get('/p/:slug/checklist', async (req, res, next) => {
         daysToWedding,
       },
     });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Task toggle — clients check/uncheck directly from the portal.
+// Validates ownership via the milestone → couple join so arbitrary
+// task IDs from other couples can't be toggled.
+router.post('/p/:slug/checklist/tasks/:tid/toggle', async (req, res, next) => {
+  try {
+    const coupleId = res.locals.couple.id;
+    const { rows } = await pool.query(
+      `update checklist_tasks t
+          set is_done = not t.is_done, updated_at = now()
+         from checklist_milestones m
+        where t.id = $1
+          and t.milestone_id = m.id
+          and m.couple_id = $2
+        returning t.is_done`,
+      [req.params.tid, coupleId],
+    );
+    if (rows.length === 0) return res.status(404).json({ error: 'Not found.' });
+    res.json({ is_done: rows[0].is_done });
   } catch (err) {
     next(err);
   }

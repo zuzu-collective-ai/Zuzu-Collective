@@ -54,16 +54,16 @@
     </div>
   </section>
 
-  <!-- ── Filter strip — visual only in v1 ─────────────────────────────────── -->
+  <!-- ── Filter strip ──────────────────────────────────────────────────────── -->
   <div class="guest-filters" role="group" aria-label="Filter the guest list">
     <span class="guest-filters-label">Filter</span>
     <div class="guest-filters-list">
-      <button type="button" class="filter-chip is-active">All</button>
-      <button type="button" class="filter-chip">Bride's side</button>
-      <button type="button" class="filter-chip">Groom's side</button>
-      <button type="button" class="filter-chip">Both</button>
-      <button type="button" class="filter-chip">Bridal party</button>
-      <button type="button" class="filter-chip">Children</button>
+      <button type="button" class="filter-chip is-active" data-filter="all">All</button>
+      <button type="button" class="filter-chip" data-filter="bride">Bride's side</button>
+      <button type="button" class="filter-chip" data-filter="groom">Groom's side</button>
+      <button type="button" class="filter-chip" data-filter="both">Both</button>
+      <button type="button" class="filter-chip" data-filter="bridal">Bridal party</button>
+      <button type="button" class="filter-chip" data-filter="children">Children</button>
     </div>
   </div>
 
@@ -123,7 +123,9 @@
             const pill = STATUS_PILL[h.status] || STATUS_PILL.awaiting;
             const t = householdTable(h);
           %>
-            <li class="household<%= status === 'declined' ? ' is-declined' : '' %>">
+            <li class="household<%= status === 'declined' ? ' is-declined' : '' %>"
+                data-side="<%= (h.side || '').toLowerCase() %>"
+                data-has-child="<%= guests.some(g => g.guest_type === 'child') ? '1' : '0' %>">
               <div class="household-meta">
                 <span class="label">Household</span>
                 <% if (h.side) { %>
@@ -171,8 +173,8 @@
         <span class="label">Seating · <%= tables.length %> tables</span>
         <h2 class="section-title">The room, table by table.</h2>
         <p class="section-description seating-intro">
-          Round tables in the reception room. Drag to reseat in admin —
-          for now, this is a static read.
+          Round tables in the reception room. Assignments are updated here
+          as seating is confirmed.
         </p>
       </header>
 
@@ -229,6 +231,44 @@
   <% } %>
 
   <%- include('partials/footer', { couple }) %>
+
+  <script>
+    (function () {
+      const chips = document.querySelectorAll('.filter-chip[data-filter]');
+      const groups = document.querySelectorAll('.rsvp-group');
+
+      function applyFilter(filter) {
+        groups.forEach(group => {
+          let anyVisible = false;
+          group.querySelectorAll('li.household').forEach(li => {
+            const side     = li.dataset.side || '';
+            const hasChild = li.dataset.hasChild === '1';
+            let show = false;
+            switch (filter) {
+              case 'all':     show = true; break;
+              case 'bride':   show = side.includes('bride'); break;
+              case 'groom':   show = side.includes('groom'); break;
+              case 'both':    show = side.includes('both');  break;
+              case 'bridal':  show = side.includes('bridal'); break;
+              case 'children':show = hasChild;  break;
+              default:        show = true;
+            }
+            li.hidden = !show;
+            if (show) anyVisible = true;
+          });
+          group.hidden = !anyVisible;
+        });
+      }
+
+      chips.forEach(chip => {
+        chip.addEventListener('click', () => {
+          chips.forEach(c => c.classList.remove('is-active'));
+          chip.classList.add('is-active');
+          applyFilter(chip.dataset.filter);
+        });
+      });
+    })();
+  </script>
 
 </body>
 </html>

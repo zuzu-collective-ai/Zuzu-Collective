@@ -16,6 +16,16 @@
     <% if (couples.length === 0) { %>
       <p class="admin-empty">No couples yet. <a href="/admin/couples/new">Add your first one</a>.</p>
     <% } else { %>
+      <%
+        function timeAgo(d) {
+          if (!d) return null;
+          const secs = Math.floor((Date.now() - new Date(d)) / 1000);
+          if (secs < 60)   return 'just now';
+          if (secs < 3600) return `${Math.floor(secs / 60)}m ago`;
+          if (secs < 86400) return `${Math.floor(secs / 3600)}h ago`;
+          return `${Math.floor(secs / 86400)}d ago`;
+        }
+      %>
       <ul class="admin-list">
         <% couples.forEach(couple => { %>
           <li class="admin-list-item">
@@ -31,6 +41,22 @@
                   </span>
                 <% } %>
                 <span class="admin-list-slug">/p/<%= couple.slug %></span>
+                <% if (couple.vendor_total > 0) { %>
+                  <span style="color: var(--zz-tobacco); font-size: 0.75rem;">
+                    <%= couple.vendor_booked %>/<%= couple.vendor_total %> vendors booked
+                  </span>
+                <% } %>
+                <% if (couple.task_total > 0) { %>
+                  <span style="color: var(--zz-tobacco); font-size: 0.75rem;">
+                    <%= Math.round(couple.task_done / couple.task_total * 100) %>% checklist
+                  </span>
+                <% } %>
+                <% if (couple.last_viewed_at) { %>
+                  <span style="color: var(--zz-tobacco); font-size: 0.75rem;">
+                    Last seen <%= timeAgo(couple.last_viewed_at) %>
+                    <% if (couple.views_7d > 0) { %> · <%= couple.views_7d %>v this week<% } %>
+                  </span>
+                <% } %>
               </div>
             </a>
             <div class="admin-list-actions">

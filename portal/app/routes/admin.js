@@ -10,6 +10,7 @@
 import express from 'express';
 import { pool } from '../db/pool.js';
 import { requireAdmin, passwordsMatch } from '../middleware/auth.js';
+import { generateAllocation, generatePalette, generateChecklist, generateVendorOutreach, isConfigured as anthropicConfigured, STANDARD_CATEGORIES } from '../lib/anthropic.js';
 
 const router = express.Router();
 
@@ -55,6 +56,7 @@ const COUPLE_FIELDS = [
   'design_tone_title',
   'design_materials_title',
   'design_materials_note',
+  'hero_photo_url',
 ];
 
 // Currency parsing — admin enters dollars (e.g. "120000", "$120,000",
@@ -115,7 +117,12 @@ router.post('/login', (req, res) => {
   req.session.isAdmin = true;
   // Regenerate the session id on login to harden against fixation.
   req.session.save(() => {
-    res.redirect(req.body.next || '/admin');
+    // Restrict redirect to same-origin paths only — never follow external URLs.
+    const raw = req.body.next || '';
+    const safePath = typeof raw === 'string' && raw.startsWith('/') && !raw.startsWith('//')
+      ? raw
+      : '/admin';
+    res.redirect(safePath);
   });
 });
 
@@ -133,7 +140,22 @@ router.use(requireAdmin);
 router.get('/', async (_req, res, next) => {
   try {
     const { rows: couples } = await pool.query(
-      'select id, slug, display_name, wedding_date, venue_name, venue_location, updated_at from couples order by wedding_date asc',
+      `select c.id, c.slug, c.display_name, c.wedding_date, c.venue_name, c.venue_location, c.updated_at,
+              (select max(e.created_at) from portal_events e where e.couple_id = c.id) as last_viewed_at,
+              (select count(*) from portal_events e where e.couple_id = c.id
+                and e.created_at > now() - interval '7 days')::int as views_7d,
+              -- Vendor stats
+              (select count(*) from vendors v where v.couple_id = c.id)::int as vendor_total,
+              (select count(*) from vendors v where v.couple_id = c.id and v.status = 'booked')::int as vendor_booked,
+              -- Checklist stats
+              (select count(*) from checklist_tasks t
+                 join checklist_milestones m on m.id = t.milestone_id
+                where m.couple_id = c.id)::int as task_total,
+              (select count(*) from checklist_tasks t
+                 join checklist_milestones m on m.id = t.milestone_id
+                where m.couple_id = c.id and t.is_done = true)::int as task_done
+         from couples c
+        order by c.wedding_date asc`,
     );
     res.render('admin/couples-list', {
       couples,
@@ -147,7 +169,8 @@ router.get('/', async (_req, res, next) => {
 // New couple form
 router.get('/couples/new', (req, res) => {
   res.render('admin/couple-form', {
-    couple: null,                 // null => "new" mode
+    couple: null,
+    activity: null,
     formAction: '/admin/couples',
     error: null,
     flash: consumeFlash(req),
@@ -161,6 +184,7 @@ router.post('/couples', async (req, res, next) => {
     if (!data.slug || !data.display_name || !data.wedding_date) {
       return res.status(400).render('admin/couple-form', {
         couple: { ...data },
+        activity: null,
         formAction: '/admin/couples',
         error: 'Slug, display name, and wedding date are required.',
         flash: null,
@@ -182,6 +206,7 @@ router.post('/couples', async (req, res, next) => {
       // unique_violation on slug
       return res.status(400).render('admin/couple-form', {
         couple: { ...req.body },
+        activity: null,
         formAction: '/admin/couples',
         error: 'That slug is already in use. Pick a different one.',
         flash: null,
@@ -194,13 +219,25 @@ router.post('/couples', async (req, res, next) => {
 // Edit couple form
 router.get('/couples/:id', async (req, res, next) => {
   try {
-    const { rows } = await pool.query('select * from couples where id = $1', [
-      req.params.id,
+    const [coupleRes, activityRes] = await Promise.all([
+      pool.query('select * from couples where id = $1', [req.params.id]),
+      pool.query(
+        `select
+           count(*)::int                                                     as views_7d,
+           count(distinct ip_hash)::int                                      as unique_7d,
+           max(created_at)                                                   as last_viewed_at,
+           count(*) filter (where created_at > now() - interval '1 day')::int as views_24h
+         from portal_events
+        where couple_id = $1
+          and created_at > now() - interval '7 days'`,
+        [req.params.id],
+      ),
     ]);
-    if (!rows[0]) return res.status(404).send('Couple not found.');
+    if (!coupleRes.rows[0]) return res.status(404).send('Couple not found.');
     res.render('admin/couple-form', {
-      couple: rows[0],
-      formAction: `/admin/couples/${rows[0].id}`,
+      couple: coupleRes.rows[0],
+      activity: activityRes.rows[0],
+      formAction: `/admin/couples/${coupleRes.rows[0].id}`,
       error: null,
       flash: consumeFlash(req),
     });
@@ -216,6 +253,7 @@ router.post('/couples/:id', async (req, res, next) => {
     if (!data.slug || !data.display_name || !data.wedding_date) {
       return res.status(400).render('admin/couple-form', {
         couple: { id: req.params.id, ...data },
+        activity: null,
         formAction: `/admin/couples/${req.params.id}`,
         error: 'Slug, display name, and wedding date are required.',
         flash: null,
@@ -237,6 +275,7 @@ router.post('/couples/:id', async (req, res, next) => {
     if (err.code === '23505') {
       return res.status(400).render('admin/couple-form', {
         couple: { id: req.params.id, ...req.body },
+        activity: null,
         formAction: `/admin/couples/${req.params.id}`,
         error: 'That slug is already in use by another couple.',
         flash: null,
@@ -363,6 +402,126 @@ router.post('/couples/:id/vendors', async (req, res, next) => {
   } catch (err) {
     next(err);
   }
+});
+
+// ── AI vendor outreach generator (Phase 4d) ───────────────────────────
+// Static `/vendors/outreach` must appear before `/:vid`.
+
+router.get('/couples/:id/vendors/outreach', async (req, res, next) => {
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+    const { rows: vendors } = await pool.query(
+      `select * from vendors where couple_id = $1
+         and status in ('pending', 'shortlist')
+       order by position asc`,
+      [couple.id],
+    );
+    res.render('admin/vendor-outreach-form', {
+      couple, vendors,
+      configured: anthropicConfigured(),
+      proposal: null, submitted: null, error: null,
+      flash: consumeFlash(req),
+      formAction: `/admin/couples/${couple.id}/vendors/outreach`,
+    });
+  } catch (err) { next(err); }
+});
+
+router.post('/couples/:id/vendors/outreach', async (req, res, next) => {
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+
+    const { rows: allPending } = await pool.query(
+      `select * from vendors where couple_id = $1
+         and status in ('pending', 'shortlist')
+       order by position asc`,
+      [couple.id],
+    );
+
+    const renderForm = (extra) => res.status(extra.error ? 400 : 200).render('admin/vendor-outreach-form', {
+      couple, vendors: allPending,
+      configured: anthropicConfigured(),
+      proposal: null, submitted: req.body,
+      flash: consumeFlash(req),
+      formAction: `/admin/couples/${couple.id}/vendors/outreach`,
+      ...extra,
+    });
+
+    if (!anthropicConfigured()) {
+      return renderForm({ error: 'ANTHROPIC_API_KEY is not set. Add it under Render → Environment.' });
+    }
+
+    // Which vendor IDs did Zoe select?
+    const selectedIds = new Set(
+      Array.isArray(req.body.vendor_ids) ? req.body.vendor_ids : [req.body.vendor_ids].filter(Boolean),
+    );
+    const selected = allPending.filter(v => selectedIds.has(v.id));
+    if (selected.length === 0) {
+      return renderForm({ error: 'Select at least one vendor to generate outreach for.' });
+    }
+
+    let result;
+    try {
+      result = await generateVendorOutreach({
+        displayName:    couple.display_name,
+        weddingDate:    couple.wedding_date
+          ? new Date(couple.wedding_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })
+          : undefined,
+        venueName:      couple.venue_name,
+        venueLocation:  couple.venue_location,
+        toneKeywords:   couple.tone_keywords,
+        vendors:        selected.map(v => ({ id: v.id, vendor_type: v.vendor_type, note: v.note })),
+        brief:          (req.body.brief || '').trim() || undefined,
+      });
+    } catch (err) {
+      console.error('[outreach-gen] Claude API error:', err);
+      return renderForm({ error: `AI call failed: ${err.message}` });
+    }
+
+    // Merge generated drafts back with vendor rows for the preview
+    const draftMap = new Map(result.drafts.map(d => [d.vendor_type, d]));
+    const rows = selected.map(v => ({
+      ...v,
+      draft: draftMap.get(v.vendor_type) || { subject: '', body: '' },
+    }));
+
+    res.render('admin/vendor-outreach-form', {
+      couple, vendors: allPending,
+      configured: true,
+      proposal: { rows, usage: result.usage },
+      submitted: req.body, error: null,
+      flash: consumeFlash(req),
+      formAction: `/admin/couples/${couple.id}/vendors/outreach`,
+    });
+  } catch (err) { next(err); }
+});
+
+router.post('/couples/:id/vendors/outreach/apply', async (req, res, next) => {
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+
+    // Save each selected draft to vendor.note
+    const raw = req.body.drafts || {};
+    let saved = 0;
+    for (const [vid, d] of Object.entries(raw)) {
+      if (req.body[`save_${vid}`] !== 'true') continue;
+      const note = `=== Outreach draft ===\nSubject: ${(d.subject || '').trim()}\n\n${(d.body || '').trim()}`;
+      await pool.query(
+        'update vendors set note = $1, updated_at = now() where id = $2 and couple_id = $3',
+        [note, vid, couple.id],
+      );
+      saved++;
+    }
+
+    if (saved === 0) {
+      setFlash(req, 'info', 'Nothing saved — no drafts were selected.');
+    } else {
+      setFlash(req, 'success', `Saved ${saved} outreach draft${saved === 1 ? '' : 's'} to vendor notes.`);
+    }
+    res.redirect(`/admin/couples/${couple.id}/vendors`);
+  } catch (err) { next(err); }
 });
 
 // Edit vendor form
@@ -895,6 +1054,7 @@ router.get('/couples/:id/budget/new', async (req, res, next) => {
 
 // Edit category form
 router.get('/couples/:id/budget/:cid', async (req, res, next) => {
+  if (!isUuid(req.params.cid)) return next();  // let static paths like /budget/allocate fall through
   try {
     const couple = await findCoupleById(req.params.id);
     if (!couple) return res.status(404).send('Couple not found.');
@@ -999,6 +1159,7 @@ router.post('/couples/:id/budget', async (req, res, next) => {
 
 // Update category (replace line items wholesale — same approach as households)
 router.post('/couples/:id/budget/:cid', async (req, res, next) => {
+  if (!isUuid(req.params.cid)) return next();
   const client = await pool.connect();
   try {
     const couple = await findCoupleById(req.params.id);
@@ -1059,6 +1220,7 @@ router.post('/couples/:id/budget/:cid', async (req, res, next) => {
 });
 
 router.post('/couples/:id/budget/:cid/delete', async (req, res, next) => {
+  if (!isUuid(req.params.cid)) return next();
   try {
     const { rows } = await pool.query(
       'delete from budget_categories where id = $1 and couple_id = $2 returning title',
@@ -1067,6 +1229,240 @@ router.post('/couples/:id/budget/:cid/delete', async (req, res, next) => {
     if (rows[0]) setFlash(req, 'success', `Removed ${rows[0].title}.`);
     res.redirect(`/admin/couples/${req.params.id}/budget`);
   } catch (err) { next(err); }
+});
+
+// ── AI budget allocator (Phase 4a) ────────────────────────────────────
+//
+// NOTE on route ordering: these handlers must be declared BEFORE the
+// generic `/budget/:cid` routes above — Express matches in declaration
+// order, so `/budget/allocate` would otherwise be intercepted by the
+// `:cid` route with cid="allocate" and 500 on the non-UUID lookup. They
+// stay here in this file because they're conceptually part of the budget
+// admin surface; the route order is enforced by an explicit route-level
+// guard at the top of each `/budget/:cid` handler that 404s on non-UUID
+// `:cid` values.
+
+// GET — show the input form. Pre-fills from the couple's existing fields
+// (total budget, venue, guest count from accepted households) so Zoe can
+// click Generate without retyping anything she's already entered.
+router.get('/couples/:id/budget/allocate', async (req, res, next) => {
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+
+    const { rows: guestRows } = await pool.query(
+      `select count(g.*)::int as guest_count
+         from guests g
+         join households h on h.id = g.household_id
+        where h.couple_id = $1 and h.status = 'accepted'`,
+      [couple.id],
+    );
+
+    res.render('admin/budget-allocate-form', {
+      couple,
+      configured: anthropicConfigured(),
+      guestCountSuggestion: guestRows[0]?.guest_count || null,
+      proposal: null,
+      submitted: null,
+      formAction: `/admin/couples/${couple.id}/budget/allocate`,
+      error: null,
+      flash: consumeFlash(req),
+    });
+  } catch (err) { next(err); }
+});
+
+// POST — call Claude, render the same view with the proposal.
+router.post('/couples/:id/budget/allocate', async (req, res, next) => {
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+
+    if (!anthropicConfigured()) {
+      return res.status(400).render('admin/budget-allocate-form', {
+        couple,
+        configured: false,
+        guestCountSuggestion: null,
+        proposal: null,
+        submitted: null,
+        formAction: `/admin/couples/${couple.id}/budget/allocate`,
+        error: 'ANTHROPIC_API_KEY is not set on the server. Add it under Render → Environment to enable the allocator.',
+        flash: null,
+      });
+    }
+
+    const submitted = {
+      total_dollars: req.body.total_dollars?.trim() || '',
+      guest_count: req.body.guest_count?.trim() || '',
+      notes: req.body.notes?.trim() || '',
+    };
+
+    const totalCents = dollarsToCents(submitted.total_dollars);
+    if (totalCents <= 0) {
+      return res.status(400).render('admin/budget-allocate-form', {
+        couple,
+        configured: true,
+        guestCountSuggestion: null,
+        proposal: null,
+        submitted,
+        formAction: `/admin/couples/${couple.id}/budget/allocate`,
+        error: 'Total budget is required and must be greater than zero.',
+        flash: null,
+      });
+    }
+
+    const guestCount = parseInt(submitted.guest_count, 10) || null;
+    const weddingDate = couple.wedding_date
+      ? new Date(couple.wedding_date).toLocaleDateString('en-US', {
+          year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC',
+        })
+      : null;
+
+    let result;
+    try {
+      result = await generateAllocation({
+        totalCents,
+        displayName: couple.display_name,
+        weddingDate,
+        venueName: couple.venue_name,
+        venueLocation: couple.venue_location,
+        guestCount,
+        notes: submitted.notes || null,
+      });
+    } catch (err) {
+      console.error('[allocator] Claude API call failed:', err);
+      return res.status(502).render('admin/budget-allocate-form', {
+        couple,
+        configured: true,
+        guestCountSuggestion: null,
+        proposal: null,
+        submitted,
+        formAction: `/admin/couples/${couple.id}/budget/allocate`,
+        error: `Claude API call failed: ${err.message}. Try again, or save the figures manually on the budget tab.`,
+        flash: null,
+      });
+    }
+
+    // Reconcile the proposal against the standard category list and any
+    // existing categories on the couple. Fall back to the standard order
+    // so a malformed response from the model doesn't break the preview.
+    const { rows: existing } = await pool.query(
+      'select id, category_number, title, estimated_cents from budget_categories where couple_id = $1',
+      [couple.id],
+    );
+    const existingByNumber = new Map(existing.map(c => [c.category_number, c]));
+
+    const proposalRows = STANDARD_CATEGORIES.map(std => {
+      const fromAi = result.categories.find(c => c.category_number === std.number);
+      const current = existingByNumber.get(std.number) || null;
+      return {
+        category_number: std.number,
+        title: std.title,
+        emphasis: std.emphasis,
+        proposed_cents: fromAi ? Math.max(0, parseInt(fromAi.estimated_cents, 10) || 0) : 0,
+        rationale: fromAi ? fromAi.rationale : '(not generated)',
+        current_cents: current ? current.estimated_cents : null,
+        exists: !!current,
+      };
+    });
+
+    const proposedTotal = proposalRows.reduce((s, r) => s + r.proposed_cents, 0);
+
+    res.render('admin/budget-allocate-form', {
+      couple,
+      configured: true,
+      guestCountSuggestion: null,
+      proposal: {
+        rationale_summary: result.rationale_summary,
+        rows: proposalRows,
+        proposedTotal,
+        requestedTotal: totalCents,
+        usage: result.usage,
+      },
+      submitted,
+      formAction: `/admin/couples/${couple.id}/budget/allocate`,
+      error: null,
+      flash: null,
+    });
+  } catch (err) { next(err); }
+});
+
+// POST /apply — write the proposal to budget_categories. For matching
+// existing categories it updates `estimated_cents` only (leaves line items
+// alone); for missing categories it creates them with no line items. Does
+// NOT delete categories outside the proposal — Zoe stays in control of
+// removals.
+router.post('/couples/:id/budget/allocate/apply', async (req, res, next) => {
+  const client = await pool.connect();
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+
+    // Body shape: rows[i] = { category_number, title, estimated_dollars, apply }
+    // Only rows with apply=true get persisted.
+    const raw = req.body.rows || {};
+    const indices = Object.keys(raw).map(Number).filter(n => !Number.isNaN(n)).sort((a, b) => a - b);
+    const toApply = indices
+      .map(i => raw[i])
+      .filter(r => r && r.apply)
+      .map(r => ({
+        category_number: parseInt(r.category_number, 10),
+        title: r.title?.trim() || '',
+        estimated_cents: dollarsToCents(r.estimated_dollars),
+      }))
+      .filter(r => r.category_number && r.title);
+
+    if (toApply.length === 0) {
+      setFlash(req, 'info', 'Nothing was selected to apply.');
+      return res.redirect(`/admin/couples/${couple.id}/budget`);
+    }
+
+    // Need each standard category's emphasis + position when creating new
+    // rows. Look the standards up by number.
+    const stdByNumber = new Map(STANDARD_CATEGORIES.map(c => [c.number, c]));
+
+    await client.query('begin');
+    let updated = 0;
+    let created = 0;
+    for (const r of toApply) {
+      const { rowCount } = await client.query(
+        `update budget_categories
+            set estimated_cents = $1, updated_at = now()
+          where couple_id = $2 and category_number = $3`,
+        [r.estimated_cents, couple.id, r.category_number],
+      );
+      if (rowCount > 0) {
+        updated += 1;
+        continue;
+      }
+      const std = stdByNumber.get(r.category_number);
+      await client.query(
+        `insert into budget_categories
+           (couple_id, category_number, title, title_emphasis, estimated_cents, position)
+         values ($1, $2, $3, $4, $5, $6)`,
+        [
+          couple.id,
+          r.category_number,
+          std?.title || r.title,
+          std?.emphasis || null,
+          r.estimated_cents,
+          r.category_number,
+        ],
+      );
+      created += 1;
+    }
+    await client.query('commit');
+
+    const parts = [];
+    if (updated > 0) parts.push(`updated ${updated} estimate${updated === 1 ? '' : 's'}`);
+    if (created > 0) parts.push(`created ${created} categor${created === 1 ? 'y' : 'ies'}`);
+    setFlash(req, 'success', `Applied AI allocation — ${parts.join(', ')}.`);
+    res.redirect(`/admin/couples/${couple.id}/budget`);
+  } catch (err) {
+    await client.query('rollback').catch(() => {});
+    next(err);
+  } finally {
+    client.release();
+  }
 });
 
 // ── Checklist (per couple — milestones with inline tasks) ─────────────
@@ -1140,6 +1536,160 @@ router.get('/couples/:id/checklist/new', async (req, res, next) => {
       error: null,
       flash: consumeFlash(req),
     });
+  } catch (err) { next(err); }
+});
+
+// ── AI checklist generator (Phase 4c) ─────────────────────────────────
+// Static paths `/checklist/generate` declared before `/:mid` so Express
+// doesn't swallow them as the parameterized milestone-id route.
+
+router.get('/couples/:id/checklist/generate', async (req, res, next) => {
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+    res.render('admin/checklist-generate-form', {
+      couple,
+      configured: anthropicConfigured(),
+      proposal:   null,
+      submitted:  null,
+      error:      null,
+      flash:      consumeFlash(req),
+      formAction: `/admin/couples/${couple.id}/checklist/generate`,
+    });
+  } catch (err) { next(err); }
+});
+
+router.post('/couples/:id/checklist/generate', async (req, res, next) => {
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+
+    const renderForm = (extra) => res.status(extra.error ? 400 : 200).render('admin/checklist-generate-form', {
+      couple,
+      configured: anthropicConfigured(),
+      proposal:   null,
+      submitted:  req.body,
+      flash:      consumeFlash(req),
+      formAction: `/admin/couples/${couple.id}/checklist/generate`,
+      ...extra,
+    });
+
+    if (!anthropicConfigured()) {
+      return renderForm({ error: 'ANTHROPIC_API_KEY is not set. Add it under Render → Environment.' });
+    }
+
+    const weddingDate = couple.wedding_date
+      ? new Date(couple.wedding_date).toISOString().split('T')[0]
+      : null;
+    if (!weddingDate) {
+      return renderForm({ error: 'This couple has no wedding date set. Add one in the couple form first.' });
+    }
+
+    const { rows: guestRows } = await pool.query(
+      `select count(*) as cnt from guests g
+         join households h on h.id = g.household_id
+        where h.couple_id = $1 and h.status = 'accepted'`,
+      [couple.id],
+    );
+    const guestCount = Number(guestRows[0]?.cnt) || null;
+
+    let result;
+    try {
+      result = await generateChecklist({
+        weddingDate,
+        weddingDateFormatted: couple.wedding_date
+          ? new Date(couple.wedding_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })
+          : undefined,
+        displayName:   couple.display_name,
+        venueName:     couple.venue_name,
+        venueLocation: couple.venue_location,
+        guestCount,
+        brief: (req.body.brief || '').trim() || undefined,
+      });
+    } catch (err) {
+      console.error('[checklist-gen] Claude API error:', err);
+      return renderForm({ error: `AI call failed: ${err.message}` });
+    }
+
+    const totalTasks = result.milestones.reduce((s, m) => s + m.tasks.length, 0);
+    res.render('admin/checklist-generate-form', {
+      couple,
+      configured: true,
+      proposal: { ...result, totalTasks },
+      submitted: req.body,
+      error: null,
+      flash: consumeFlash(req),
+      formAction: `/admin/couples/${couple.id}/checklist/generate`,
+    });
+  } catch (err) { next(err); }
+});
+
+router.post('/couples/:id/checklist/generate/apply', async (req, res, next) => {
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+
+    // Parse milestones from hidden form fields: milestones[i][*] and milestones[i][tasks][j][*]
+    const raw = req.body.milestones || {};
+    const milestones = Object.keys(raw)
+      .map(Number)
+      .sort((a, b) => a - b)
+      .map(i => {
+        const m = raw[i];
+        const tasksRaw = m.tasks || {};
+        const tasks = Object.keys(tasksRaw)
+          .map(Number)
+          .sort((a, b) => a - b)
+          .map(j => ({
+            position: Number(tasksRaw[j].position),
+            name:     (tasksRaw[j].name     || '').trim(),
+            sub_text: (tasksRaw[j].sub_text || '').trim() || null,
+          }))
+          .filter(t => t.name);
+        return {
+          position:   Number(m.position),
+          date_label: (m.date_label || '').trim(),
+          title:      (m.title      || '').trim(),
+          tasks,
+        };
+      })
+      .filter(m => m.title);
+
+    if (milestones.length === 0) {
+      setFlash(req, 'info', 'Nothing to apply — no milestones received.');
+      return res.redirect(`/admin/couples/${couple.id}/checklist`);
+    }
+
+    // Replace all existing milestones + tasks for this couple in a transaction.
+    await pool.query('begin');
+    try {
+      await pool.query(
+        'delete from checklist_milestones where couple_id = $1',
+        [couple.id],
+      );
+      for (const m of milestones) {
+        const { rows: [ms] } = await pool.query(
+          `insert into checklist_milestones (couple_id, date_label, title, position)
+           values ($1, $2, $3, $4) returning id`,
+          [couple.id, m.date_label, m.title, m.position],
+        );
+        for (const t of m.tasks) {
+          await pool.query(
+            `insert into checklist_tasks (milestone_id, name, sub_text, position)
+             values ($1, $2, $3, $4)`,
+            [ms.id, t.name, t.sub_text, t.position],
+          );
+        }
+      }
+      await pool.query('commit');
+    } catch (err) {
+      await pool.query('rollback');
+      throw err;
+    }
+
+    const totalTasks = milestones.reduce((s, m) => s + m.tasks.length, 0);
+    setFlash(req, 'success', `Applied AI checklist — ${milestones.length} milestones, ${totalTasks} tasks.`);
+    res.redirect(`/admin/couples/${couple.id}/checklist`);
   } catch (err) { next(err); }
 });
 
@@ -1550,6 +2100,13 @@ function intOrNull(s) {
   return Number.isNaN(n) ? null : n;
 }
 
+// UUID guard — used in `/.../:something` routes that share a prefix with
+// hardcoded paths (e.g. `/budget/:cid` vs `/budget/allocate`). Express
+// matches declaration order; this check lets static paths fall through
+// to their own handlers without triggering a UUID-lookup 500 first.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function isUuid(s) { return typeof s === 'string' && UUID_RE.test(s); }
+
 function parseFpZonesFromBody(body) {
   const raw = body.zones || {};
   const indices = Object.keys(raw)
@@ -1842,6 +2399,7 @@ function parseTilesFromBody(body) {
       label: t.label?.trim() || '',
       title: t.title.trim(),
       note: nullIfEmpty(t.note),
+      image_url: nullIfEmpty(t.image_url),
       is_hero: !!(t.is_hero && t.is_hero !== '' && t.is_hero !== 'false'),
       position: idx + 1,
     }));
@@ -1966,9 +2524,9 @@ router.post('/couples/:id/design/galleries', async (req, res, next) => {
     const galleryId = rows[0].id;
     for (const t of tiles) {
       await client.query(
-        `insert into inspiration_tiles (gallery_id, label, title, note, is_hero, position)
-         values ($1, $2, $3, $4, $5, $6)`,
-        [galleryId, t.label, t.title, t.note, t.is_hero, t.position],
+        `insert into inspiration_tiles (gallery_id, label, title, note, image_url, is_hero, position)
+         values ($1, $2, $3, $4, $5, $6, $7)`,
+        [galleryId, t.label, t.title, t.note, t.image_url, t.is_hero, t.position],
       );
     }
     await client.query('commit');
@@ -2016,9 +2574,9 @@ router.post('/couples/:id/design/galleries/:gid', async (req, res, next) => {
     await client.query('delete from inspiration_tiles where gallery_id = $1', [req.params.gid]);
     for (const t of tiles) {
       await client.query(
-        `insert into inspiration_tiles (gallery_id, label, title, note, is_hero, position)
-         values ($1, $2, $3, $4, $5, $6)`,
-        [req.params.gid, t.label, t.title, t.note, t.is_hero, t.position],
+        `insert into inspiration_tiles (gallery_id, label, title, note, image_url, is_hero, position)
+         values ($1, $2, $3, $4, $5, $6, $7)`,
+        [req.params.gid, t.label, t.title, t.note, t.image_url, t.is_hero, t.position],
       );
     }
     await client.query('commit');
@@ -2111,6 +2669,145 @@ router.post('/couples/:id/design/materials', async (req, res, next) => {
   } finally {
     client.release();
   }
+});
+
+// ── AI palette + tone generator (Phase 4b) ────────────────────────────
+
+// GET — show the input form. Pre-fills brief from the couple's existing
+// tone fields so re-runs feel like iteration on what's there.
+router.get('/couples/:id/design/generate', async (req, res, next) => {
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+
+    res.render('admin/design-generate-form', {
+      couple,
+      configured: anthropicConfigured(),
+      proposal: null,
+      submitted: null,
+      formAction: `/admin/couples/${couple.id}/design/generate`,
+      error: null,
+      flash: consumeFlash(req),
+    });
+  } catch (err) { next(err); }
+});
+
+// POST — call Claude, render the same view with the proposal preview.
+router.post('/couples/:id/design/generate', async (req, res, next) => {
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+
+    if (!anthropicConfigured()) {
+      return res.status(400).render('admin/design-generate-form', {
+        couple,
+        configured: false,
+        proposal: null,
+        submitted: null,
+        formAction: `/admin/couples/${couple.id}/design/generate`,
+        error: 'ANTHROPIC_API_KEY is not set on the server. Add it under Render → Environment to enable the generator.',
+        flash: null,
+      });
+    }
+
+    const submitted = {
+      season: req.body.season?.trim() || '',
+      brief: req.body.brief?.trim() || '',
+    };
+
+    const weddingDate = couple.wedding_date
+      ? new Date(couple.wedding_date).toLocaleDateString('en-US', {
+          year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC',
+        })
+      : null;
+
+    let result;
+    try {
+      result = await generatePalette({
+        displayName: couple.display_name,
+        weddingDate,
+        venueName: couple.venue_name,
+        venueLocation: couple.venue_location,
+        season: submitted.season || null,
+        brief: submitted.brief || null,
+      });
+    } catch (err) {
+      console.error('[palette] Claude API call failed:', err);
+      return res.status(502).render('admin/design-generate-form', {
+        couple,
+        configured: true,
+        proposal: null,
+        submitted,
+        formAction: `/admin/couples/${couple.id}/design/generate`,
+        error: `Claude API call failed: ${err.message}. Try again, or edit the palette directly on the Basics tab.`,
+        flash: null,
+      });
+    }
+
+    res.render('admin/design-generate-form', {
+      couple,
+      configured: true,
+      proposal: result,
+      submitted,
+      formAction: `/admin/couples/${couple.id}/design/generate`,
+      error: null,
+      flash: null,
+    });
+  } catch (err) { next(err); }
+});
+
+// POST /apply — write the palette + tone to the couple row. The form
+// uses checkboxes per field so Zoe can selectively apply (e.g. take the
+// palette but keep the existing tone keywords).
+router.post('/couples/:id/design/generate/apply', async (req, res, next) => {
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+
+    // Field-level apply checkboxes. For palette colors we apply hex +
+    // name as a pair so the database doesn't end up with a hex from a
+    // new proposal next to a name from the previous one.
+    const updates = {};
+    const wantsPalette = (n) => req.body[`apply_palette_${n}`] === 'true';
+    const wantsTone    = req.body.apply_tone === 'true';
+
+    for (const n of [1, 2, 3, 4]) {
+      if (wantsPalette(n)) {
+        const hex  = (req.body[`palette_color_${n}`] || '').trim();
+        const name = (req.body[`palette_color_${n}_name`] || '').trim() || null;
+        if (hex) {
+          updates[`palette_color_${n}`] = hex;
+          updates[`palette_color_${n}_name`] = name;
+        }
+      }
+    }
+    if (wantsTone) {
+      const kw  = (req.body.tone_keywords || '').trim() || null;
+      const stm = (req.body.tone_statement || '').trim() || null;
+      updates.tone_keywords = kw;
+      updates.tone_statement = stm;
+    }
+
+    const fields = Object.keys(updates);
+    if (fields.length === 0) {
+      setFlash(req, 'info', 'Nothing was selected to apply.');
+      return res.redirect(`/admin/couples/${couple.id}/design`);
+    }
+
+    const setClause = fields.map((f, i) => `${f} = $${i + 1}`).join(', ');
+    const values = [...fields.map(f => updates[f]), couple.id];
+    await pool.query(
+      `update couples set ${setClause}, updated_at = now() where id = $${fields.length + 1}`,
+      values,
+    );
+
+    const summary = [];
+    const paletteCount = [1, 2, 3, 4].filter(wantsPalette).length;
+    if (paletteCount > 0) summary.push(`${paletteCount} palette color${paletteCount === 1 ? '' : 's'}`);
+    if (wantsTone) summary.push('tone copy');
+    setFlash(req, 'success', `Applied AI palette — updated ${summary.join(' + ')}.`);
+    res.redirect(`/admin/couples/${couple.id}/design`);
+  } catch (err) { next(err); }
 });
 
 // ── Couple delete (kept at the bottom so vendor routes match first) ───

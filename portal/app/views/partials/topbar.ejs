@@ -1,10 +1,5 @@
 <%#
-  Persistent top nav. Highlights the current page via the
-  `currentPage` local. Every couple-facing page renders this.
-
-  Phase 1: only `home` is wired to a real route. The other links point
-  to anchors prefixed with the couple slug; they 404 cleanly until
-  Phase 2 builds those views.
+  Persistent top nav. Highlights the current page via the `currentPage` local.
 %>
 <header class="topbar">
   <a href="/p/<%= couple.slug %>" class="wordmark" aria-label="Zuzu Collective home">Zuzu</a>

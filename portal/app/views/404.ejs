@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Page not found — Zuzu Collective</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Fragment+Mono:ital@0;1&display=swap">
+
+  <link rel="stylesheet" href="/styles/tokens.css">
+  <link rel="stylesheet" href="/styles/base.css">
+
+  <style>
+    body {
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: var(--space-lg) var(--space-md);
+    }
+
+    .not-found-eyebrow {
+      font-family: var(--zz-mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--zz-finn-60);
+      margin-bottom: var(--space-md);
+    }
+
+    .not-found-number {
+      font-family: var(--zz-display);
+      font-style: italic;
+      font-size: clamp(6rem, 20vw, 14rem);
+      line-height: 1;
+      color: var(--zz-finn);
+      letter-spacing: -0.02em;
+      margin: 0 0 var(--space-md);
+    }
+
+    .not-found-headline {
+      font-family: var(--zz-display);
+      font-size: clamp(1.5rem, 3vw, 2.25rem);
+      color: var(--zz-finn);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin: 0 0 var(--space-sm);
+    }
+
+    .not-found-body {
+      font-family: var(--zz-display);
+      font-style: italic;
+      font-size: 1.1rem;
+      color: var(--zz-ink);
+      opacity: 0.75;
+      max-width: 36ch;
+      margin: 0 auto var(--space-lg);
+    }
+
+    .not-found-link {
+      font-family: var(--zz-mono);
+      font-size: 0.72rem;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--zz-finn);
+      border-bottom: 1px solid var(--zz-finn-20);
+      padding-bottom: 2px;
+      transition: border-color 180ms ease;
+    }
+    .not-found-link:hover { border-bottom-color: var(--zz-finn); }
+
+    .not-found-signature {
+      margin-top: var(--space-xl);
+      font-family: var(--zz-mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--zz-finn-60);
+    }
+  </style>
+</head>
+<body>
+  <p class="not-found-eyebrow">Zuzu Collective</p>
+  <p class="not-found-number">404</p>
+  <h1 class="not-found-headline">Nothing here</h1>
+  <p class="not-found-body">
+    This page doesn't exist — or it may have moved.<br>
+    Every wedding has its surprises.
+  </p>
+  <a href="/" class="not-found-link">Back to the portal</a>
+  <p class="not-found-signature">Zuzu Collective · San Diego</p>
+</body>
+</html>

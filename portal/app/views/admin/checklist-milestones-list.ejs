@@ -14,7 +14,10 @@
           <a href="/p/<%= couple.slug %>/checklist" target="_blank" rel="noopener">View live portal ↗</a>
         </p>
       </div>
-      <a href="/admin/couples/<%= couple.id %>/checklist/new" class="admin-btn admin-btn--primary">+ Add milestone</a>
+      <div style="display: flex; gap: 0.5rem;">
+        <a href="/admin/couples/<%= couple.id %>/checklist/generate" class="admin-btn admin-btn--ghost">✦ AI checklist</a>
+        <a href="/admin/couples/<%= couple.id %>/checklist/new" class="admin-btn admin-btn--primary">+ Add milestone</a>
+      </div>
     </header>
 
     <%- include('partials/couple-tabs', { couple, currentTab: 'checklist' }) %>

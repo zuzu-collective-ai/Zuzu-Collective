@@ -90,9 +90,29 @@
         <legend class="admin-legend">Note</legend>
         <label class="admin-field">
           <span class="admin-field-label">Free-text note</span>
-          <textarea name="note" rows="3"><%= vendor?.note || '' %></textarea>
-          <span class="admin-field-help">For booked vendors: a short qualifier (e.g. "in-house"). For TBC vendors: what's being looked for. Renders as italic text on the public page.</span>
+          <textarea name="note" rows="6"><%= vendor?.note || '' %></textarea>
+          <span class="admin-field-help">
+            For booked vendors: a short qualifier ("in-house catering"). For TBC slots: what's being looked for.
+            Notes are admin-only for pending/shortlisting vendors — only booked vendor notes appear on the client portal.
+          </span>
         </label>
+        <% if (vendor?.email && vendor?.note && vendor.note.startsWith('=== Outreach draft ===')) { %>
+          <%
+            const noteLines = vendor.note.split('\n');
+            const subjectLine = noteLines[1] || '';
+            const emailSubject = subjectLine.startsWith('Subject: ') ? subjectLine.slice(9) : '';
+            const emailBody = noteLines.slice(3).join('\n').trim();
+          %>
+          <div style="margin-top: 0.75rem;">
+            <a href="mailto:<%= vendor.email %>?subject=<%= encodeURIComponent(emailSubject) %>&body=<%= encodeURIComponent(emailBody) %>"
+               class="admin-btn admin-btn--ghost" style="text-decoration: none;">
+              ✉ Open in email client → <%= vendor.email %>
+            </a>
+            <p class="admin-field-help" style="margin-top: 0.4rem;">
+              Opens your email app with subject and body pre-filled from the outreach draft above.
+            </p>
+          </div>
+        <% } %>
       </fieldset>
 
       <div class="admin-form-actions">
