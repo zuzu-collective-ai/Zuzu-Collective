@@ -38,6 +38,8 @@ app.use(
         fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
         // 'https:' allows Cloudinary URLs and any other CDN for couple photos
         imgSrc: ["'self'", 'data:', 'https:'],
+        // Allow fetch() to Cloudinary upload API from admin pages
+        connectSrc: ["'self'", 'https://api.cloudinary.com'],
         // Inline scripts are limited to admin form helpers (add/remove
         // guest rows). Move to external files + nonces if the admin
         // ever needs anything more substantial.
