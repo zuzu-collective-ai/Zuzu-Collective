@@ -143,7 +143,6 @@
 .inspiration-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  grid-auto-rows: minmax(180px, auto);
   gap: var(--space-sm);
   max-width: var(--content-max);
   margin: 0 auto;
@@ -159,7 +158,8 @@
   border-radius: 2px;
   overflow: hidden;
   color: var(--zz-finn);
-  min-height: 220px;
+  aspect-ratio: 1;
+  min-height: 0;
   background: var(--couple-1);
 }
 
