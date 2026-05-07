@@ -78,10 +78,16 @@
                 <span class="admin-field-label">Title</span>
                 <input type="text" name="tiles[<%= i %>][title]" value="<%= t.title || '' %>" placeholder="An olive-branch arch over the aisle.">
               </label>
-              <label class="admin-field admin-field--inline" style="flex: 1.5;">
+              <div class="admin-field admin-field--inline" style="flex: 1.5;">
                 <span class="admin-field-label">Image URL</span>
                 <input type="url" name="tiles[<%= i %>][image_url]" value="<%= t.image_url || '' %>" placeholder="https://res.cloudinary.com/…">
-              </label>
+                <div style="display:flex; gap:0.3rem; align-items:center;">
+                  <button type="button" class="admin-btn admin-btn--ghost admin-btn--small"
+                          style="padding:0.3rem 0.5rem;" data-cld-btn>↑</button>
+                  <span data-cld-status style="font-size:0.7rem; color:var(--zz-tobacco);"></span>
+                </div>
+                <input type="file" accept="image/*" style="display:none;" data-cld-file>
+              </div>
               <label class="admin-field admin-field--inline" style="flex: 1;">
                 <span class="admin-field-label">Note</span>
                 <input type="text" name="tiles[<%= i %>][note]" value="<%= t.note || '' %>" placeholder="optional caption">
@@ -114,6 +120,7 @@
     <% } %>
   </main>
 
+  <script src="/zz-upload.js"></script>
   <script>
     (function () {
       const container = document.getElementById('tile-rows');
@@ -139,10 +146,16 @@
               <span class="admin-field-label">Title</span>
               <input type="text" name="tiles[${i}][title]" placeholder="">
             </label>
-            <label class="admin-field admin-field--inline" style="flex: 1.5;">
+            <div class="admin-field admin-field--inline" style="flex: 1.5;">
               <span class="admin-field-label">Image URL</span>
               <input type="url" name="tiles[${i}][image_url]" placeholder="https://res.cloudinary.com/…">
-            </label>
+              <div style="display:flex; gap:0.3rem; align-items:center;">
+                <button type="button" class="admin-btn admin-btn--ghost admin-btn--small"
+                        style="padding:0.3rem 0.5rem;" data-cld-btn>↑</button>
+                <span data-cld-status style="font-size:0.7rem; color:var(--zz-tobacco);"></span>
+              </div>
+              <input type="file" accept="image/*" style="display:none;" data-cld-file>
+            </div>
             <label class="admin-field admin-field--inline" style="flex: 1;">
               <span class="admin-field-label">Note</span>
               <input type="text" name="tiles[${i}][note]" placeholder="optional caption">
@@ -158,6 +171,26 @@
           const row = e.target.closest('[data-row]');
           if (row) row.remove();
         }
+        if (e.target.matches('[data-cld-btn]')) {
+          const row = e.target.closest('[data-row]');
+          if (row) row.querySelector('[data-cld-file]').click();
+        }
+      });
+
+      container.addEventListener('change', async (e) => {
+        if (!e.target.matches('[data-cld-file]')) return;
+        const file = e.target.files[0];
+        if (!file) return;
+        const row = e.target.closest('[data-row]');
+        const urlInput = row.querySelector('input[type="url"]');
+        const statusEl = row.querySelector('[data-cld-status]');
+        const btn = row.querySelector('[data-cld-btn]');
+        if (btn) btn.disabled = true;
+        try {
+          await window.zzCloudinary.upload(file, urlInput, statusEl);
+        } catch (_) {}
+        if (btn) btn.disabled = false;
+        e.target.value = '';
       });
     })();
   </script>
