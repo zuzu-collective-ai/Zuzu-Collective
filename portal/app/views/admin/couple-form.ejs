@@ -196,7 +196,7 @@
                 <input type="text" id="color-hex-<%= n %>" name="palette_color_<%= n %>"
                        value="<%= colorVal %>" maxlength="7" class="admin-swatch-hex"
                        placeholder="#EFEDE1"
-                       oninput="if(/^#[0-9a-fA-F]{6}$/.test(this.value))document.getElementById('color-pick-<%= n %>').value=this.value">
+                       oninput="(function(el){var v=el.value.trim();if(!v.startsWith('#'))v='#'+v;if(/^#[0-9a-fA-F]{6}$/.test(v)){el.value=v;document.getElementById('color-pick-<%= n %>').value=v;}})(this)">
                 <input type="text" name="palette_color_<%= n %>_name" value="<%= couple?.[`palette_color_${n}_name`] || '' %>" placeholder="Ivory" class="admin-swatch-name">
               </span>
             </label>
