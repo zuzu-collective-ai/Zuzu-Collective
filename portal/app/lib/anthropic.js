@@ -567,3 +567,61 @@ export async function generateVendorOutreach(input) {
     },
   };
 }
+
+// ── Vendor smart import ───────────────────────────────────────────────────
+// Accepts a file buffer + mime type (image or plain text) and asks Claude
+// to extract vendor contact details. Returns a flat object with whatever
+// fields it could find; missing fields are empty strings.
+
+const VENDOR_EXTRACT_SCHEMA = {
+  type: 'object',
+  properties: {
+    vendor_type:  { type: 'string' },
+    display_name: { type: 'string' },
+    contact_name: { type: 'string' },
+    email:        { type: 'string' },
+    phone:        { type: 'string' },
+    address:      { type: 'string' },
+    note:         { type: 'string' },
+  },
+  required: ['vendor_type','display_name','contact_name','email','phone','address','note'],
+  additionalProperties: false,
+};
+
+export async function extractVendorInfo({ buffer, mimeType }) {
+  const isImage = mimeType.startsWith('image/');
+
+  let userContent;
+  if (isImage) {
+    userContent = [
+      {
+        type: 'image',
+        source: { type: 'base64', media_type: mimeType, data: buffer.toString('base64') },
+      },
+      { type: 'text', text: 'Extract all vendor contact details visible in this image.' },
+    ];
+  } else {
+    userContent = [
+      { type: 'text', text: `Extract vendor contact details from the following:\n\n${buffer.toString('utf-8')}` },
+    ];
+  }
+
+  const response = await client().messages.create({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 1024,
+    output_config: { format: { type: 'json_schema', schema: VENDOR_EXTRACT_SCHEMA } },
+    system: `You are a data-extraction assistant for a wedding planning company.
+Extract vendor contact information and return it as JSON.
+vendor_type: best-fit category (e.g. Photographer, Florist, Venue, Caterer, etc.)
+display_name: business name
+contact_name: person's name if present
+email, phone, address: as written
+note: any other useful detail (e.g. website, Instagram, specialty)
+Use empty string "" for any field you cannot find.`,
+    messages: [{ role: 'user', content: userContent }],
+  });
+
+  const textBlock = response.content.find(b => b.type === 'text');
+  if (!textBlock) throw new Error('No text in Claude response');
+  return JSON.parse(textBlock.text);
+}

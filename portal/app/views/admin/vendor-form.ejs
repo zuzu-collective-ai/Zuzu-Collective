@@ -23,6 +23,23 @@
       <div class="admin-flash admin-flash--error" role="alert"><%= error %></div>
     <% } %>
 
+    <% if (configured) { %>
+    <div class="admin-fieldset" style="border: 1px dashed var(--zz-finn-20); padding: 1.25rem 1.5rem; margin-bottom: 2rem; border-radius: 2px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem;">
+        <div>
+          <div class="admin-legend" style="margin:0 0 0.25rem;">✦ Smart import</div>
+          <div class="admin-field-help" style="margin:0;">Upload a photo of a business card, screenshot, or text file — Claude fills in the form.</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:0.75rem;">
+          <input type="file" id="vendor-import-file" accept="image/*,text/plain"
+                 style="font-size:0.8rem; max-width:220px;">
+          <button type="button" id="vendor-import-btn" class="admin-btn admin-btn--ghost">Extract</button>
+        </div>
+      </div>
+      <div id="vendor-import-status" style="margin-top:0.75rem; font-size:0.8rem; color:var(--zz-tobacco); display:none;"></div>
+    </div>
+    <% } %>
+
     <form action="<%= formAction %>" method="post" class="admin-form">
 
       <fieldset class="admin-fieldset">
@@ -134,6 +151,69 @@
       </div>
     <% } %>
   </main>
+
+  <% if (configured) { %>
+  <script>
+    (function () {
+      const btn    = document.getElementById('vendor-import-btn');
+      const input  = document.getElementById('vendor-import-file');
+      const status = document.getElementById('vendor-import-status');
+      const coupleId = '<%= couple.id %>';
+
+      btn.addEventListener('click', async () => {
+        if (!input.files[0]) { alert('Choose a file first.'); return; }
+        btn.disabled = true;
+        btn.textContent = 'Extracting…';
+        status.style.display = 'block';
+        status.textContent = 'Sending to Claude…';
+
+        const fd = new FormData();
+        fd.append('file', input.files[0]);
+
+        try {
+          const r = await fetch(`/admin/couples/${coupleId}/vendors/import`, {
+            method: 'POST', body: fd,
+          });
+          const data = await r.json();
+          if (!r.ok) throw new Error(data.error || 'Unknown error');
+
+          // Fill in form fields
+          const set = (name, val) => {
+            const el = document.querySelector(`[name="${name}"]`);
+            if (el && val) el.value = val;
+          };
+          set('display_name', data.display_name);
+          set('contact_name', data.contact_name);
+          set('email',        data.email);
+          set('phone',        data.phone);
+          set('address',      data.address);
+          set('note',         data.note);
+
+          // Set vendor_type select if it matches an option
+          if (data.vendor_type) {
+            const sel = document.querySelector('[name="vendor_type"]');
+            if (sel) {
+              const match = [...sel.options].find(o =>
+                o.value.toLowerCase() === data.vendor_type.toLowerCase()
+              );
+              if (match) sel.value = match.value;
+              else sel.value = data.vendor_type;
+            }
+          }
+
+          status.textContent = '✓ Fields filled in — review and save.';
+          status.style.color = 'var(--zz-ink)';
+        } catch (err) {
+          status.textContent = '✗ ' + err.message;
+          status.style.color = 'red';
+        } finally {
+          btn.disabled = false;
+          btn.textContent = 'Extract';
+        }
+      });
+    })();
+  </script>
+  <% } %>
 
 </body>
 </html>
