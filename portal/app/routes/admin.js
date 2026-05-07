@@ -152,6 +152,9 @@ router.post('/logout', (req, res) => {
 
 router.use(requireAdmin);
 
+// Keep-alive ping — called every 30 s from admin pages to prevent Render free-tier spin-down.
+router.get('/ping', (_req, res) => res.sendStatus(204));
+
 // Couples list — the admin's home page.
 router.get('/', async (_req, res, next) => {
   try {
