@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include('partials/head', { title: `${couple.display_name} — Find vendors` }) %>
+<body class="admin-body">
+
+  <%- include('partials/sidebar', { currentSection: 'couples' }) %>
+
+  <main class="admin-main">
+    <header class="admin-header">
+      <div>
+        <a href="/admin/couples/<%= couple.id %>/vendors" class="admin-back">← <%= couple.display_name %> · vendors</a>
+        <h1 class="admin-title">✦ Find vendors</h1>
+        <p class="admin-subtitle">Claude + Serper · searches Google, extracts candidates</p>
+      </div>
+    </header>
+
+    <%- include('partials/couple-tabs', { couple, currentTab: 'vendors' }) %>
+
+    <%- include('partials/flash', { flash }) %>
+
+    <% if (!configured) { %>
+      <div class="admin-flash admin-flash--info" style="margin-bottom: 1.5rem;">
+        <strong>SERPER_API_KEY not set.</strong>
+        Sign up free at <strong>serper.dev</strong>, copy your API key, then add it under
+        Render → Environment → <code>SERPER_API_KEY</code>.
+      </div>
+    <% } %>
+
+    <% if (error) { %>
+      <div class="admin-flash admin-flash--error" role="alert"><%= error %></div>
+    <% } %>
+
+    <form action="/admin/couples/<%= couple.id %>/vendors/search" method="post" class="admin-form">
+      <fieldset class="admin-fieldset">
+        <legend class="admin-legend">Search</legend>
+
+        <div class="admin-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <label class="admin-field">
+            <span class="admin-field-label">Vendor type *</span>
+            <input type="text" name="vendor_type" list="vendor-types" required
+                   value="<%= query?.vendor_type || '' %>" placeholder="Florist">
+            <datalist id="vendor-types">
+              <% ['Photographer','Videographer','Florist','Caterer','Venue','DJ','Band','Hair & Makeup',
+                  'Officiant','Transportation','Cake & Desserts','Stationery','Photo Booth','Rentals'].forEach(t => { %>
+                <option value="<%= t %>"></option>
+              <% }) %>
+            </datalist>
+          </label>
+
+          <label class="admin-field">
+            <span class="admin-field-label">Location</span>
+            <input type="text" name="location"
+                   value="<%= query?.location || couple.venue_location || '' %>"
+                   placeholder="Carmel, CA">
+            <span class="admin-field-help">Defaults to couple's venue location.</span>
+          </label>
+        </div>
+
+        <label class="admin-field">
+          <span class="admin-field-label">Style description</span>
+          <textarea name="style" rows="3" placeholder="Romantic, coastal, organic florals, candlelit, intimate"><%= query?.style || couple.tone_keywords || '' %></textarea>
+          <span class="admin-field-help">Describe the wedding's aesthetic — Claude uses this to write targeted search queries.</span>
+        </label>
+      </fieldset>
+
+      <div class="admin-form-actions" style="margin-bottom: 0;">
+        <button type="submit" class="admin-btn admin-btn--primary" <%= !configured ? 'disabled' : '' %>>Search</button>
+        <a href="/admin/couples/<%= couple.id %>/vendors" class="admin-btn admin-btn--ghost">Cancel</a>
+      </div>
+    </form>
+
+    <% if (candidates !== null) { %>
+      <div style="margin-top: 2.5rem;">
+        <% if (candidates.length === 0) { %>
+          <p class="admin-empty">No matching vendors found — try a different style description or location.</p>
+        <% } else { %>
+          <h2 class="admin-legend" style="margin-bottom: 1rem;">
+            <%= candidates.length %> candidate<%= candidates.length === 1 ? '' : 's' %> found
+          </h2>
+
+          <form action="/admin/couples/<%= couple.id %>/vendors/search/add" method="post">
+            <input type="hidden" name="vendor_type" value="<%= query?.vendor_type || '' %>">
+            <input type="hidden" name="candidates_json" value="<%= JSON.stringify(candidates).replace(/"/g, '&quot;') %>">
+
+            <div class="admin-list" style="margin-bottom: 1.5rem;">
+              <% candidates.forEach((c, i) => { %>
+                <div class="admin-list-item" style="display: grid; grid-template-columns: auto 1fr; gap: 1rem; align-items: start; padding: 1rem 0;">
+                  <input type="checkbox" name="selected" value="<%= i %>"
+                         id="cand-<%= i %>" style="margin-top: 0.3rem; width: 1rem; height: 1rem; cursor: pointer;"
+                         <%= (candidates.length <= 5) ? 'checked' : '' %>>
+                  <label for="cand-<%= i %>" style="cursor: pointer;">
+                    <div class="admin-list-name" style="margin-bottom: 0.25rem;"><%= c.display_name %></div>
+                    <div class="admin-list-meta" style="flex-wrap: wrap; gap: 0.4rem 1rem;">
+                      <% if (c.website) { %>
+                        <span><a href="<%= c.website %>" target="_blank" rel="noopener" class="admin-link" onclick="event.stopPropagation()"><%= c.website.replace(/^https?:\/\/(www\.)?/, '').split('/')[0] %> ↗</a></span>
+                      <% } %>
+                      <% if (c.email) { %><span><%= c.email %></span><% } %>
+                      <% if (c.phone) { %><span><%= c.phone %></span><% } %>
+                      <% if (c.address) { %><span><%= c.address %></span><% } %>
+                    </div>
+                    <% if (c.description) { %>
+                      <p style="margin: 0.35rem 0 0; font-size: 0.85rem; color: var(--zz-finn-60);"><%= c.description %></p>
+                    <% } %>
+                  </label>
+                </div>
+              <% }) %>
+            </div>
+
+            <div class="admin-form-actions">
+              <button type="submit" class="admin-btn admin-btn--primary">Add selected to shortlist</button>
+              <a href="/admin/couples/<%= couple.id %>/vendors/search?<%= new URLSearchParams(query || {}).toString() %>"
+                 class="admin-btn admin-btn--ghost">Search again</a>
+            </div>
+          </form>
+        <% } %>
+      </div>
+    <% } %>
+  </main>
+
+</body>
+</html>

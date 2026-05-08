@@ -792,3 +792,76 @@ guest_type: 'adult' for adults, 'child' for children/minors, 'plus_one' for unna
   if (!textBlock) throw new Error('No text in Claude response');
   return JSON.parse(textBlock.text);
 }
+
+// ── Vendor search: query generation + result parsing ─────────────────────
+
+const VENDOR_SEARCH_QUERIES_SCHEMA = {
+  type: 'object',
+  properties: {
+    queries: {
+      type: 'array',
+      items: { type: 'string' },
+      description: '3-5 targeted Google search queries.',
+    },
+  },
+  required: ['queries'],
+  additionalProperties: false,
+};
+
+export async function generateVendorSearchQueries({ styleDescription, vendorType, location }) {
+  const response = await client().messages.create({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 512,
+    output_config: { format: { type: 'json_schema', schema: VENDOR_SEARCH_QUERIES_SCHEMA } },
+    system: `You are a search strategist for a luxury wedding planning company. Given a vendor type, location, and wedding style, generate 3-5 targeted Google search queries that will surface the best matching vendor businesses. Queries should be specific, location-anchored, and style-aware. Do not include review sites like Yelp, The Knot, or WeddingWire in the queries — focus on finding vendor business websites directly.`,
+    messages: [{ role: 'user', content: `Vendor type: ${vendorType}\nLocation: ${location || 'San Diego, CA'}\nStyle: ${styleDescription || 'elegant, refined'}\n\nGenerate search queries now.` }],
+  });
+  const textBlock = response.content.find(b => b.type === 'text');
+  if (!textBlock) throw new Error('No text in Claude response');
+  return JSON.parse(textBlock.text);
+}
+
+const VENDOR_CANDIDATES_SCHEMA = {
+  type: 'object',
+  properties: {
+    candidates: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          display_name: { type: 'string', description: 'Business name.' },
+          vendor_type:  { type: 'string', description: 'Vendor category.' },
+          website:      { type: 'string', description: 'Website URL or empty string.' },
+          email:        { type: 'string', description: 'Email if visible or empty string.' },
+          phone:        { type: 'string', description: 'Phone if visible or empty string.' },
+          address:      { type: 'string', description: 'Location/address or empty string.' },
+          description:  { type: 'string', description: 'One sentence about what makes them a good match.' },
+        },
+        required: ['display_name','vendor_type','website','email','phone','address','description'],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ['candidates'],
+  additionalProperties: false,
+};
+
+export async function parseVendorSearchResults({ results, vendorType, styleDescription }) {
+  if (!results || results.length === 0) return { candidates: [] };
+
+  const resultText = results.map((r, i) =>
+    `[${i + 1}] ${r.title}\n${r.link}\n${r.snippet}`
+  ).join('\n\n');
+
+  const response = await client().messages.create({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 2048,
+    output_config: { format: { type: 'json_schema', schema: VENDOR_CANDIDATES_SCHEMA } },
+    system: `You are a researcher for a luxury wedding planning company. Given Google search results, extract distinct vendor businesses that match the requested vendor type and style. Deduplicate — if the same business appears multiple times, include it once. Skip directories, review sites, and listicles — only include individual businesses. For each, write a one-sentence description of why they might be a good match based on what's visible in the snippet.`,
+    messages: [{ role: 'user', content: `Vendor type being searched: ${vendorType}\nStyle: ${styleDescription || 'elegant, refined'}\n\nSearch results:\n\n${resultText}\n\nExtract vendor candidates now.` }],
+  });
+
+  const textBlock = response.content.find(b => b.type === 'text');
+  if (!textBlock) throw new Error('No text in Claude response');
+  return JSON.parse(textBlock.text);
+}
