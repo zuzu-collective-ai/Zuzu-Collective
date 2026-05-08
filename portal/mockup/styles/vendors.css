@@ -110,6 +110,18 @@
   opacity: 0.85;
 }
 
+.vendor-contract-link {
+  display: inline-block;
+  margin-top: 0.6rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--zz-finn);
+  border-bottom: 1px solid var(--zz-finn-20);
+  text-decoration: none;
+}
+.vendor-contract-link:hover { border-bottom-color: var(--zz-finn); }
+
 /* Contact details — list of label + value pairs, no grid lines */
 .vendor-contact {
   list-style: none;
