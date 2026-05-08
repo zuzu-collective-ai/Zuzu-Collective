@@ -726,3 +726,69 @@ Be specific and realistic — include buffer times, transitions, photography gol
   if (!textBlock) throw new Error('No text in Claude response');
   return JSON.parse(textBlock.text);
 }
+
+export async function importGuestList({ buffer, mimeType }) {
+  const SCHEMA = {
+    type: 'object',
+    properties: {
+      households: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            display_name: { type: 'string' },
+            side: { type: 'string', enum: ['bride','groom','both','bridal_party'] },
+            guests: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  display_name: { type: 'string' },
+                  guest_type: { type: 'string', enum: ['adult','child','plus_one'] },
+                },
+                required: ['display_name','guest_type'],
+                additionalProperties: false,
+              },
+            },
+          },
+          required: ['display_name','side','guests'],
+          additionalProperties: false,
+        },
+      },
+    },
+    required: ['households'],
+    additionalProperties: false,
+  };
+
+  let userContent;
+  if (mimeType === 'application/pdf') {
+    userContent = [
+      { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: buffer.toString('base64') } },
+      { type: 'text', text: 'Extract all guests from this wedding guest list document.' },
+    ];
+  } else if (mimeType.startsWith('image/')) {
+    userContent = [
+      { type: 'image', source: { type: 'base64', media_type: mimeType, data: buffer.toString('base64') } },
+      { type: 'text', text: 'Extract all guests from this wedding guest list.' },
+    ];
+  } else {
+    userContent = [{ type: 'text', text: `Extract all guests from this wedding guest list:\n\n${buffer.toString('utf-8')}` }];
+  }
+
+  const response = await client().messages.create({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 8192,
+    output_config: { format: { type: 'json_schema', schema: SCHEMA } },
+    system: `You are extracting a wedding guest list into structured data.
+Group guests into households (families/couples who share an address or travel together).
+display_name for households: use the family name ("Smith Family") or couple name ("John & Jane Smith").
+side: 'bride' if clearly bride's side, 'groom' if groom's side, 'bridal_party' if in the wedding party, 'both' if unclear.
+guest display_name: full name ("Jane Smith").
+guest_type: 'adult' for adults, 'child' for children/minors, 'plus_one' for unnamed plus-ones.`,
+    messages: [{ role: 'user', content: userContent }],
+  });
+
+  const textBlock = response.content.find(b => b.type === 'text');
+  if (!textBlock) throw new Error('No text in Claude response');
+  return JSON.parse(textBlock.text);
+}

@@ -126,6 +126,10 @@
                 <span class="admin-field-label">Status label</span>
                 <input type="text" name="lines[<%= i %>][status_label]" value="<%= l.status_label || '' %>" placeholder="$10,000 deposit">
               </label>
+              <label class="admin-field admin-field--inline">
+                <span class="admin-field-label">Due date</span>
+                <input type="date" name="lines[<%= i %>][due_date]" value="<%= l.due_date ? String(l.due_date).slice(0,10) : '' %>">
+              </label>
               <button type="button" class="admin-btn admin-btn--ghost admin-btn--small" data-remove>Remove</button>
             </div>
           <% }) %>
@@ -198,6 +202,10 @@
           <label class="admin-field admin-field--inline">
             <span class="admin-field-label">Status label</span>
             <input type="text" name="lines[${i}][status_label]" placeholder="">
+          </label>
+          <label class="admin-field admin-field--inline">
+            <span class="admin-field-label">Due date</span>
+            <input type="date" name="lines[${i}][due_date]">
           </label>
           <button type="button" class="admin-btn admin-btn--ghost admin-btn--small" data-remove>Remove</button>
         `;

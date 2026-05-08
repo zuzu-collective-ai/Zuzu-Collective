@@ -97,6 +97,9 @@ alter table couples add column if not exists design_materials_note text;
 alter table couples add column if not exists hero_photo_url text;
 alter table couples add column if not exists hero_text_color text default 'dark';
 
+alter table vendors add column if not exists contract_url text;
+alter table budget_line_items add column if not exists due_date date;
+
 create index if not exists couples_slug_idx on couples(slug);
 
 -- ── Vendors ──────────────────────────────────────────────────────────────

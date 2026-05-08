@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include('partials/head', { title: `${couple.display_name} — Import guest list` }) %>
+<body class="admin-body">
+
+  <%- include('partials/sidebar', { currentSection: 'couples' }) %>
+
+  <main class="admin-main">
+    <header class="admin-header">
+      <div>
+        <a href="/admin/couples/<%= couple.id %>/guests" class="admin-back">← <%= couple.display_name %> · guests</a>
+        <h1 class="admin-title">✦ Import guest list</h1>
+      </div>
+    </header>
+
+    <%- include('partials/couple-tabs', { couple, currentTab: 'guests' }) %>
+
+    <%- include('partials/flash', { flash }) %>
+
+    <% if (error) { %>
+      <div class="admin-flash admin-flash--error" role="alert"><%= error %></div>
+    <% } %>
+
+    <form action="/admin/couples/<%= couple.id %>/guests/import" method="post"
+          enctype="multipart/form-data" class="admin-form">
+
+      <fieldset class="admin-fieldset">
+        <legend class="admin-legend">Upload</legend>
+
+        <label class="admin-field">
+          <span class="admin-field-label">Guest list file *</span>
+          <input type="file" name="file" accept="image/*,text/plain,.pdf,application/pdf" required>
+          <span class="admin-field-help">
+            Photo, PDF, or plain-text file of your guest list — Claude will read it and
+            extract households and individual guest names.
+          </span>
+        </label>
+
+        <label class="admin-field">
+          <span class="admin-field-label">If a household already exists</span>
+          <select name="on_conflict">
+            <option value="skip">Skip (safe — avoids duplicates)</option>
+            <option value="append">Add anyway as a new entry</option>
+          </select>
+        </label>
+      </fieldset>
+
+      <div class="admin-form-actions">
+        <button type="submit" class="admin-btn admin-btn--primary">Import</button>
+        <a href="/admin/couples/<%= couple.id %>/guests" class="admin-btn admin-btn--ghost">Cancel</a>
+      </div>
+    </form>
+  </main>
+
+</body>
+</html>

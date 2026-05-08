@@ -11,7 +11,7 @@ import express from 'express';
 import multer from 'multer';
 import { pool } from '../db/pool.js';
 import { requireAdmin, passwordsMatch } from '../middleware/auth.js';
-import { generateAllocation, generatePalette, generateChecklist, generateVendorOutreach, extractVendorInfo, describeTileImage, generateTimeline, isConfigured as anthropicConfigured, STANDARD_CATEGORIES } from '../lib/anthropic.js';
+import { generateAllocation, generatePalette, generateChecklist, generateVendorOutreach, extractVendorInfo, describeTileImage, generateTimeline, importGuestList, isConfigured as anthropicConfigured, STANDARD_CATEGORIES } from '../lib/anthropic.js';
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -322,8 +322,17 @@ const VENDOR_FIELDS = [
   'address',
   'status',
   'note',
+  'contract_url',
   'position',
 ];
+
+function normalizePhone(input) {
+  if (!input) return null;
+  const digits = String(input).replace(/\D/g, '');
+  if (digits.length === 10) return `(${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6)}`;
+  if (digits.length === 11 && digits[0] === '1') return `(${digits.slice(1,4)}) ${digits.slice(4,7)}-${digits.slice(7)}`;
+  return input.trim() || null;
+}
 
 const VENDOR_STATUSES = ['booked', 'shortlist', 'pending', 'na'];
 
@@ -347,6 +356,7 @@ function pickVendorFields(body) {
     out[f] = v;
   }
   if (!VENDOR_STATUSES.includes(out.status)) out.status = 'pending';
+  if (out.phone) out.phone = normalizePhone(out.phone);
   return out;
 }
 
@@ -789,6 +799,79 @@ router.post('/couples/:id/tables/:tid/delete', async (req, res, next) => {
 const HOUSEHOLD_STATUSES = ['accepted', 'awaiting', 'declined'];
 const GUEST_TYPES = ['adult', 'child', 'plus_one'];
 
+// ── AI guest list import ───────────────────────────────────────────────
+router.get('/couples/:id/guests/import', async (req, res, next) => {
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+    res.render('admin/guest-import-form', {
+      couple, configured: anthropicConfigured(),
+      flash: consumeFlash(req), error: null,
+    });
+  } catch (err) { next(err); }
+});
+
+router.post('/couples/:id/guests/import', upload.single('file'), async (req, res, next) => {
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+    if (!anthropicConfigured()) return res.status(503).send('ANTHROPIC_API_KEY not set.');
+    if (!req.file) return res.status(400).render('admin/guest-import-form', {
+      couple, configured: true, flash: null, error: 'No file uploaded.',
+    });
+
+    let result;
+    try {
+      result = await importGuestList({ buffer: req.file.buffer, mimeType: req.file.mimetype });
+    } catch (err) {
+      console.error('[guest-import]', err);
+      return res.status(502).render('admin/guest-import-form', {
+        couple, configured: true, flash: null, error: `Claude API failed: ${err.message}`,
+      });
+    }
+
+    const client = await pool.connect();
+    let householdCount = 0, guestCount = 0;
+    try {
+      await client.query('begin');
+      const skipDuplicates = req.body.on_conflict !== 'append';
+      for (const h of result.households || []) {
+        const side = ['bride','groom','both','bridal_party'].includes(h.side) ? h.side : 'both';
+        if (skipDuplicates) {
+          const { rows: existing } = await client.query(
+            `select id from households where couple_id=$1 and lower(display_name)=lower($2) limit 1`,
+            [couple.id, h.display_name],
+          );
+          if (existing.length > 0) continue;
+        }
+        const { rows: [hh] } = await client.query(
+          `insert into households (couple_id, display_name, side, status, position)
+           values ($1, $2, $3, 'awaiting', (select coalesce(max(position),0)+1 from households where couple_id=$1))
+           returning id`,
+          [couple.id, h.display_name, side],
+        );
+        householdCount++;
+        for (let i = 0; i < (h.guests || []).length; i++) {
+          const g = h.guests[i];
+          const gt = ['adult','child','plus_one'].includes(g.guest_type) ? g.guest_type : 'adult';
+          await client.query(
+            `insert into guests (household_id, display_name, guest_type, position) values ($1,$2,$3,$4)`,
+            [hh.id, g.display_name, gt, i + 1],
+          );
+          guestCount++;
+        }
+      }
+      await client.query('commit');
+    } catch (err) {
+      await client.query('rollback').catch(() => {});
+      throw err;
+    } finally { client.release(); }
+
+    setFlash(req, 'success', `Imported ${householdCount} households and ${guestCount} guests — review and edit below.`);
+    res.redirect(`/admin/couples/${couple.id}/guests`);
+  } catch (err) { next(err); }
+});
+
 router.get('/couples/:id/guests', async (req, res, next) => {
   try {
     const couple = await findCoupleById(req.params.id);
@@ -1037,6 +1120,7 @@ function parseLinesFromBody(body) {
       paid_cents: dollarsToCents(l.paid_cents),
       status_kind: BUDGET_STATUS_KINDS.includes(l.status_kind) ? l.status_kind : 'upcoming',
       status_label: l.status_label?.trim() || null,
+      due_date: l.due_date?.trim() || null,
       position: idx + 1,
     }));
 }
@@ -1047,25 +1131,39 @@ router.get('/couples/:id/budget', async (req, res, next) => {
     const couple = await findCoupleById(req.params.id);
     if (!couple) return res.status(404).send('Couple not found.');
 
-    const { rows: categories } = await pool.query(
-      `select c.*,
-              coalesce(sums.line_count, 0)::int as line_count,
-              coalesce(sums.actual_cents, 0)::int as actual_cents
-         from budget_categories c
-         left join (
-           select category_id,
-                  count(*) as line_count,
-                  sum(paid_cents) as actual_cents
-             from budget_line_items
-            group by category_id
-         ) sums on sums.category_id = c.id
-        where c.couple_id = $1
-        order by c.position asc, c.category_number asc`,
-      [couple.id],
-    );
+    const [{ rows: categories }, { rows: upcoming }] = await Promise.all([
+      pool.query(
+        `select c.*,
+                coalesce(sums.line_count, 0)::int as line_count,
+                coalesce(sums.actual_cents, 0)::int as actual_cents
+           from budget_categories c
+           left join (
+             select category_id,
+                    count(*) as line_count,
+                    sum(paid_cents) as actual_cents
+               from budget_line_items
+              group by category_id
+           ) sums on sums.category_id = c.id
+          where c.couple_id = $1
+          order by c.position asc, c.category_number asc`,
+        [couple.id],
+      ),
+      pool.query(
+        `select l.*, c.title as category_title
+           from budget_line_items l
+           join budget_categories c on c.id = l.category_id
+          where c.couple_id = $1
+            and l.due_date is not null
+            and l.status_kind != 'paid'
+          order by l.due_date asc
+          limit 20`,
+        [couple.id],
+      ),
+    ]);
     res.render('admin/budget-categories-list', {
       couple,
       categories,
+      upcoming,
       flash: consumeFlash(req),
     });
   } catch (err) { next(err); }
@@ -1172,10 +1270,10 @@ router.post('/couples/:id/budget', async (req, res, next) => {
       await client.query(
         `insert into budget_line_items
            (category_id, name, vendor_label, amount_cents, paid_cents,
-            status_kind, status_label, position)
-         values ($1, $2, $3, $4, $5, $6, $7, $8)`,
+            status_kind, status_label, due_date, position)
+         values ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
         [categoryId, l.name, l.vendor_label, l.amount_cents, l.paid_cents,
-         l.status_kind, l.status_label, l.position],
+         l.status_kind, l.status_label, l.due_date || null, l.position],
       );
     }
     await client.query('commit');
