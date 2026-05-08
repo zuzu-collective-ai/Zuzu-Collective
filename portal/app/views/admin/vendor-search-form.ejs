@@ -80,7 +80,7 @@
 
           <form action="/admin/couples/<%= couple.id %>/vendors/search/add" method="post">
             <input type="hidden" name="vendor_type" value="<%= query?.vendor_type || '' %>">
-            <input type="hidden" name="candidates_json" value="<%= JSON.stringify(candidates).replace(/"/g, '&quot;') %>">
+            <input type="hidden" name="candidates_json" value="<%- JSON.stringify(candidates).replace(/&/g, '&amp;').replace(/"/g, '&quot;') %>">
 
             <div class="admin-list" style="margin-bottom: 1.5rem;">
               <% candidates.forEach((c, i) => { %>
