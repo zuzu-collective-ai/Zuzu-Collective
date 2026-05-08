@@ -731,6 +731,7 @@ code {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  flex-wrap: wrap;
 }
 
 .admin-swatch-row input[type="color"] {
@@ -751,8 +752,8 @@ code {
 }
 
 .admin-swatch-name {
-  flex: 1;
-  max-width: 240px;
+  width: 100%;
+  max-width: none;
 }
 
 /* ── Buttons ────────────────────────────────────────────────────────────── */
