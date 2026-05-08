@@ -117,8 +117,8 @@
           </div>
           <div id="contract-status" style="font-size:0.8rem; color:var(--zz-tobacco);"></div>
           <% if (vendor?.contract_url) { %>
-            <a href="<%= vendor.contract_url %>" target="_blank" rel="noopener"
-               class="admin-link" style="font-size:0.8rem; margin-top:0.25rem; display:inline-block;">View contract ↗</a>
+            <a href="<%= vendor.contract_url.replace('/upload/', '/upload/fl_attachment/') %>" target="_blank" rel="noopener"
+               class="admin-link" style="font-size:0.8rem; margin-top:0.25rem; display:inline-block;">↓ Download contract</a>
           <% } %>
         </div>
       </fieldset>
@@ -247,7 +247,7 @@
         contractBtn.addEventListener('click', () => contractFile.click());
         contractFile.addEventListener('change', async () => {
           if (!contractFile.files[0]) return;
-          try { await window.zzCloudinary.upload(contractFile.files[0], contractUrl, contractStatus); }
+          try { await window.zzCloudinary.upload(contractFile.files[0], contractUrl, contractStatus, 'raw'); }
           catch (_) {}
         });
       }
