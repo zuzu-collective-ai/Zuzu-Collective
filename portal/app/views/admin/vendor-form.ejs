@@ -247,7 +247,7 @@
         contractBtn.addEventListener('click', () => contractFile.click());
         contractFile.addEventListener('change', async () => {
           if (!contractFile.files[0]) return;
-          try { await window.zzCloudinary.upload(contractFile.files[0], contractUrl, contractStatus, 'raw'); }
+          try { await window.zzCloudinary.upload(contractFile.files[0], contractUrl, contractStatus); }
           catch (_) {}
         });
       }
