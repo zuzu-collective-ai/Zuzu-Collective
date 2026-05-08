@@ -193,6 +193,24 @@ router.get('/p/:slug/vendors', async (req, res, next) => {
   }
 });
 
+router.get('/p/:slug/vendors/:vid/contract', async (req, res, next) => {
+  try {
+    const couple = await findCoupleBySlug(req.params.slug);
+    if (!couple) return res.status(404).send('Not found.');
+    const { rows: [vendor] } = await pool.query(
+      'select contract_url from vendors where id=$1 and couple_id=$2 and status=$3',
+      [req.params.vid, couple.id, 'booked'],
+    );
+    if (!vendor?.contract_url) return res.status(404).send('No contract on file.');
+    const r = await fetch(vendor.contract_url);
+    if (!r.ok) return res.status(502).send('Could not retrieve contract.');
+    res.set('Content-Type', 'application/pdf');
+    res.set('Content-Disposition', 'inline; filename="contract.pdf"');
+    res.set('Cache-Control', 'private, max-age=3600');
+    r.body.pipe(res);
+  } catch (err) { next(err); }
+});
+
 router.get('/p/:slug/checklist', async (req, res, next) => {
   try {
     const coupleId = res.locals.couple.id;

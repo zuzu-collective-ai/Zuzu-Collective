@@ -97,7 +97,7 @@
             </ul>
             <% if (showNote) { %><p class="vendor-note"><%= v.note %></p><% } %>
             <% if (isBooked && v.contract_url) { %>
-              <a href="https://docs.google.com/viewer?url=<%= encodeURIComponent(v.contract_url) %>" target="_blank" rel="noopener" class="vendor-contract-link">View contract ↗</a>
+              <a href="/p/<%= couple.slug %>/vendors/<%= v.id %>/contract" target="_blank" rel="noopener" class="vendor-contract-link">View contract ↗</a>
             <% } %>
           <% } %>
         </div>
