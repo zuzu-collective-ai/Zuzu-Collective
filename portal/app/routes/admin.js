@@ -676,6 +676,25 @@ router.post('/couples/:id/vendors/outreach/apply', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// Contract PDF proxy — must appear before /:vid
+router.get('/couples/:id/vendors/:vid/contract', async (req, res, next) => {
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Not found.');
+    const { rows: [vendor] } = await pool.query(
+      'select contract_url from vendors where id=$1 and couple_id=$2',
+      [req.params.vid, couple.id],
+    );
+    if (!vendor?.contract_url) return res.status(404).send('No contract on file.');
+    const r = await fetch(vendor.contract_url);
+    if (!r.ok) return res.status(502).send('Could not retrieve contract.');
+    res.set('Content-Type', 'application/pdf');
+    res.set('Content-Disposition', 'inline; filename="contract.pdf"');
+    res.set('Cache-Control', 'private, max-age=3600');
+    r.body.pipe(res);
+  } catch (err) { next(err); }
+});
+
 // Edit vendor form
 router.get('/couples/:id/vendors/:vid', async (req, res, next) => {
   try {
