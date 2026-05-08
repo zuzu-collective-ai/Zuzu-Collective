@@ -14,7 +14,10 @@
           <a href="/p/<%= couple.slug %>/timeline" target="_blank" rel="noopener">View live portal ↗</a>
         </p>
       </div>
-      <a href="/admin/couples/<%= couple.id %>/timeline/new" class="admin-btn admin-btn--primary">+ Add phase</a>
+      <div style="display:flex; gap:0.5rem;">
+        <a href="/admin/couples/<%= couple.id %>/timeline/generate" class="admin-btn admin-btn--ghost">✦ Generate timeline</a>
+        <a href="/admin/couples/<%= couple.id %>/timeline/new" class="admin-btn admin-btn--primary">+ Add phase</a>
+      </div>
     </header>
 
     <%- include('partials/couple-tabs', { couple, currentTab: 'timeline' }) %>

@@ -11,7 +11,7 @@ import express from 'express';
 import multer from 'multer';
 import { pool } from '../db/pool.js';
 import { requireAdmin, passwordsMatch } from '../middleware/auth.js';
-import { generateAllocation, generatePalette, generateChecklist, generateVendorOutreach, extractVendorInfo, describeTileImage, isConfigured as anthropicConfigured, STANDARD_CATEGORIES } from '../lib/anthropic.js';
+import { generateAllocation, generatePalette, generateChecklist, generateVendorOutreach, extractVendorInfo, describeTileImage, generateTimeline, isConfigured as anthropicConfigured, STANDARD_CATEGORIES } from '../lib/anthropic.js';
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -1028,10 +1028,10 @@ function parseLinesFromBody(body) {
     .sort((a, b) => a - b);
   return indices
     .map(i => raw[i])
-    .filter(l => l && l.name && l.name.trim().length > 0)
+    .filter(l => l && (l.name?.trim() || dollarsToCents(l.amount_cents) || dollarsToCents(l.paid_cents)))
     .map((l, idx) => ({
       id: l.id || null,
-      name: l.name.trim(),
+      name: l.name?.trim() || 'Payment',
       vendor_label: l.vendor_label?.trim() || null,
       amount_cents: dollarsToCents(l.amount_cents),
       paid_cents: dollarsToCents(l.paid_cents),
@@ -1904,6 +1904,84 @@ function parseEventsFromBody(body) {
       position: idx + 1,
     }));
 }
+
+// ── AI timeline generator ──────────────────────────────────────────────
+router.get('/couples/:id/timeline/generate', async (req, res, next) => {
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+    const { rows: phases } = await pool.query(
+      'select count(*)::int as count from timeline_phases where couple_id = $1', [couple.id],
+    );
+    res.render('admin/timeline-generate-form', {
+      couple, configured: anthropicConfigured(),
+      existingCount: phases[0].count,
+      flash: consumeFlash(req), error: null,
+    });
+  } catch (err) { next(err); }
+});
+
+router.post('/couples/:id/timeline/generate', async (req, res, next) => {
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+    if (!anthropicConfigured()) return res.status(503).send('ANTHROPIC_API_KEY not set.');
+
+    const ceremonyTime = req.body.ceremony_time?.trim() || couple.timeline_ceremony_time || '';
+    const guestCount   = parseInt(req.body.guest_count, 10) || null;
+    const notes        = req.body.notes?.trim() || '';
+    const weddingDate  = couple.wedding_date
+      ? new Date(couple.wedding_date).toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric', timeZone:'UTC' })
+      : null;
+
+    let result;
+    try {
+      result = await generateTimeline({
+        ceremonyTime, weddingDate,
+        venueName: couple.venue_name, venueLocation: couple.venue_location,
+        guestCount, notes: notes || null,
+      });
+    } catch (err) {
+      console.error('[timeline-generate]', err);
+      return res.status(502).render('admin/timeline-generate-form', {
+        couple, configured: true, existingCount: 0,
+        flash: null, error: `Claude API failed: ${err.message}`,
+      });
+    }
+
+    const client = await pool.connect();
+    try {
+      await client.query('begin');
+      if (req.body.replace === 'yes') {
+        await client.query('delete from timeline_phases where couple_id = $1', [couple.id]);
+      }
+      for (let pi = 0; pi < result.phases.length; pi++) {
+        const p = result.phases[pi];
+        const { rows: [phase] } = await client.query(
+          `insert into timeline_phases (couple_id, phase_number, title, window_text, note_text, variant, position)
+           values ($1, (select coalesce(max(phase_number),0)+1 from timeline_phases where couple_id=$1), $2, $3, $4, $5, $6)
+           returning id`,
+          [couple.id, p.title, p.window_text || '', p.note_text || '', p.variant || 'standard', pi],
+        );
+        for (let ei = 0; ei < (p.events || []).length; ei++) {
+          const e = p.events[ei];
+          await client.query(
+            `insert into timeline_events (phase_id, time_text, meridiem, title, where_label, lead_label, with_label, note_text, position)
+             values ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+            [phase.id, e.time_text, e.meridiem || '', e.title, e.where_label || '', e.lead_label || '', e.with_label || '', e.note_text || '', ei],
+          );
+        }
+      }
+      await client.query('commit');
+    } catch (err) {
+      await client.query('rollback');
+      throw err;
+    } finally { client.release(); }
+
+    setFlash(req, 'success', `Generated ${result.phases.length} timeline phases — review and edit below.`);
+    res.redirect(`/admin/couples/${couple.id}/timeline`);
+  } catch (err) { next(err); }
+});
 
 router.get('/couples/:id/timeline', async (req, res, next) => {
   try {

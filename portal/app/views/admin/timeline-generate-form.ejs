@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include('partials/head', { title: `${couple.display_name} — Generate timeline` }) %>
+<body class="admin-body">
+
+  <%- include('partials/sidebar', { currentSection: 'couples' }) %>
+
+  <main class="admin-main">
+    <header class="admin-header">
+      <div>
+        <a href="/admin/couples/<%= couple.id %>/timeline" class="admin-back">← <%= couple.display_name %> · timeline</a>
+        <h1 class="admin-title">✦ Generate timeline</h1>
+      </div>
+    </header>
+
+    <%- include('partials/couple-tabs', { couple, currentTab: 'timeline' }) %>
+    <%- include('partials/flash', { flash }) %>
+
+    <% if (error) { %>
+      <div class="admin-flash admin-flash--error" role="alert"><%= error %></div>
+    <% } %>
+
+    <% if (!configured) { %>
+      <div class="admin-flash admin-flash--error">ANTHROPIC_API_KEY is not set — add it in Render → Environment.</div>
+    <% } else { %>
+
+    <p class="admin-fieldset-note" style="margin-bottom:1.5rem;">
+      Enter the ceremony time and any special notes. Claude will generate a full wedding day schedule
+      — getting ready, photos, ceremony, cocktail hour, reception, and send-off — which you can edit
+      afterwards on the timeline tab.
+    </p>
+
+    <form action="/admin/couples/<%= couple.id %>/timeline/generate" method="post" class="admin-form">
+
+      <fieldset class="admin-fieldset">
+        <legend class="admin-legend">The day</legend>
+
+        <div class="admin-row" style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+          <label class="admin-field">
+            <span class="admin-field-label">Ceremony time *</span>
+            <input type="text" name="ceremony_time" required
+                   value="<%= couple.timeline_ceremony_time || '' %>" placeholder="4:00 PM">
+            <span class="admin-field-help">e.g. 4:00 PM · 5:30 PM</span>
+          </label>
+          <label class="admin-field">
+            <span class="admin-field-label">Guest count</span>
+            <input type="number" name="guest_count" min="1" placeholder="130">
+          </label>
+        </div>
+
+        <label class="admin-field">
+          <span class="admin-field-label">Special notes</span>
+          <textarea name="notes" rows="4" placeholder="First look at 2:00 PM before ceremony. Sparkler send-off at 10:30 PM. Videographer arrives at 10 AM. Cocktail hour in the garden."></textarea>
+          <span class="admin-field-help">Anything out of the ordinary — special moments, vendor arrival times, location changes, custom traditions.</span>
+        </label>
+      </fieldset>
+
+      <% if (existingCount > 0) { %>
+      <fieldset class="admin-fieldset">
+        <legend class="admin-legend">Existing timeline</legend>
+        <p class="admin-fieldset-note">
+          This couple already has <%= existingCount %> timeline phase<%= existingCount === 1 ? '' : 's' %>.
+          Choose what to do with them.
+        </p>
+        <label class="admin-field">
+          <select name="replace">
+            <option value="yes">Replace — delete existing phases and start fresh</option>
+            <option value="no">Add to — append new phases after existing ones</option>
+          </select>
+        </label>
+      </fieldset>
+      <% } else { %>
+        <input type="hidden" name="replace" value="yes">
+      <% } %>
+
+      <div class="admin-form-actions">
+        <button type="submit" class="admin-btn admin-btn--primary">Generate timeline</button>
+        <a href="/admin/couples/<%= couple.id %>/timeline" class="admin-btn admin-btn--ghost">Cancel</a>
+      </div>
+    </form>
+
+    <% } %>
+  </main>
+
+</body>
+</html>
