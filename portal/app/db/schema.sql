@@ -494,6 +494,8 @@ create table if not exists inspiration_tiles (
 );
 
 alter table inspiration_tiles add column if not exists image_url text;
+alter table inspiration_tiles add column if not exists bg_position_x integer default 50;
+alter table inspiration_tiles add column if not exists bg_position_y integer default 50;
 
 create index if not exists inspiration_tiles_gallery_id_idx on inspiration_tiles(gallery_id);
 
