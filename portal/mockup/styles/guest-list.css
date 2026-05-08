@@ -172,6 +172,7 @@
   border-bottom: 1px dashed var(--zz-finn-20);
   align-items: start;
 }
+.household[hidden] { display: none; }
 .household:last-child { border-bottom: 0; }
 
 .household-meta { padding-top: 0.4rem; }
