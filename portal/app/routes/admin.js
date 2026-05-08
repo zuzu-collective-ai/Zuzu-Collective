@@ -2731,11 +2731,11 @@ function parseTilesFromBody(body) {
     .sort((a, b) => a - b);
   return indices
     .map(i => raw[i])
-    .filter(t => t && t.title && t.title.trim().length > 0)
+    .filter(t => t && (t.title?.trim() || t.image_url?.trim()))
     .map((t, idx) => ({
       id: t.id || null,
       label: t.label?.trim() || '',
-      title: t.title.trim(),
+      title: t.title?.trim() || '',
       note: nullIfEmpty(t.note),
       image_url: nullIfEmpty(t.image_url),
       is_hero: !!(t.is_hero && t.is_hero !== '' && t.is_hero !== 'false'),
