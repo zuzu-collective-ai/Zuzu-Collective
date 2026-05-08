@@ -39,6 +39,37 @@
       &nbsp;·&nbsp; <a href="/admin/couples/<%= couple.id %>" class="admin-link">Edit headline</a>
     </p>
 
+    <% if (upcoming && upcoming.length > 0) { %>
+      <section style="margin-bottom: 2rem;">
+        <h2 class="admin-legend" style="margin-bottom: 0.75rem;">Upcoming payments</h2>
+        <ul class="admin-list">
+          <% upcoming.forEach(l => { %>
+            <% const dueDate = new Date(l.due_date); %>
+            <% const today = new Date(); today.setHours(0,0,0,0); dueDate.setHours(0,0,0,0); %>
+            <% const daysUntil = Math.round((dueDate - today) / 86400000); %>
+            <% const isOverdue = daysUntil < 0; %>
+            <% const isSoon = daysUntil >= 0 && daysUntil <= 7; %>
+            <li class="admin-list-item">
+              <a href="/admin/couples/<%= couple.id %>/budget/<%= l.category_id %>" class="admin-list-link">
+                <div class="admin-list-name">
+                  <%= l.name || 'Payment' %>
+                  <% if (l.vendor_label) { %><span style="font-weight:400; color:var(--zz-finn-60);"> · <%= l.vendor_label %></span><% } %>
+                </div>
+                <div class="admin-list-meta">
+                  <span><%= l.category_title %></span>
+                  <span><%= fmt(l.amount_cents) %></span>
+                  <span style="<%= isOverdue ? 'color:red;font-weight:600;' : isSoon ? 'color:var(--zz-tobacco);font-weight:600;' : '' %>">
+                    Due <%= dueDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) %>
+                    <% if (isOverdue) { %> · overdue<% } else if (isSoon) { %> · soon<% } %>
+                  </span>
+                </div>
+              </a>
+            </li>
+          <% }) %>
+        </ul>
+      </section>
+    <% } %>
+
     <% if (categories.length === 0) { %>
       <p class="admin-empty">
         No budget categories yet for <%= couple.display_name %>.

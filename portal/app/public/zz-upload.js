@@ -1,14 +1,15 @@
 window.zzCloudinary = {
   cloud: 'dttdndgpr',
   preset: 'zuzu-portal',
-  async upload(file, urlInput, statusEl) {
+  async upload(file, urlInput, statusEl, resourceType) {
+    const type = resourceType || (file.type === 'application/pdf' ? 'raw' : 'image');
     if (statusEl) statusEl.textContent = 'Uploading…';
     try {
       const fd = new FormData();
       fd.append('file', file);
       fd.append('upload_preset', this.preset);
       const r = await fetch(
-        `https://api.cloudinary.com/v1_1/${this.cloud}/image/upload`,
+        `https://api.cloudinary.com/v1_1/${this.cloud}/${type}/upload`,
         { method: 'POST', body: fd }
       );
       const data = await r.json();

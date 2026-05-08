@@ -104,6 +104,26 @@
       </fieldset>
 
       <fieldset class="admin-fieldset">
+        <legend class="admin-legend">Contract</legend>
+        <div class="admin-field">
+          <span class="admin-field-label">Contract PDF</span>
+          <div style="display:flex; gap:0.5rem; align-items:center;">
+            <input type="url" name="contract_url" id="contract-url"
+                   value="<%= vendor?.contract_url || '' %>"
+                   placeholder="https://res.cloudinary.com/…" style="flex:1; min-width:0;">
+            <input type="file" id="contract-file" accept=".pdf,application/pdf" style="display:none;">
+            <button type="button" id="contract-upload-btn"
+                    class="admin-btn admin-btn--ghost" style="white-space:nowrap; flex-shrink:0;">↑ Upload PDF</button>
+          </div>
+          <div id="contract-status" style="font-size:0.8rem; color:var(--zz-tobacco);"></div>
+          <% if (vendor?.contract_url) { %>
+            <a href="<%= vendor.contract_url %>" target="_blank" rel="noopener"
+               class="admin-link" style="font-size:0.8rem; margin-top:0.25rem; display:inline-block;">View contract ↗</a>
+          <% } %>
+        </div>
+      </fieldset>
+
+      <fieldset class="admin-fieldset">
         <legend class="admin-legend">Note</legend>
         <label class="admin-field">
           <span class="admin-field-label">Free-text note</span>
@@ -214,6 +234,38 @@
     })();
   </script>
   <% } %>
+
+  <script src="/zz-upload.js"></script>
+  <script>
+    (function () {
+      // Contract PDF upload
+      const contractBtn    = document.getElementById('contract-upload-btn');
+      const contractFile   = document.getElementById('contract-file');
+      const contractUrl    = document.getElementById('contract-url');
+      const contractStatus = document.getElementById('contract-status');
+      if (contractBtn && contractFile) {
+        contractBtn.addEventListener('click', () => contractFile.click());
+        contractFile.addEventListener('change', async () => {
+          if (!contractFile.files[0]) return;
+          try { await window.zzCloudinary.upload(contractFile.files[0], contractUrl, contractStatus, 'raw'); }
+          catch (_) {}
+        });
+      }
+
+      // Phone auto-format on blur
+      const phoneInput = document.querySelector('[name="phone"]');
+      if (phoneInput) {
+        phoneInput.addEventListener('blur', () => {
+          const digits = phoneInput.value.replace(/\D/g, '');
+          if (digits.length === 10) {
+            phoneInput.value = `(${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6)}`;
+          } else if (digits.length === 11 && digits[0] === '1') {
+            phoneInput.value = `(${digits.slice(1,4)}) ${digits.slice(4,7)}-${digits.slice(7)}`;
+          }
+        });
+      }
+    })();
+  </script>
 
 </body>
 </html>
