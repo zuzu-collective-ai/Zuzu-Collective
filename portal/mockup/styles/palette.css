@@ -177,8 +177,10 @@
 .inspo-tile.is-tall { grid-row: span 2; }
 .inspo-tile.is-wide { grid-column: span 2; }
 
-/* Photo tiles — URL pasted into admin; background-image set inline */
-.inspo-tile--photo {
+/* Photo tiles — URL pasted into admin; background-image set inline.
+   Double class selector matches nth-child specificity so background-size
+   cover is not reset by the alternating palette shorthand rules above. */
+.inspo-tile.inspo-tile--photo {
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
