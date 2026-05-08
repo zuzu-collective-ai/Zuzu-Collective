@@ -11,7 +11,8 @@ import express from 'express';
 import multer from 'multer';
 import { pool } from '../db/pool.js';
 import { requireAdmin, passwordsMatch } from '../middleware/auth.js';
-import { generateAllocation, generatePalette, generateChecklist, generateVendorOutreach, extractVendorInfo, describeTileImage, generateTimeline, importGuestList, isConfigured as anthropicConfigured, STANDARD_CATEGORIES } from '../lib/anthropic.js';
+import { generateAllocation, generatePalette, generateChecklist, generateVendorOutreach, extractVendorInfo, describeTileImage, generateTimeline, importGuestList, generateVendorSearchQueries, parseVendorSearchResults, isConfigured as anthropicConfigured, STANDARD_CATEGORIES } from '../lib/anthropic.js';
+import { serperConfigured, serperSearch } from '../lib/serper.js';
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -456,6 +457,103 @@ router.post('/couples/:id/vendors/import', upload.single('file'), async (req, re
     console.error('[vendor-import]', err);
     res.status(500).json({ error: 'Extraction failed. Try again or fill in manually.' });
   }
+});
+
+// ── AI vendor search ──────────────────────────────────────────────────
+// Static routes must appear before `/:vid`.
+
+router.get('/couples/:id/vendors/search', async (req, res, next) => {
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+    res.render('admin/vendor-search-form', {
+      couple,
+      configured: anthropicConfigured() && serperConfigured(),
+      flash: consumeFlash(req),
+      error: null,
+      candidates: null,
+      query: {},
+    });
+  } catch (err) { next(err); }
+});
+
+router.post('/couples/:id/vendors/search', async (req, res, next) => {
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+
+    const { vendor_type, location, style } = req.body;
+    const query = { vendor_type, location, style };
+
+    const renderForm = (extra) => res.status(extra.error ? 400 : 200).render('admin/vendor-search-form', {
+      couple, flash: null, candidates: null, query,
+      configured: anthropicConfigured() && serperConfigured(),
+      ...extra,
+    });
+
+    if (!vendor_type?.trim()) return renderForm({ error: 'Vendor type is required.' });
+    if (!anthropicConfigured()) return renderForm({ error: 'ANTHROPIC_API_KEY not set.' });
+    if (!serperConfigured()) return renderForm({ error: 'SERPER_API_KEY not set — add it in Render → Environment.' });
+
+    const { queries } = await generateVendorSearchQueries({
+      styleDescription: style,
+      vendorType: vendor_type.trim(),
+      location: location?.trim() || couple.venue_location || 'San Diego, CA',
+    });
+
+    const allResults = (await Promise.all(
+      queries.map(q => serperSearch(q, 5).catch(() => []))
+    )).flat();
+
+    const { candidates } = await parseVendorSearchResults({
+      results: allResults,
+      vendorType: vendor_type.trim(),
+      styleDescription: style,
+    });
+
+    res.render('admin/vendor-search-form', {
+      couple,
+      configured: true,
+      flash: null,
+      error: null,
+      candidates,
+      query,
+    });
+  } catch (err) { next(err); }
+});
+
+router.post('/couples/:id/vendors/search/add', async (req, res, next) => {
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+
+    const selected = [].concat(req.body.selected || []);
+    if (!selected.length) {
+      setFlash(req, 'error', 'No vendors selected.');
+      return res.redirect(`/admin/couples/${couple.id}/vendors/search`);
+    }
+
+    const rawCandidates = JSON.parse(req.body.candidates_json || '[]');
+    const toAdd = rawCandidates.filter((_, i) => selected.includes(String(i)));
+
+    const { rows: existing } = await pool.query(
+      `select coalesce(max(position), 0) as max_pos from vendors where couple_id = $1`,
+      [couple.id],
+    );
+    let pos = (existing[0]?.max_pos || 0) + 1;
+
+    for (const c of toAdd) {
+      await pool.query(
+        `insert into vendors (couple_id, vendor_type, display_name, phone, email, address, note, status, position)
+         values ($1,$2,$3,$4,$5,$6,$7,'shortlist',$8)`,
+        [couple.id, c.vendor_type || req.body.vendor_type, c.display_name, c.phone || null,
+         c.email || null, c.address || null, c.description || null, pos++],
+      );
+    }
+
+    setFlash(req, 'success', `Added ${toAdd.length} vendor${toAdd.length === 1 ? '' : 's'} to shortlist.`);
+    res.redirect(`/admin/couples/${couple.id}/vendors`);
+  } catch (err) { next(err); }
 });
 
 // ── AI vendor outreach generator (Phase 4d) ───────────────────────────
