@@ -80,13 +80,25 @@
               </label>
               <div class="admin-field admin-field--inline" style="flex: 1.5;">
                 <span class="admin-field-label">Image URL</span>
-                <input type="url" name="tiles[<%= i %>][image_url]" value="<%= t.image_url || '' %>" placeholder="https://res.cloudinary.com/…">
+                <input type="url" name="tiles[<%= i %>][image_url]" value="<%= t.image_url || '' %>" placeholder="https://res.cloudinary.com/…" data-img-url>
                 <div style="display:flex; gap:0.3rem; align-items:center;">
                   <button type="button" class="admin-btn admin-btn--ghost admin-btn--small"
                           style="padding:0.3rem 0.5rem;" data-cld-btn>↑</button>
                   <span data-cld-status style="font-size:0.7rem; color:var(--zz-tobacco);"></span>
                 </div>
                 <input type="file" accept="image/*" style="display:none;" data-cld-file>
+                <input type="hidden" name="tiles[<%= i %>][bg_position_x]" value="<%= t.bg_position_x ?? 50 %>" data-bg-x>
+                <input type="hidden" name="tiles[<%= i %>][bg_position_y]" value="<%= t.bg_position_y ?? 50 %>" data-bg-y>
+                <div data-drag-wrap style="display:<%= t.image_url ? 'block' : 'none' %>; margin-top:0.4rem;">
+                  <div data-drag-preview style="
+                    width:100%; aspect-ratio:1; max-width:120px;
+                    background-size:cover;
+                    background-image:<%= t.image_url ? `url('${t.image_url}')` : 'none' %>;
+                    background-position:<%= t.bg_position_x ?? 50 %>% <%= t.bg_position_y ?? 50 %>%;
+                    border:1px solid var(--zz-finn-20); border-radius:2px;
+                    cursor:grab; user-select:none; touch-action:none;"></div>
+                  <span style="font-size:0.7rem; color:var(--zz-finn-60);">drag to reposition</span>
+                </div>
               </div>
               <label class="admin-field admin-field--inline" style="flex: 1;">
                 <span class="admin-field-label">Note</span>
@@ -148,13 +160,23 @@
             </label>
             <div class="admin-field admin-field--inline" style="flex: 1.5;">
               <span class="admin-field-label">Image URL</span>
-              <input type="url" name="tiles[${i}][image_url]" placeholder="https://res.cloudinary.com/…">
+              <input type="url" name="tiles[${i}][image_url]" placeholder="https://res.cloudinary.com/…" data-img-url>
               <div style="display:flex; gap:0.3rem; align-items:center;">
                 <button type="button" class="admin-btn admin-btn--ghost admin-btn--small"
                         style="padding:0.3rem 0.5rem;" data-cld-btn>↑</button>
                 <span data-cld-status style="font-size:0.7rem; color:var(--zz-tobacco);"></span>
               </div>
               <input type="file" accept="image/*" style="display:none;" data-cld-file>
+              <input type="hidden" name="tiles[${i}][bg_position_x]" value="50" data-bg-x>
+              <input type="hidden" name="tiles[${i}][bg_position_y]" value="50" data-bg-y>
+              <div data-drag-wrap style="display:none; margin-top:0.4rem;">
+                <div data-drag-preview style="
+                  width:100%; aspect-ratio:1; max-width:120px;
+                  background-size:cover; background-position:50% 50%;
+                  border:1px solid var(--zz-finn-20); border-radius:2px;
+                  cursor:grab; user-select:none; touch-action:none;"></div>
+                <span style="font-size:0.7rem; color:var(--zz-finn-60);">drag to reposition</span>
+              </div>
             </div>
             <label class="admin-field admin-field--inline" style="flex: 1;">
               <span class="admin-field-label">Note</span>
@@ -210,6 +232,71 @@
         } catch (_) {}
         if (btn) btn.disabled = false;
         e.target.value = '';
+        // Show drag preview after upload
+        const wrap = row.querySelector('[data-drag-wrap]');
+        const preview = row.querySelector('[data-drag-preview]');
+        if (wrap && preview && urlInput.value) {
+          preview.style.backgroundImage = `url('${urlInput.value}')`;
+          wrap.style.display = 'block';
+        }
+      });
+
+      // ── Drag-to-reposition ──────────────────────────────────────────
+      function initDrag(row) {
+        const urlInput = row.querySelector('[data-img-url]');
+        const preview  = row.querySelector('[data-drag-preview]');
+        const wrap     = row.querySelector('[data-drag-wrap]');
+        const xInput   = row.querySelector('[data-bg-x]');
+        const yInput   = row.querySelector('[data-bg-y]');
+        if (!preview || !xInput || !yInput) return;
+
+        function syncPreview(url) {
+          if (url && /^https?:\/\//.test(url)) {
+            preview.style.backgroundImage = `url('${url}')`;
+            wrap.style.display = 'block';
+          } else {
+            wrap.style.display = 'none';
+          }
+        }
+        if (urlInput) {
+          syncPreview(urlInput.value);
+          urlInput.addEventListener('input', () => syncPreview(urlInput.value));
+        }
+
+        let dragging = false, startX, startY, startBgX, startBgY;
+
+        function onStart(clientX, clientY) {
+          dragging = true;
+          startX = clientX; startY = clientY;
+          startBgX = parseFloat(xInput.value) || 50;
+          startBgY = parseFloat(yInput.value) || 50;
+          preview.style.cursor = 'grabbing';
+        }
+        function onMove(clientX, clientY) {
+          if (!dragging) return;
+          const rect = preview.getBoundingClientRect();
+          const newX = Math.max(0, Math.min(100, startBgX - (clientX - startX) / rect.width * 100));
+          const newY = Math.max(0, Math.min(100, startBgY - (clientY - startY) / rect.height * 100));
+          xInput.value = Math.round(newX);
+          yInput.value = Math.round(newY);
+          preview.style.backgroundPosition = `${newX}% ${newY}%`;
+        }
+        function onEnd() { dragging = false; preview.style.cursor = 'grab'; }
+
+        preview.addEventListener('mousedown',  e => { onStart(e.clientX, e.clientY); e.preventDefault(); });
+        preview.addEventListener('touchstart', e => { onStart(e.touches[0].clientX, e.touches[0].clientY); }, { passive: true });
+        document.addEventListener('mousemove',  e => onMove(e.clientX, e.clientY));
+        document.addEventListener('touchmove',  e => { if (dragging) onMove(e.touches[0].clientX, e.touches[0].clientY); }, { passive: true });
+        document.addEventListener('mouseup',   onEnd);
+        document.addEventListener('touchend',  onEnd);
+      }
+
+      // Init drag on all existing rows and new ones
+      container.querySelectorAll('[data-row]').forEach(initDrag);
+      const _origAddTile = addBtn.onclick;
+      addBtn.addEventListener('click', () => {
+        const rows = container.querySelectorAll('[data-row]');
+        initDrag(rows[rows.length - 1]);
       });
     })();
   </script>

@@ -2739,6 +2739,8 @@ function parseTilesFromBody(body) {
       note: nullIfEmpty(t.note),
       image_url: nullIfEmpty(t.image_url),
       is_hero: !!(t.is_hero && t.is_hero !== '' && t.is_hero !== 'false'),
+      bg_position_x: Math.max(0, Math.min(100, parseInt(t.bg_position_x, 10) || 50)),
+      bg_position_y: Math.max(0, Math.min(100, parseInt(t.bg_position_y, 10) || 50)),
       position: idx + 1,
     }));
 }
@@ -2875,9 +2877,9 @@ router.post('/couples/:id/design/galleries', async (req, res, next) => {
     const galleryId = rows[0].id;
     for (const t of tiles) {
       await client.query(
-        `insert into inspiration_tiles (gallery_id, label, title, note, image_url, is_hero, position)
-         values ($1, $2, $3, $4, $5, $6, $7)`,
-        [galleryId, t.label, t.title, t.note, t.image_url, t.is_hero, t.position],
+        `insert into inspiration_tiles (gallery_id, label, title, note, image_url, is_hero, bg_position_x, bg_position_y, position)
+         values ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        [galleryId, t.label, t.title, t.note, t.image_url, t.is_hero, t.bg_position_x, t.bg_position_y, t.position],
       );
     }
     await client.query('commit');
