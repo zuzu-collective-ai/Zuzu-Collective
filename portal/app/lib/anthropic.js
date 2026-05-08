@@ -657,3 +657,72 @@ Write in a refined, editorial tone — poetic but concrete. No clichés.`,
   if (!textBlock) throw new Error('No text in Claude response');
   return JSON.parse(textBlock.text);
 }
+
+export async function generateTimeline({ ceremonyTime, weddingDate, venueName, venueLocation, guestCount, notes }) {
+  const SCHEMA = {
+    type: 'object',
+    properties: {
+      phases: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            title:       { type: 'string' },
+            window_text: { type: 'string' },
+            note_text:   { type: 'string' },
+            variant:     { type: 'string', enum: ['standard','ceremony','sendoff'] },
+            events: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  time_text:   { type: 'string' },
+                  meridiem:    { type: 'string' },
+                  title:       { type: 'string' },
+                  where_label: { type: 'string' },
+                  lead_label:  { type: 'string' },
+                  with_label:  { type: 'string' },
+                  note_text:   { type: 'string' },
+                },
+                required: ['time_text','meridiem','title','where_label','lead_label','with_label','note_text'],
+                additionalProperties: false,
+              },
+            },
+          },
+          required: ['title','window_text','note_text','variant','events'],
+          additionalProperties: false,
+        },
+      },
+    },
+    required: ['phases'],
+    additionalProperties: false,
+  };
+
+  const ctx = [
+    ceremonyTime   ? `Ceremony time: ${ceremonyTime}` : null,
+    weddingDate    ? `Wedding date: ${weddingDate}` : null,
+    venueName      ? `Venue: ${venueName}${venueLocation ? `, ${venueLocation}` : ''}` : null,
+    guestCount     ? `Guest count: ${guestCount}` : null,
+    notes          ? `Special notes: ${notes}` : null,
+  ].filter(Boolean).join('\n');
+
+  const response = await client().messages.create({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 4096,
+    output_config: { format: { type: 'json_schema', schema: SCHEMA } },
+    system: `You are a luxury wedding day coordinator generating a detailed minute-by-minute timeline.
+Create a complete, realistic wedding day schedule with 5-8 phases and 4-8 events per phase.
+Phases in order: Getting Ready, First Look & Wedding Party Photos, Ceremony, Cocktail Hour, Reception (dinner/toasts/dances), Grand Exit.
+Use variant=ceremony for the Ceremony phase, variant=sendoff for Grand Exit, variant=standard for all others.
+window_text format: "8:00 AM – 12:00 PM". time_text is just the time like "8:00" or "4:30", meridiem is "AM" or "PM".
+where_label, lead_label, with_label are short detail lines (or empty string ""). note_text is an italic note (or "").
+Work backwards from the ceremony time to set getting-ready start. Cocktail hour immediately follows ceremony.
+Reception follows cocktail hour with dinner, toasts, first dance, parent dances, cake cutting, open dancing.
+Be specific and realistic — include buffer times, transitions, photography golden hour if applicable.`,
+    messages: [{ role: 'user', content: `Generate a full wedding day timeline.\n\n${ctx}` }],
+  });
+
+  const textBlock = response.content.find(b => b.type === 'text');
+  if (!textBlock) throw new Error('No text in Claude response');
+  return JSON.parse(textBlock.text);
+}
