@@ -2,7 +2,7 @@ window.zzCloudinary = {
   cloud: 'dttdndgpr',
   preset: 'zuzu-portal',
   async upload(file, urlInput, statusEl, resourceType) {
-    const type = resourceType || 'image';
+    const type = resourceType || (file.type === 'application/pdf' ? 'raw' : 'image');
     if (statusEl) statusEl.textContent = 'Uploading…';
     try {
       const fd = new FormData();

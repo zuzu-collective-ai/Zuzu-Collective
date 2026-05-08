@@ -97,7 +97,7 @@
             </ul>
             <% if (showNote) { %><p class="vendor-note"><%= v.note %></p><% } %>
             <% if (isBooked && v.contract_url) { %>
-              <a href="<%= v.contract_url %>" target="_blank" rel="noopener" class="vendor-contract-link">View contract ↗</a>
+              <a href="<%= v.contract_url.replace('/upload/', '/upload/fl_attachment/') %>" target="_blank" rel="noopener" class="vendor-contract-link">↓ Download contract</a>
             <% } %>
           <% } %>
         </div>
