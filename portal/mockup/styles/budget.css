@@ -140,7 +140,7 @@
 
 .amount-row {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 0;
 }
 
@@ -196,7 +196,7 @@
 
 .line-items li {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(0, 2.5fr) auto auto;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 2fr) auto auto auto auto;
   align-items: baseline;
   gap: var(--space-md);
   padding: var(--space-md) 0;
@@ -225,7 +225,27 @@
   font-style: italic;
   color: var(--zz-finn);
   text-align: right;
-  min-width: 6rem;
+  min-width: 5rem;
+}
+
+.line-paid {
+  font-family: var(--zz-display);
+  font-size: 0.875rem;
+  color: var(--zz-ink);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.line-balance {
+  font-family: var(--zz-display);
+  font-size: 0.875rem;
+  color: var(--zz-ink);
+  text-align: right;
+  white-space: nowrap;
+}
+.line-balance--due {
+  color: var(--zz-tobacco);
+  font-weight: 500;
 }
 
 /* Status pill — thin border, mono, all caps. No fills. */
@@ -282,7 +302,7 @@
   .stat:last-child { border-bottom: 0; }
 
   .amount-row {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
   }
   .amount-cell {
     padding: 0 var(--space-sm);
@@ -292,15 +312,17 @@
   }
 
   .line-items li {
-    grid-template-columns: 1fr auto;
+    grid-template-columns: 1fr auto auto;
     grid-template-areas:
-      "name amount"
-      "vendor vendor"
-      "status status";
+      "name amount balance"
+      "vendor paid paid"
+      "status status status";
     row-gap: var(--space-xs);
   }
-  .line-name   { grid-area: name; }
-  .line-amount { grid-area: amount; }
-  .line-vendor { grid-area: vendor; }
-  .line-status { grid-area: status; justify-self: start; }
+  .line-name    { grid-area: name; }
+  .line-amount  { grid-area: amount; }
+  .line-vendor  { grid-area: vendor; }
+  .line-paid    { grid-area: paid; text-align: right; }
+  .line-balance { grid-area: balance; }
+  .line-status  { grid-area: status; justify-self: start; }
 }
