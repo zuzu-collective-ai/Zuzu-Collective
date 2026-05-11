@@ -59,43 +59,10 @@
   opacity: 0.75;
 }
 
-/* ── Vendor filter bar ───────────────────────────────────────────────────── */
+/* ── Vendor filter strip — .guest-filters / .filter-chip from guest-list.css ── */
 
-.vendor-filter-bar {
-  display: flex;
-  gap: var(--space-sm);
-  padding: 0 var(--space-md) var(--space-lg);
-  max-width: var(--content-max);
-  margin-inline: auto;
-  flex-wrap: wrap;
-}
-
-.vendor-filter-btn {
-  font-family: var(--zz-mono);
-  font-size: 0.65rem;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  padding: 0.45rem 1rem;
-  border: 1px solid var(--zz-finn-20);
-  background: transparent;
-  color: var(--zz-finn);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  transition: background 0.12s, border-color 0.12s;
-}
-.vendor-filter-btn:hover { border-color: var(--zz-finn); }
-.vendor-filter-btn.is-active {
-  background: var(--zz-finn);
-  color: var(--zz-moonlight);
-  border-color: var(--zz-finn);
-}
-.vendor-filter-count {
-  opacity: 0.6;
-  font-size: 0.6rem;
-}
-.vendor-filter-btn.is-active .vendor-filter-count { opacity: 0.7; }
+/* Spacing between the filter strip and vendor list below it */
+.vendor-list { padding-top: var(--space-lg); }
 
 /* ── Vendor section headers (unused — kept for reference) ────────────────── */
 

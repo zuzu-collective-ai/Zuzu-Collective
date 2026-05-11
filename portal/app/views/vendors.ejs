@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<%- include('partials/head', { couple, title: 'Vendors', extraStyles: ['palette.css', 'vendors.css'] }) %>
+<%- include('partials/head', { couple, title: 'Vendors', extraStyles: ['palette.css', 'guest-list.css', 'vendors.css'] }) %>
 <body>
 
   <%- include('partials/topbar', { couple, currentPage }) %>
@@ -46,19 +46,16 @@
     </div>
   </section>
 
-  <!-- ── Filter tabs ─────────────────────────────────────────────────────── -->
+  <!-- ── Filter strip ─────────────────────────────────────────────────────── -->
   <% if (vendors.length > 0) { %>
-  <div class="vendor-filter-bar">
-    <button class="vendor-filter-btn is-active" data-filter="all">All <span class="vendor-filter-count"><%= vendors.length %></span></button>
-    <% if (counts.booked) { %>
-      <button class="vendor-filter-btn" data-filter="booked">Booked <span class="vendor-filter-count"><%= counts.booked %></span></button>
-    <% } %>
-    <% if (counts.shortlist) { %>
-      <button class="vendor-filter-btn" data-filter="shortlist">Shortlisting <span class="vendor-filter-count"><%= counts.shortlist %></span></button>
-    <% } %>
-    <% if (counts.pending) { %>
-      <button class="vendor-filter-btn" data-filter="pending">TBC <span class="vendor-filter-count"><%= counts.pending %></span></button>
-    <% } %>
+  <div class="guest-filters" role="group" aria-label="Filter vendors">
+    <span class="guest-filters-label">Filter</span>
+    <div class="guest-filters-list">
+      <button type="button" class="filter-chip is-active" data-filter="all">All</button>
+      <% if (counts.booked) { %><button type="button" class="filter-chip" data-filter="booked">Booked</button><% } %>
+      <% if (counts.shortlist) { %><button type="button" class="filter-chip" data-filter="shortlist">Shortlisting</button><% } %>
+      <% if (counts.pending) { %><button type="button" class="filter-chip" data-filter="pending">TBC</button><% } %>
+    </div>
   </div>
   <% } %>
 
@@ -118,12 +115,13 @@
 
   <script>
     (function () {
-      const btns = document.querySelectorAll('[data-filter]');
-      const cards = document.querySelectorAll('[data-status]');
-      btns.forEach(btn => {
-        btn.addEventListener('click', () => {
-          const filter = btn.dataset.filter;
-          btns.forEach(b => b.classList.toggle('is-active', b === btn));
+      const chips = document.querySelectorAll('.filter-chip[data-filter]');
+      const cards = document.querySelectorAll('.vendor[data-status]');
+      chips.forEach(chip => {
+        chip.addEventListener('click', () => {
+          const filter = chip.dataset.filter;
+          chips.forEach(c => c.classList.remove('is-active'));
+          chip.classList.add('is-active');
           cards.forEach(card => {
             card.hidden = filter !== 'all' && card.dataset.status !== filter;
           });
