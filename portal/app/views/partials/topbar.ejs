@@ -1,27 +1,37 @@
 <%#
   Persistent top nav. Highlights the current page via the `currentPage` local.
+  Optional:
+    portalBase         — URL prefix, defaults to /p/<couple.slug>
+    allowedPortalPages — array of page ids to show; null/undefined = all
+%>
+<%
+  const _base = (typeof portalBase !== 'undefined' && portalBase) ? portalBase : `/p/${couple.slug}`;
+  const _allowed = (typeof allowedPortalPages !== 'undefined') ? allowedPortalPages : null;
+  const _allLinks = [
+    { id: 'home',       href: '',             label: 'Home' },
+    { id: 'design',     href: '/design',      label: 'Design' },
+    { id: 'vendors',    href: '/vendors',     label: 'Vendors' },
+    { id: 'checklist',  href: '/checklist',   label: 'Checklist' },
+    { id: 'budget',     href: '/budget',      label: 'Budget' },
+    { id: 'timeline',   href: '/timeline',    label: 'Timeline' },
+    { id: 'floor-plan', href: '/floor-plan',  label: 'Floor&nbsp;Plan' },
+    { id: 'guest-list', href: '/guest-list',  label: 'Guest&nbsp;List,&nbsp;RSVP,&nbsp;and&nbsp;Seating' },
+  ];
+  const _links = _allowed !== null ? _allLinks.filter(l => _allowed.includes(l.id)) : _allLinks;
 %>
 <header class="topbar">
-  <a href="/p/<%= couple.slug %>" class="wordmark" aria-label="Zuzu Collective home">Zuzu</a>
+  <a href="<%= _base %>" class="wordmark" aria-label="Zuzu Collective home">Zuzu</a>
 
-  <nav class="topnav" aria-label="Portal sections">
-    <% const links = [
-      { id: 'home',       href: '',             label: 'Home' },
-      { id: 'design',     href: '/design',      label: 'Design' },
-      { id: 'vendors',    href: '/vendors',     label: 'Vendors' },
-      { id: 'checklist',  href: '/checklist',   label: 'Checklist' },
-      { id: 'budget',     href: '/budget',      label: 'Budget' },
-      { id: 'timeline',   href: '/timeline',    label: 'Timeline' },
-      { id: 'floor-plan', href: '/floor-plan',  label: 'Floor&nbsp;Plan' },
-      { id: 'guest-list', href: '/guest-list',  label: 'Guest&nbsp;List,&nbsp;RSVP,&nbsp;and&nbsp;Seating' },
-    ]; %>
-    <% links.forEach(link => {
-      const url = `/p/${couple.slug}${link.href}`;
-      const isCurrent = link.id === currentPage;
-    %>
-      <a href="<%= url %>"
-         class="topnav-link<%= isCurrent ? ' is-current' : '' %>"
-         <% if (isCurrent) { %>aria-current="page"<% } %>><%- link.label %></a>
-    <% }) %>
-  </nav>
+  <% if (_links.length > 0) { %>
+    <nav class="topnav" aria-label="Portal sections">
+      <% _links.forEach(link => {
+        const url = `${_base}${link.href}`;
+        const isCurrent = link.id === currentPage;
+      %>
+        <a href="<%= url %>"
+           class="topnav-link<%= isCurrent ? ' is-current' : '' %>"
+           <% if (isCurrent) { %>aria-current="page"<% } %>><%- link.label %></a>
+      <% }) %>
+    </nav>
+  <% } %>
 </header>

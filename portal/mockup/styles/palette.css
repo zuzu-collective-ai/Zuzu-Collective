@@ -244,6 +244,12 @@
   margin-bottom: var(--space-md);
 }
 
+.material-swatch--photo {
+  background-size: cover;
+  background-position: center;
+  border-color: transparent;
+}
+
 .material-title {
   font-family: var(--zz-display);
   font-size: 1.25rem;

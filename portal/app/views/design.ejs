@@ -113,7 +113,7 @@
   <% if (materials.length > 0) { %>
     <section class="section">
       <div class="section-head">
-        <span class="label">Metals &amp; Finishes</span>
+        <span class="label">Materials</span>
         <% if (couple.design_materials_title) { %>
           <h2 class="section-title"><%= couple.design_materials_title %></h2>
         <% } %>
@@ -125,7 +125,12 @@
       <div class="materials-grid">
         <% materials.forEach(m => { %>
           <div class="material">
-            <div class="material-swatch" style="<%= materialSwatchStyle(m.swatch_kind) %>"></div>
+            <% if (m.image_url) { %>
+              <div class="material-swatch material-swatch--photo"
+                   style="background-image: url('<%= m.image_url %>');"></div>
+            <% } else { %>
+              <div class="material-swatch" style="<%= materialSwatchStyle(m.swatch_kind) %>"></div>
+            <% } %>
             <div class="material-title"><%= m.name %></div>
             <% if (m.detail) { %><div class="material-note"><%= m.detail %></div><% } %>
           </div>

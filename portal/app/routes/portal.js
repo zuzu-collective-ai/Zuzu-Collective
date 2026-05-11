@@ -240,29 +240,49 @@ router.get('/p/:slug/checklist', async (req, res, next) => {
       tasksByMilestone.set(t.milestone_id, list);
     }
 
-    // Per-milestone progress + state. The first milestone that isn't
-    // fully complete is the "active" one (gets the "You are here" badge);
-    // every milestone before it that is complete is "done"; everything
-    // after the active one is "upcoming".
-    let foundActive = false;
+    // Days to wedding — used both for the summary stat and for date-based
+    // milestone placement. Compare at UTC midnight to keep counts stable.
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+    const wd = new Date(res.locals.couple.wedding_date);
+    wd.setUTCHours(0, 0, 0, 0);
+    const daysToWedding = Math.max(0, Math.round((wd - today) / 86400000));
+
+    // Parse milestone target date from date_label ("12 Months Out", "Day Of").
+    function parseMilestoneDate(dateLabel) {
+      const m = dateLabel.match(/(\d+)\s+months?\s+out/i);
+      if (m) {
+        const d = new Date(wd);
+        d.setUTCMonth(d.getUTCMonth() - parseInt(m[1], 10));
+        d.setUTCDate(1);
+        return d;
+      }
+      if (/day.?of/i.test(dateLabel)) return new Date(wd);
+      return null;
+    }
+
+    // Determine the "active" milestone index based on today's date:
+    // find the last milestone whose target date has passed, then advance
+    // past any that are already fully done.
+    let activeIdx = 0;
+    for (let i = 0; i < milestones.length; i++) {
+      const td = parseMilestoneDate(milestones[i].date_label);
+      if (td && td <= today) activeIdx = i;
+    }
+    while (activeIdx < milestones.length - 1) {
+      const ts = tasksByMilestone.get(milestones[activeIdx].id) || [];
+      if (ts.length > 0 && ts.every(t => t.is_done)) activeIdx++;
+      else break;
+    }
+
     const milestoneState = new Map();
-    for (const m of milestones) {
+    for (let i = 0; i < milestones.length; i++) {
+      const m = milestones[i];
       const ts = tasksByMilestone.get(m.id) || [];
       const total = ts.length;
       const done = ts.filter(t => t.is_done).length;
       const inFlight = total - done;
-      const allDone = total > 0 && done === total;
-
-      let state;
-      if (allDone) {
-        state = 'done';
-      } else if (!foundActive) {
-        state = 'active';
-        foundActive = true;
-      } else {
-        state = 'upcoming';
-      }
-
+      const state = i < activeIdx ? 'done' : i === activeIdx ? 'active' : 'upcoming';
       milestoneState.set(m.id, { total, done, inFlight, state });
     }
 
@@ -270,14 +290,6 @@ router.get('/p/:slug/checklist', async (req, res, next) => {
     const tasksTotal = tasks.length;
     const tasksDone = tasks.filter(t => t.is_done).length;
     const pctDone = tasksTotal > 0 ? Math.round((tasksDone / tasksTotal) * 100) : 0;
-
-    // Days to wedding — couple.wedding_date is stored as a date (no time),
-    // so compare at UTC midnight to keep the count stable across the day.
-    const today = new Date();
-    today.setUTCHours(0, 0, 0, 0);
-    const wd = new Date(res.locals.couple.wedding_date);
-    wd.setUTCHours(0, 0, 0, 0);
-    const daysToWedding = Math.max(0, Math.round((wd - today) / 86400000));
 
     res.render('checklist', {
       currentPage: 'checklist',
@@ -592,6 +604,147 @@ router.get('/p/:slug/guest-list', async (req, res, next) => {
   } catch (err) {
     next(err);
   }
+});
+
+// ── Vendor-facing portal (/v/:slug/*) ───────────────────────────────────
+// Same content as the full portal but without budget and guest-list.
+// Share links to design, vendors, checklist, timeline, floor-plan.
+
+const VENDOR_PORTAL_PAGES = ['home', 'design', 'vendors', 'checklist', 'timeline', 'floor-plan'];
+
+router.use('/v/:slug', loadCouple, logPageView, (req, res, next) => {
+  res.locals.portalBase = `/v/${req.params.slug}`;
+  res.locals.allowedPortalPages = VENDOR_PORTAL_PAGES;
+  next();
+});
+
+router.get('/v/:slug', (_req, res) =>
+  res.render('landing', { currentPage: 'home' }),
+);
+
+router.get('/v/:slug/design', async (req, res, next) => {
+  try {
+    const coupleId = res.locals.couple.id;
+    const [galleriesRes, tilesRes, materialsRes] = await Promise.all([
+      pool.query('select * from inspiration_galleries where couple_id = $1 order by position asc', [coupleId]),
+      pool.query(`select t.* from inspiration_tiles t join inspiration_galleries g on g.id = t.gallery_id where g.couple_id = $1 order by t.position asc`, [coupleId]),
+      pool.query('select * from design_materials where couple_id = $1 order by position asc', [coupleId]),
+    ]);
+    const tilesByGallery = new Map();
+    for (const t of tilesRes.rows) {
+      const list = tilesByGallery.get(t.gallery_id) || [];
+      list.push(t);
+      tilesByGallery.set(t.gallery_id, list);
+    }
+    res.render('design', { currentPage: 'design', galleries: galleriesRes.rows, tilesByGallery, materials: materialsRes.rows });
+  } catch (err) { next(err); }
+});
+
+router.get('/v/:slug/vendors', async (req, res, next) => {
+  try {
+    const { rows: vendors } = await pool.query(
+      'select * from vendors where couple_id = $1 order by position asc, vendor_type asc',
+      [res.locals.couple.id],
+    );
+    const counts = vendors.reduce((acc, v) => { acc.total += 1; acc[v.status] = (acc[v.status] || 0) + 1; return acc; }, { total: 0 });
+    res.render('vendors', { currentPage: 'vendors', vendors, counts });
+  } catch (err) { next(err); }
+});
+
+router.get('/v/:slug/checklist', async (req, res, next) => {
+  // Re-use the same route handler logic as /p/:slug/checklist by redirecting
+  // internally — just render with the vendor portal locals already set.
+  try {
+    const coupleId = res.locals.couple.id;
+    const [msRes, tasksRes] = await Promise.all([
+      pool.query('select * from checklist_milestones where couple_id = $1 order by position asc', [coupleId]),
+      pool.query(`select t.* from checklist_tasks t join checklist_milestones m on m.id = t.milestone_id where m.couple_id = $1 order by t.position asc`, [coupleId]),
+    ]);
+    const milestones = msRes.rows;
+    const tasks = tasksRes.rows;
+    const tasksByMilestone = new Map();
+    for (const t of tasks) {
+      const list = tasksByMilestone.get(t.milestone_id) || [];
+      list.push(t);
+      tasksByMilestone.set(t.milestone_id, list);
+    }
+    const today = new Date(); today.setUTCHours(0, 0, 0, 0);
+    const wd = new Date(res.locals.couple.wedding_date); wd.setUTCHours(0, 0, 0, 0);
+    const daysToWedding = Math.max(0, Math.round((wd - today) / 86400000));
+    function parseMsDate(dl) {
+      const m = dl.match(/(\d+)\s+months?\s+out/i);
+      if (m) { const d = new Date(wd); d.setUTCMonth(d.getUTCMonth() - parseInt(m[1], 10)); d.setUTCDate(1); return d; }
+      if (/day.?of/i.test(dl)) return new Date(wd);
+      return null;
+    }
+    let activeIdx = 0;
+    for (let i = 0; i < milestones.length; i++) { const td = parseMsDate(milestones[i].date_label); if (td && td <= today) activeIdx = i; }
+    while (activeIdx < milestones.length - 1) { const ts = tasksByMilestone.get(milestones[activeIdx].id) || []; if (ts.length > 0 && ts.every(t => t.is_done)) activeIdx++; else break; }
+    const milestoneState = new Map();
+    for (let i = 0; i < milestones.length; i++) {
+      const m = milestones[i]; const ts = tasksByMilestone.get(m.id) || [];
+      const total = ts.length; const done = ts.filter(t => t.is_done).length;
+      milestoneState.set(m.id, { total, done, inFlight: total - done, state: i < activeIdx ? 'done' : i === activeIdx ? 'active' : 'upcoming' });
+    }
+    const tasksTotal = tasks.length; const tasksDone = tasks.filter(t => t.is_done).length;
+    res.render('checklist', { currentPage: 'checklist', milestones, tasksByMilestone, milestoneState, summary: { milestoneCount: milestones.length, tasksTotal, tasksDone, pctDone: tasksTotal > 0 ? Math.round((tasksDone / tasksTotal) * 100) : 0, daysToWedding } });
+  } catch (err) { next(err); }
+});
+
+router.get('/v/:slug/timeline', async (req, res, next) => {
+  try {
+    const coupleId = res.locals.couple.id;
+    const [phasesRes, eventsRes] = await Promise.all([
+      pool.query('select * from timeline_phases where couple_id = $1 order by position asc, phase_number asc', [coupleId]),
+      pool.query(`select e.* from timeline_events e join timeline_phases p on p.id = e.phase_id where p.couple_id = $1 order by e.position asc`, [coupleId]),
+    ]);
+    const phases = phasesRes.rows; const events = eventsRes.rows;
+    const eventsByPhase = new Map();
+    for (const e of events) { const list = eventsByPhase.get(e.phase_id) || []; list.push(e); eventsByPhase.set(e.phase_id, list); }
+    res.render('timeline', { currentPage: 'timeline', phases, eventsByPhase, summary: { eventCount: events.length, phaseCount: phases.length } });
+  } catch (err) { next(err); }
+});
+
+router.get('/v/:slug/floor-plan', async (req, res, next) => {
+  try {
+    const coupleId = res.locals.couple.id;
+    const [spacesRes, zonesRes, keysRes] = await Promise.all([
+      pool.query('select * from floorplan_spaces where couple_id = $1 order by position asc', [coupleId]),
+      pool.query(`select z.* from floorplan_zones z join floorplan_spaces s on s.id = z.space_id where s.couple_id = $1 order by z.position asc`, [coupleId]),
+      pool.query(`select k.* from floorplan_key_items k join floorplan_spaces s on s.id = k.space_id where s.couple_id = $1 order by k.position asc`, [coupleId]),
+    ]);
+    const spaces = spacesRes.rows;
+    const zonesBySpace = new Map(); for (const z of zonesRes.rows) { const l = zonesBySpace.get(z.space_id) || []; l.push(z); zonesBySpace.set(z.space_id, l); }
+    const keysBySpace = new Map(); for (const k of keysRes.rows) { const l = keysBySpace.get(k.space_id) || []; l.push(k); keysBySpace.set(k.space_id, l); }
+    res.render('floor-plan', { currentPage: 'floor-plan', spaces, zonesBySpace, keysBySpace, summary: { spaceCount: spaces.length, totalFootprint: spaces.reduce((s, sp) => s + (sp.square_feet || 0), 0) } });
+  } catch (err) { next(err); }
+});
+
+// ── Day-of timeline portal (/t/:slug) ───────────────────────────────────
+// Clean standalone timeline — no nav, just the couple name wordmark.
+
+router.use('/t/:slug', loadCouple, logPageView, (req, res, next) => {
+  res.locals.portalBase = `/t/${req.params.slug}`;
+  res.locals.allowedPortalPages = []; // wordmark only, no nav links
+  next();
+});
+
+router.get('/t/:slug', (req, res) =>
+  res.redirect(`/t/${req.params.slug}/timeline`),
+);
+
+router.get('/t/:slug/timeline', async (req, res, next) => {
+  try {
+    const coupleId = res.locals.couple.id;
+    const [phasesRes, eventsRes] = await Promise.all([
+      pool.query('select * from timeline_phases where couple_id = $1 order by position asc, phase_number asc', [coupleId]),
+      pool.query(`select e.* from timeline_events e join timeline_phases p on p.id = e.phase_id where p.couple_id = $1 order by e.position asc`, [coupleId]),
+    ]);
+    const phases = phasesRes.rows; const events = eventsRes.rows;
+    const eventsByPhase = new Map();
+    for (const e of events) { const list = eventsByPhase.get(e.phase_id) || []; list.push(e); eventsByPhase.set(e.phase_id, list); }
+    res.render('timeline', { currentPage: 'timeline', phases, eventsByPhase, summary: { eventCount: events.length, phaseCount: phases.length } });
+  } catch (err) { next(err); }
 });
 
 export default router;

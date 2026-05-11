@@ -9,7 +9,7 @@
     <header class="admin-header">
       <div>
         <a href="/admin/couples/<%= couple.id %>/design" class="admin-back">← <%= couple.display_name %> · design</a>
-        <h1 class="admin-title">Metals &amp; finishes</h1>
+        <h1 class="admin-title">Materials</h1>
       </div>
     </header>
 
@@ -34,36 +34,52 @@
       <fieldset class="admin-fieldset">
         <legend class="admin-legend">Materials</legend>
         <p class="admin-fieldset-note">
-          One row per swatch. <em>Kind</em> picks a visual treatment from the preset list
-          (silver / gold / brass / white / ivory / clear / palette-1..4) — Zoe doesn't
-          write CSS. Saving replaces the whole list with what's posted; rows with no
-          name are skipped.
+          Metals, finishes, textures — one row per swatch. Upload a photo to show the
+          real material, or pick a <em>Kind</em> for a solid color swatch.
+          Rows with no name are skipped.
         </p>
 
-        <div id="material-rows" class="admin-key-rows">
+        <div id="material-rows" class="admin-tile-rows">
           <%
             const initial = (materials && materials.length) ? materials : [
-              { name: '', detail: '', swatch_kind: 'silver', position: 1 },
+              { name: '', detail: '', swatch_kind: 'silver', image_url: '', position: 1 },
             ];
           %>
           <% initial.forEach((m, i) => { %>
-            <div class="admin-key-row" data-row style="grid-template-columns: 1fr 1.6fr 180px auto;">
-              <label class="admin-field admin-field--inline">
-                <span class="admin-field-label">Name</span>
+            <div class="admin-tile-row" data-row>
+              <label class="admin-field admin-field--inline" style="min-width:140px;">
+                <span class="admin-field-label">Name *</span>
                 <input type="text" name="materials[<%= i %>][name]" value="<%= m.name || '' %>" placeholder="Polished silver">
               </label>
-              <label class="admin-field admin-field--inline">
+              <label class="admin-field admin-field--inline" style="flex:2;">
                 <span class="admin-field-label">Detail</span>
                 <input type="text" name="materials[<%= i %>][detail]" value="<%= m.detail || '' %>" placeholder="Flatware · candle holders · table numbers">
               </label>
-              <label class="admin-field admin-field--inline">
-                <span class="admin-field-label">Kind</span>
+              <label class="admin-field admin-field--inline" style="min-width:160px;">
+                <span class="admin-field-label">Kind (if no photo)</span>
                 <select name="materials[<%= i %>][swatch_kind]">
                   <% swatchKinds.forEach(k => { %>
                     <option value="<%= k %>" <%= m.swatch_kind === k ? 'selected' : '' %>><%= SWATCH_LABELS[k] || k %></option>
                   <% }) %>
                 </select>
               </label>
+              <div class="admin-field admin-field--inline" style="flex:1.5;">
+                <span class="admin-field-label">Photo</span>
+                <input type="url" name="materials[<%= i %>][image_url]" value="<%= m.image_url || '' %>" placeholder="https://res.cloudinary.com/…" data-img-url>
+                <div style="display:flex; gap:0.3rem; align-items:center;">
+                  <button type="button" class="admin-btn admin-btn--ghost admin-btn--small"
+                          style="padding:0.3rem 0.5rem;" data-cld-btn>↑</button>
+                  <span data-cld-status style="font-size:0.7rem; color:var(--zz-tobacco);"></span>
+                </div>
+                <input type="file" accept="image/*" style="display:none;" data-cld-file>
+                <% if (m.image_url) { %>
+                  <img src="<%= m.image_url %>" alt="" data-preview
+                       style="margin-top:0.4rem; width:80px; height:80px; object-fit:cover; border-radius:2px; border:1px solid var(--zz-finn-20);">
+                <% } else { %>
+                  <img src="" alt="" data-preview
+                       style="display:none; margin-top:0.4rem; width:80px; height:80px; object-fit:cover; border-radius:2px; border:1px solid var(--zz-finn-20);">
+                <% } %>
+              </div>
               <button type="button" class="admin-btn admin-btn--ghost admin-btn--small" data-remove>Remove</button>
             </div>
           <% }) %>
@@ -79,6 +95,7 @@
     </form>
   </main>
 
+  <script src="/zz-upload.js"></script>
   <script>
     (function () {
       const container = document.getElementById('material-rows');
@@ -92,21 +109,33 @@
       addBtn.addEventListener('click', () => {
         const i = nextIndex();
         const html = `
-          <div class="admin-key-row" data-row style="grid-template-columns: 1fr 1.6fr 180px auto;">
-            <label class="admin-field admin-field--inline">
-              <span class="admin-field-label">Name</span>
-              <input type="text" name="materials[${i}][name]" placeholder="">
+          <div class="admin-tile-row" data-row>
+            <label class="admin-field admin-field--inline" style="min-width:140px;">
+              <span class="admin-field-label">Name *</span>
+              <input type="text" name="materials[${i}][name]" placeholder="Polished silver">
             </label>
-            <label class="admin-field admin-field--inline">
+            <label class="admin-field admin-field--inline" style="flex:2;">
               <span class="admin-field-label">Detail</span>
               <input type="text" name="materials[${i}][detail]" placeholder="">
             </label>
-            <label class="admin-field admin-field--inline">
-              <span class="admin-field-label">Kind</span>
+            <label class="admin-field admin-field--inline" style="min-width:160px;">
+              <span class="admin-field-label">Kind (if no photo)</span>
               <select name="materials[${i}][swatch_kind]">
                 ${KIND_OPTIONS.map(k => `<option value="${k.value}">${k.label}</option>`).join('')}
               </select>
             </label>
+            <div class="admin-field admin-field--inline" style="flex:1.5;">
+              <span class="admin-field-label">Photo</span>
+              <input type="url" name="materials[${i}][image_url]" placeholder="https://res.cloudinary.com/…" data-img-url>
+              <div style="display:flex; gap:0.3rem; align-items:center;">
+                <button type="button" class="admin-btn admin-btn--ghost admin-btn--small"
+                        style="padding:0.3rem 0.5rem;" data-cld-btn>↑</button>
+                <span data-cld-status style="font-size:0.7rem; color:var(--zz-tobacco);"></span>
+              </div>
+              <input type="file" accept="image/*" style="display:none;" data-cld-file>
+              <img src="" alt="" data-preview
+                   style="display:none; margin-top:0.4rem; width:80px; height:80px; object-fit:cover; border-radius:2px; border:1px solid var(--zz-finn-20);">
+            </div>
             <button type="button" class="admin-btn admin-btn--ghost admin-btn--small" data-remove>Remove</button>
           </div>
         `;
@@ -117,6 +146,47 @@
         if (e.target.matches('[data-remove]')) {
           const row = e.target.closest('[data-row]');
           if (row) row.remove();
+        }
+        if (e.target.matches('[data-cld-btn]')) {
+          const row = e.target.closest('[data-row]');
+          if (row) row.querySelector('[data-cld-file]').click();
+        }
+      });
+
+      container.addEventListener('change', async (e) => {
+        if (!e.target.matches('[data-cld-file]')) return;
+        const file = e.target.files[0];
+        if (!file) return;
+        const row = e.target.closest('[data-row]');
+        const urlInput = row.querySelector('[data-img-url]');
+        const statusEl = row.querySelector('[data-cld-status]');
+        const btn      = row.querySelector('[data-cld-btn]');
+        const preview  = row.querySelector('[data-preview]');
+        if (btn) btn.disabled = true;
+        try {
+          await window.zzCloudinary.upload(file, urlInput, statusEl);
+          if (preview && urlInput.value) {
+            preview.src = urlInput.value;
+            preview.style.display = '';
+          }
+          setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 3000);
+        } catch (_) {}
+        if (btn) btn.disabled = false;
+        e.target.value = '';
+      });
+
+      // Show preview for pasted URLs
+      container.addEventListener('input', (e) => {
+        if (!e.target.matches('[data-img-url]')) return;
+        const row = e.target.closest('[data-row]');
+        const preview = row?.querySelector('[data-preview]');
+        if (!preview) return;
+        const url = e.target.value.trim();
+        if (url && /^https?:\/\//.test(url)) {
+          preview.src = url;
+          preview.style.display = '';
+        } else {
+          preview.style.display = 'none';
         }
       });
     })();
