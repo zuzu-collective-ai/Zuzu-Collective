@@ -21,3 +21,15 @@
     portal.zuzucollective.com / <%= couple.slug %>
   </div>
 </footer>
+
+<script>
+  // Cormorant Garamond's italic hyphen sits at a steep angle.
+  // Wrap hyphens and dashes inside <em> elements with an upright span.
+  document.querySelectorAll('em').forEach(function(el) {
+    if (!el.querySelector('*') && /[-–—]/.test(el.textContent)) {
+      el.innerHTML = el.textContent.replace(/[-–—]/g, function(ch) {
+        return '<span style="font-style:normal">' + ch + '</span>';
+      });
+    }
+  });
+</script>
