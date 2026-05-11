@@ -2991,6 +2991,7 @@ function parseMaterialsFromBody(body) {
       name: m.name.trim(),
       detail: nullIfEmpty(m.detail),
       swatch_kind: DESIGN_SWATCH_KINDS.includes(m.swatch_kind) ? m.swatch_kind : 'silver',
+      image_url: nullIfEmpty(m.image_url),
       position: idx + 1,
     }));
 }
@@ -3007,9 +3008,9 @@ router.post('/couples/:id/design/materials', async (req, res, next) => {
     await client.query('delete from design_materials where couple_id = $1', [couple.id]);
     for (const m of materials) {
       await client.query(
-        `insert into design_materials (couple_id, name, detail, swatch_kind, position)
-         values ($1, $2, $3, $4, $5)`,
-        [couple.id, m.name, m.detail, m.swatch_kind, m.position],
+        `insert into design_materials (couple_id, name, detail, swatch_kind, image_url, position)
+         values ($1, $2, $3, $4, $5, $6)`,
+        [couple.id, m.name, m.detail, m.swatch_kind, m.image_url, m.position],
       );
     }
     await client.query('commit');

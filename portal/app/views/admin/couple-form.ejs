@@ -15,8 +15,10 @@
         <a href="/admin" class="admin-back">← All couples</a>
         <h1 class="admin-title"><%= couple?.display_name || 'New couple' %></h1>
         <% if (couple?.slug) { %>
-          <p class="admin-subtitle">
-            <a href="/p/<%= couple.slug %>" target="_blank" rel="noopener">View live portal ↗</a>
+          <p class="admin-subtitle" style="display:flex; gap:1rem; flex-wrap:wrap;">
+            <a href="/p/<%= couple.slug %>" target="_blank" rel="noopener">Full portal ↗</a>
+            <a href="/v/<%= couple.slug %>" target="_blank" rel="noopener">Vendor portal ↗</a>
+            <a href="/t/<%= couple.slug %>/timeline" target="_blank" rel="noopener">Day-of timeline ↗</a>
           </p>
         <% } %>
       </div>
