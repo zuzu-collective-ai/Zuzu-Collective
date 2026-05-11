@@ -679,17 +679,28 @@ router.post('/couples/:id/vendors/outreach/apply', async (req, res, next) => {
 
 // Contract PDF upload — server-side signed Cloudinary upload.
 // Accepts a PDF from the browser, re-uploads to Cloudinary using
-// API credentials (CLOUDINARY_URL env var) so unsigned-preset
-// restrictions don't apply.
+// API credentials so unsigned-preset restrictions don't apply.
+// Supports CLOUDINARY_URL (cloudinary://key:secret@cloud) OR the three
+// separate vars CLOUDINARY_API_KEY / CLOUDINARY_API_SECRET / CLOUDINARY_CLOUD_NAME
+// that Render's Cloudinary add-on sets.
 router.post('/couples/:id/vendors/upload-contract', requireAdmin, upload.single('file'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No file received.' });
 
-    // Parse CLOUDINARY_URL: cloudinary://api_key:api_secret@cloud_name
+    // Resolve credentials — try combined URL first, then individual vars
+    let apiKey, apiSecret, cloudName;
     const rawUrl = process.env.CLOUDINARY_URL || '';
     const m = rawUrl.match(/^cloudinary:\/\/([^:]+):([^@]+)@(.+)$/);
-    if (!m) return res.status(503).json({ error: 'CLOUDINARY_URL not configured on server.' });
-    const [, apiKey, apiSecret, cloudName] = m;
+    if (m) {
+      [, apiKey, apiSecret, cloudName] = m;
+    } else {
+      apiKey    = process.env.CLOUDINARY_API_KEY;
+      apiSecret = process.env.CLOUDINARY_API_SECRET;
+      cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+    }
+    if (!apiKey || !apiSecret || !cloudName) {
+      return res.status(503).json({ error: 'Cloudinary credentials not configured. Set CLOUDINARY_URL (format: cloudinary://key:secret@cloudname) or CLOUDINARY_API_KEY + CLOUDINARY_API_SECRET + CLOUDINARY_CLOUD_NAME on Render.' });
+    }
 
     // Build signed upload params
     const timestamp = Math.round(Date.now() / 1000);
