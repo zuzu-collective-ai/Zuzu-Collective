@@ -6,9 +6,6 @@
   <%- include('partials/topbar', { couple, currentPage }) %>
 
   <%
-    // Helper — render integer cents as "$30,000" (no decimals when whole;
-    // shows ".50" only if needed). Centralized here so every number on
-    // the page formats identically.
     function fmtCurrency(cents) {
       const dollars = (cents || 0) / 100;
       const opts = Number.isInteger(dollars)
@@ -23,8 +20,8 @@
     <span class="label page-eyebrow"><%= couple.display_name %></span>
     <h1 class="page-title">Budget</h1>
     <p class="page-subtitle">
-      Where the investment goes. Each category tracks Estimated, Actual, and
-      Remaining — updated as deposits are paid and final balances come due.
+      Where the investment goes. Tracks contracted totals, what's been paid,
+      and the balance still due to each vendor.
     </p>
   </section>
 
@@ -37,22 +34,65 @@
         <div class="stat-note">Across <%= summary.categoryCount %> categor<%= summary.categoryCount === 1 ? 'y' : 'ies' %></div>
       </div>
       <div class="stat">
-        <div class="stat-label">Spent &amp; committed</div>
-        <div class="stat-number stat-number--accent"><%= fmtCurrency(summary.totalSpent) %></div>
-        <div class="stat-note"><%= summary.pctOfTotal %>% of total</div>
+        <div class="stat-label">Contracted</div>
+        <div class="stat-number stat-number--accent"><%= fmtCurrency(summary.totalContracted) %></div>
+        <div class="stat-note"><%= summary.pctOfTotal %>% of budget committed</div>
       </div>
       <div class="stat">
-        <div class="stat-label">Remaining</div>
-        <div class="stat-number"><%= fmtCurrency(summary.totalRemaining) %></div>
-        <div class="stat-note">Across <%= summary.openCategories %> open categor<%= summary.openCategories === 1 ? 'y' : 'ies' %></div>
+        <div class="stat-label">Paid so far</div>
+        <div class="stat-number"><%= fmtCurrency(summary.totalSpent) %></div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Balance due</div>
+        <div class="stat-number"><%= fmtCurrency(summary.totalOwed) %></div>
+        <div class="stat-note">Remaining to vendors</div>
       </div>
     </div>
-
   </section>
+
+  <!-- ── Payment schedule ──────────────────────────────────────────────── -->
+  <% if (scheduledPayments.length > 0) { %>
+    <section class="section payment-schedule">
+      <div class="section-head">
+        <span class="label">Payment schedule</span>
+        <h2 class="section-title"><em>Upcoming due dates.</em></h2>
+      </div>
+      <ul class="payment-list">
+        <% scheduledPayments.forEach(p => {
+          const due = new Date(p.due_date);
+          const fmtDue = due.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+          const isOverdue = p.daysUntil < 0;
+          const isSoon    = !isOverdue && p.daysUntil <= 14;
+          const urgency   = isOverdue ? 'overdue' : isSoon ? 'soon' : '';
+          const balance   = Math.max(0, (p.amount_cents || 0) - (p.paid_cents || 0));
+        %>
+          <li class="payment-item<%= urgency ? ` payment-item--${urgency}` : '' %>">
+            <div class="payment-date">
+              <span class="payment-date-main"><%= fmtDue %></span>
+              <% if (isOverdue) { %>
+                <span class="payment-urgency">Overdue by <%= Math.abs(p.daysUntil) %> day<%= Math.abs(p.daysUntil) === 1 ? '' : 's' %></span>
+              <% } else if (isSoon) { %>
+                <span class="payment-urgency"><%= p.daysUntil === 0 ? 'Due today' : `${p.daysUntil} day${p.daysUntil === 1 ? '' : 's'} away` %></span>
+              <% } %>
+            </div>
+            <div class="payment-desc">
+              <em><%= p.name %></em>
+              <% if (p.categoryTitle) { %><span class="payment-category"><%= p.categoryTitle %></span><% } %>
+              <% if (p.vendor_label) { %><span class="payment-vendor"><%= p.vendor_label %></span><% } %>
+            </div>
+            <div class="payment-amount"><%= fmtCurrency(balance) %></div>
+            <% if (p.status_label) { %>
+              <div class="payment-status"><%= p.status_label %></div>
+            <% } %>
+          </li>
+        <% }) %>
+      </ul>
+    </section>
+  <% } %>
 
   <!-- ── Categories ──────────────────────────────────────────────────────── -->
   <% categories.forEach(cat => {
-       const stats = categoryStats.get(cat.id) || { estimated: 0, actual: 0, remaining: 0, pct: 0 };
+       const stats = categoryStats.get(cat.id) || { estimated: 0, contracted: 0, actual: 0, remaining: 0, pct: 0 };
        const lines = linesByCategory.get(cat.id) || [];
   %>
     <section class="section category">
@@ -66,8 +106,9 @@
         <div class="category-amount">
           <div class="amount-row">
             <div class="amount-cell"><span class="amount-label">Estimated</span><span class="amount-value"><%= fmtCurrency(stats.estimated) %></span></div>
-            <div class="amount-cell"><span class="amount-label">Actual</span><span class="amount-value"><%= fmtCurrency(stats.actual) %></span></div>
-            <div class="amount-cell"><span class="amount-label">Remaining</span><span class="amount-value"><%= fmtCurrency(stats.remaining) %></span></div>
+            <div class="amount-cell"><span class="amount-label">Contracted</span><span class="amount-value"><%= fmtCurrency(stats.contracted) %></span></div>
+            <div class="amount-cell"><span class="amount-label">Paid</span><span class="amount-value"><%= fmtCurrency(stats.actual) %></span></div>
+            <div class="amount-cell"><span class="amount-label">Balance due</span><span class="amount-value"><%= fmtCurrency(stats.remaining) %></span></div>
           </div>
           <div class="progress-bar"><span style="width: <%= stats.pct %>%;"></span></div>
         </div>
@@ -77,11 +118,14 @@
         <ul class="line-items">
           <% lines.forEach(line => {
                const statusClass = `status-${(line.status_kind || 'upcoming').replace(/[^a-z]/g, '')}`;
+               const balance = Math.max(0, (line.amount_cents || 0) - (line.paid_cents || 0));
           %>
             <li>
               <div class="line-name"><em><%= line.name %></em></div>
               <div class="line-vendor"><%= line.vendor_label || '' %></div>
               <div class="line-amount"><%= fmtCurrency(line.amount_cents) %></div>
+              <div class="line-paid"><%= fmtCurrency(line.paid_cents) %> paid</div>
+              <div class="line-balance<%= balance > 0 ? ' line-balance--due' : '' %>"><%= balance > 0 ? fmtCurrency(balance) + ' due' : '✓ Paid' %></div>
               <div class="line-status <%= statusClass %>"><%= line.status_label || '' %></div>
             </li>
           <% }) %>
@@ -95,8 +139,8 @@
     <section class="section budget-footnote">
       <p>
         <em>Total budget: <%= fmtCurrency(summary.totalBudget) %>.</em>
-        Categories adjust as vendors are booked, deposits are paid, and final
-        balances come due.
+        Contracted amounts reflect signed vendor totals; balance due updates
+        as deposits and final payments are recorded.
       </p>
     </section>
   <% } %>

@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= couple.display_name %> — Zuzu Collective</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Fragment+Mono:ital@0;1&display=swap">
+
+  <link rel="stylesheet" href="/styles/tokens.css">
+  <link rel="stylesheet" href="/styles/base.css">
+  <link rel="stylesheet" href="/styles/preview.css">
+
+  <style>
+    :root {
+      --couple-1: <%= couple.palette_color_1 %>;
+      --couple-2: <%= couple.palette_color_2 %>;
+      --couple-3: <%= couple.palette_color_3 %>;
+      --couple-4: <%= couple.palette_color_4 %>;
+      --couple-accent: var(--couple-2);
+    }
+  </style>
+</head>
+<body class="preview-body">
+
+  <!-- ── Wordmark ─────────────────────────────────────────────────────────── -->
+  <header class="preview-wordmark">
+    <span class="preview-wordmark-text">Zuzu Collective</span>
+  </header>
+
+  <!-- ── Hero ─────────────────────────────────────────────────────────────── -->
+  <section class="preview-hero">
+    <div class="preview-hero-palette" aria-hidden="true">
+      <span style="background: var(--couple-1);"></span>
+      <span style="background: var(--couple-2);"></span>
+      <span style="background: var(--couple-3);"></span>
+      <span style="background: var(--couple-4);"></span>
+    </div>
+    <div class="preview-hero-inner">
+      <p class="preview-prepared">A personal planning portal, prepared for</p>
+      <h1 class="preview-couple-name"><em><%= couple.display_name %></em></h1>
+      <div class="preview-hero-details">
+        <span><%= new Date(couple.wedding_date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' }) %></span>
+        <% if (couple.venue_name) { %>
+          <span class="preview-dot">·</span>
+          <span><%= couple.venue_name %><% if (couple.venue_location) { %>, <%= couple.venue_location %><% } %></span>
+        <% } %>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Intro ─────────────────────────────────────────────────────────────── -->
+  <section class="preview-intro">
+    <p class="preview-intro-statement">
+      Everything you need — from the moment you set the date to the morning
+      of the wedding — in a single, private portal built just for you.
+    </p>
+  </section>
+
+  <!-- ── Features ──────────────────────────────────────────────────────────── -->
+  <section class="preview-features">
+    <div class="preview-section-head">
+      <span class="preview-label">What's included</span>
+      <h2 class="preview-section-title"><em>Six sections. Every detail covered.</em></h2>
+    </div>
+    <div class="preview-features-grid">
+      <div class="preview-feature">
+        <div class="preview-feature-num">01</div>
+        <h3 class="preview-feature-title">Design</h3>
+        <p class="preview-feature-desc">Your palette, inspiration galleries, and material swatches — the full visual language of your wedding, curated and presented beautifully.</p>
+      </div>
+      <div class="preview-feature">
+        <div class="preview-feature-num">02</div>
+        <h3 class="preview-feature-title">Vendors</h3>
+        <p class="preview-feature-desc">Every vendor in one place — contact details, booking status, and contracts, organized from booked down to shortlist.</p>
+      </div>
+      <div class="preview-feature">
+        <div class="preview-feature-num">03</div>
+        <h3 class="preview-feature-title">Budget</h3>
+        <p class="preview-feature-desc">Contracted totals, deposits paid, and balances due — updated in real time so you always know exactly where the money stands.</p>
+      </div>
+      <div class="preview-feature">
+        <div class="preview-feature-num">04</div>
+        <h3 class="preview-feature-title">Checklist</h3>
+        <p class="preview-feature-desc">A milestone-by-milestone roadmap from twelve months out to the day before. Check tasks off as you go — the portal tracks your progress live.</p>
+      </div>
+      <div class="preview-feature">
+        <div class="preview-feature-num">05</div>
+        <h3 class="preview-feature-title">Timeline</h3>
+        <p class="preview-feature-desc">Your day, hour by hour. Built from vendor contracts and locked two weeks before the wedding — shared with every vendor from one link.</p>
+      </div>
+      <div class="preview-feature">
+        <div class="preview-feature-num">06</div>
+        <h3 class="preview-feature-title">Floor Plan</h3>
+        <p class="preview-feature-desc">An annotated layout of the venue — ceremony, cocktail hour, reception — with zone labels and a visual key for the team.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Palette ───────────────────────────────────────────────────────────── -->
+  <section class="preview-palette-section">
+    <div class="preview-section-head">
+      <span class="preview-label">Your palette</span>
+      <h2 class="preview-section-title"><em>Four colors, one mood.</em></h2>
+    </div>
+    <div class="preview-palette-swatches">
+      <% [1,2,3,4].forEach(n => { %>
+        <div class="preview-swatch">
+          <div class="preview-swatch-disc" style="background: <%= couple[`palette_color_${n}`] %>; <%= n === 3 ? 'border: 1px solid var(--zz-finn-20);' : '' %>"></div>
+          <% if (couple[`palette_color_${n}_name`]) { %>
+            <span class="preview-swatch-name"><%= couple[`palette_color_${n}_name`] %></span>
+          <% } %>
+          <span class="preview-swatch-hex"><%= couple[`palette_color_${n}`].toUpperCase() %></span>
+        </div>
+      <% }) %>
+    </div>
+  </section>
+
+  <!-- ── Inspiration preview ───────────────────────────────────────────────── -->
+  <% if (tiles.length > 0) { %>
+    <section class="preview-inspo">
+      <div class="preview-section-head">
+        <span class="preview-label">A first look</span>
+        <h2 class="preview-section-title"><em><%- gallery?.eyebrow ? `${gallery.eyebrow} — ` : '' %><%= gallery?.title || 'Inspiration' %></em></h2>
+        <% if (gallery?.description) { %><p class="preview-section-desc"><%= gallery.description %></p><% } %>
+      </div>
+      <div class="preview-tiles">
+        <% tiles.forEach(t => { %>
+          <div class="preview-tile<%= t.is_hero ? ' is-hero' : '' %><%= t.image_url ? ' has-photo' : '' %>"
+               <% if (t.image_url) { %>style="background-image: url('<%= t.image_url %>'); background-position: <%= t.bg_position_x ?? 50 %>% <%= t.bg_position_y ?? 50 %>%;"<% } %>>
+            <% if (t.image_url) { %><div class="preview-tile-overlay"></div><% } %>
+            <span class="preview-tile-title"><% if (t.title) { %><em><%= t.title %></em><% } %></span>
+          </div>
+        <% }) %>
+      </div>
+    </section>
+  <% } %>
+
+  <!-- ── CTA ───────────────────────────────────────────────────────────────── -->
+  <section class="preview-cta">
+    <div class="preview-cta-inner">
+      <span class="preview-label">Ready to make it yours?</span>
+      <h2 class="preview-cta-title"><em>Book now — your portal goes live the same day.</em></h2>
+      <% if (couple.intro_text) { %>
+        <p class="preview-cta-note"><%= couple.intro_text %></p>
+      <% } %>
+      <div class="preview-cta-actions">
+        <a href="mailto:hello@zuzucollective.com" class="preview-cta-btn">Let's start planning</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Footer ────────────────────────────────────────────────────────────── -->
+  <footer class="preview-footer">
+    <span>Zuzu Collective · Your wedding, beautifully organized.</span>
+  </footer>
+
+</body>
+</html>
