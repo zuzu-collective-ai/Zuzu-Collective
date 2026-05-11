@@ -50,6 +50,46 @@
     </div>
   </section>
 
+  <!-- ── Payment schedule ──────────────────────────────────────────────── -->
+  <% if (scheduledPayments.length > 0) { %>
+    <section class="section payment-schedule">
+      <div class="section-head">
+        <span class="label">Payment schedule</span>
+        <h2 class="section-title"><em>Upcoming due dates.</em></h2>
+      </div>
+      <ul class="payment-list">
+        <% scheduledPayments.forEach(p => {
+          const due = new Date(p.due_date);
+          const fmtDue = due.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+          const isOverdue = p.daysUntil < 0;
+          const isSoon    = !isOverdue && p.daysUntil <= 14;
+          const urgency   = isOverdue ? 'overdue' : isSoon ? 'soon' : '';
+          const balance   = Math.max(0, (p.amount_cents || 0) - (p.paid_cents || 0));
+        %>
+          <li class="payment-item<%= urgency ? ` payment-item--${urgency}` : '' %>">
+            <div class="payment-date">
+              <span class="payment-date-main"><%= fmtDue %></span>
+              <% if (isOverdue) { %>
+                <span class="payment-urgency">Overdue by <%= Math.abs(p.daysUntil) %> day<%= Math.abs(p.daysUntil) === 1 ? '' : 's' %></span>
+              <% } else if (isSoon) { %>
+                <span class="payment-urgency"><%= p.daysUntil === 0 ? 'Due today' : `${p.daysUntil} day${p.daysUntil === 1 ? '' : 's'} away` %></span>
+              <% } %>
+            </div>
+            <div class="payment-desc">
+              <em><%= p.name %></em>
+              <% if (p.categoryTitle) { %><span class="payment-category"><%= p.categoryTitle %></span><% } %>
+              <% if (p.vendor_label) { %><span class="payment-vendor"><%= p.vendor_label %></span><% } %>
+            </div>
+            <div class="payment-amount"><%= fmtCurrency(balance) %></div>
+            <% if (p.status_label) { %>
+              <div class="payment-status"><%= p.status_label %></div>
+            <% } %>
+          </li>
+        <% }) %>
+      </ul>
+    </section>
+  <% } %>
+
   <!-- ── Categories ──────────────────────────────────────────────────────── -->
   <% categories.forEach(cat => {
        const stats = categoryStats.get(cat.id) || { estimated: 0, contracted: 0, actual: 0, remaining: 0, pct: 0 };

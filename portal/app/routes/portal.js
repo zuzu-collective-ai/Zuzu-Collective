@@ -164,33 +164,29 @@ router.get('/p/:slug/design', async (req, res, next) => {
   }
 });
 
+function buildVendorGroups(vendors) {
+  const counts = vendors.reduce(
+    (acc, v) => { acc.total += 1; acc[v.status] = (acc[v.status] || 0) + 1; return acc; },
+    { total: 0 },
+  );
+  const sections = [
+    { status: 'booked',    label: 'Booked',         note: 'Contracts signed.' },
+    { status: 'shortlist', label: 'Shortlisting',   note: 'In conversation.' },
+    { status: 'pending',   label: 'To be confirmed', note: 'Slots still to fill.' },
+  ].map(s => ({ ...s, vendors: vendors.filter(v => v.status === s.status) }))
+   .filter(s => s.vendors.length > 0);
+  return { counts, sections };
+}
+
 router.get('/p/:slug/vendors', async (req, res, next) => {
   try {
     const { rows: vendors } = await pool.query(
-      'select * from vendors where couple_id = $1 order by position asc, vendor_type asc',
-      [res.locals.couple.id],
+      'select * from vendors where couple_id = $1 and status != $2 order by position asc, vendor_type asc',
+      [res.locals.couple.id, 'na'],
     );
-
-    // Aggregate counts for the summary stats strip at the top of the
-    // vendors page. Done in JS rather than SQL so the page can show
-    // every status bucket the schema allows.
-    const counts = vendors.reduce(
-      (acc, v) => {
-        acc.total += 1;
-        acc[v.status] = (acc[v.status] || 0) + 1;
-        return acc;
-      },
-      { total: 0 },
-    );
-
-    res.render('vendors', {
-      currentPage: 'vendors',
-      vendors,
-      counts,
-    });
-  } catch (err) {
-    next(err);
-  }
+    const { counts, sections } = buildVendorGroups(vendors);
+    res.render('vendors', { currentPage: 'vendors', vendors, sections, counts });
+  } catch (err) { next(err); }
 });
 
 router.get('/p/:slug/vendors/:vid/contract', async (req, res, next) => {
@@ -395,11 +391,27 @@ router.get('/p/:slug/budget', async (req, res, next) => {
     const openCategories = Array.from(categoryStats.values())
       .filter(x => x.contracted > 0 && x.actual < x.contracted).length;
 
+    // Payment schedule — line items with a due_date not yet fully paid,
+    // sorted ascending so the next payment is always first.
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+    const scheduledPayments = lines
+      .filter(l => l.due_date && l.status_kind !== 'paid')
+      .map(l => {
+        const cat = categories.find(c => c.id === l.category_id);
+        const due = new Date(l.due_date);
+        due.setUTCHours(0, 0, 0, 0);
+        const daysUntil = Math.round((due - today) / 86400000);
+        return { ...l, categoryTitle: cat?.title || '', daysUntil };
+      })
+      .sort((a, b) => new Date(a.due_date) - new Date(b.due_date));
+
     res.render('budget', {
       currentPage: 'budget',
       categories,
       linesByCategory,
       categoryStats,
+      scheduledPayments,
       summary: {
         totalBudget,
         totalContracted,
@@ -612,6 +624,38 @@ router.get('/p/:slug/guest-list', async (req, res, next) => {
   }
 });
 
+// ── Proposal / preview page (/preview/:slug) ────────────────────────────
+// Beautiful standalone page Zoe sends to prospects before they book.
+// Uses the couple's real data (name, date, palette, inspiration tiles).
+
+router.use('/preview/:slug', loadCouple, logPageView);
+
+router.get('/preview/:slug', async (req, res, next) => {
+  try {
+    const coupleId = res.locals.couple.id;
+
+    // Grab the first gallery's tiles for a visual teaser (up to 8).
+    const [galRes, tileRes] = await Promise.all([
+      pool.query(
+        'select * from inspiration_galleries where couple_id = $1 order by position asc limit 1',
+        [coupleId],
+      ),
+      pool.query(
+        `select t.* from inspiration_tiles t
+           join inspiration_galleries g on g.id = t.gallery_id
+          where g.couple_id = $1
+          order by t.is_hero desc, t.position asc limit 8`,
+        [coupleId],
+      ),
+    ]);
+
+    res.render('preview', {
+      gallery: galRes.rows[0] || null,
+      tiles: tileRes.rows,
+    });
+  } catch (err) { next(err); }
+});
+
 // ── Vendor-facing portal (/v/:slug/*) ───────────────────────────────────
 // Same content as the full portal but without budget and guest-list.
 // Share links to design, vendors, checklist, timeline, floor-plan.
@@ -649,11 +693,11 @@ router.get('/v/:slug/design', async (req, res, next) => {
 router.get('/v/:slug/vendors', async (req, res, next) => {
   try {
     const { rows: vendors } = await pool.query(
-      'select * from vendors where couple_id = $1 order by position asc, vendor_type asc',
-      [res.locals.couple.id],
+      'select * from vendors where couple_id = $1 and status != $2 order by position asc, vendor_type asc',
+      [res.locals.couple.id, 'na'],
     );
-    const counts = vendors.reduce((acc, v) => { acc.total += 1; acc[v.status] = (acc[v.status] || 0) + 1; return acc; }, { total: 0 });
-    res.render('vendors', { currentPage: 'vendors', vendors, counts });
+    const { counts, sections } = buildVendorGroups(vendors);
+    res.render('vendors', { currentPage: 'vendors', vendors, sections, counts });
   } catch (err) { next(err); }
 });
 

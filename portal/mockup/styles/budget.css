@@ -326,3 +326,97 @@
   .line-balance { grid-area: balance; }
   .line-status  { grid-area: status; justify-self: start; }
 }
+
+/* ── Payment schedule ───────────────────────────────────────────────────── */
+
+.payment-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-width: var(--content-max);
+  margin-inline: auto;
+}
+
+.payment-item {
+  display: grid;
+  grid-template-columns: 10rem minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-md);
+  border-bottom: 1px solid var(--zz-finn-20);
+  border-left: 3px solid transparent;
+  transition: border-color 0.15s;
+}
+.payment-item:last-child { border-bottom: 0; }
+.payment-item--soon    { border-left-color: var(--zz-tobacco); background: rgba(160,100,40,0.04); }
+.payment-item--overdue { border-left-color: #c0392b; background: rgba(192,57,43,0.05); }
+
+.payment-date {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.payment-date-main {
+  font-family: var(--zz-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  color: var(--zz-finn);
+}
+.payment-urgency {
+  font-family: var(--zz-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--zz-tobacco);
+}
+.payment-item--overdue .payment-urgency { color: #c0392b; }
+
+.payment-desc {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.payment-desc em {
+  font-family: var(--zz-display);
+  font-style: italic;
+  font-size: 1rem;
+  color: var(--zz-finn);
+}
+.payment-category,
+.payment-vendor {
+  font-family: var(--zz-display);
+  font-size: 0.825rem;
+  color: var(--zz-ink);
+  opacity: 0.75;
+}
+
+.payment-amount {
+  font-family: var(--zz-display);
+  font-style: italic;
+  font-size: 1.125rem;
+  color: var(--zz-finn);
+  text-align: right;
+  white-space: nowrap;
+}
+.payment-status {
+  font-family: var(--zz-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--zz-tobacco);
+  white-space: nowrap;
+}
+
+@media (max-width: 680px) {
+  .payment-item {
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "date amount"
+      "desc status";
+    row-gap: var(--space-xs);
+  }
+  .payment-date  { grid-area: date; }
+  .payment-desc  { grid-area: desc; }
+  .payment-amount { grid-area: amount; }
+  .payment-status { grid-area: status; justify-self: end; }
+}

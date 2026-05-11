@@ -59,6 +59,38 @@
   opacity: 0.75;
 }
 
+/* ── Vendor section headers ──────────────────────────────────────────────── */
+
+.vendor-section { padding-bottom: var(--space-xl); }
+
+.vendor-section-head {
+  max-width: var(--content-max);
+  margin-inline: auto;
+  padding-inline: var(--space-md);
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+  padding-bottom: var(--space-sm);
+  border-bottom: 2px solid var(--zz-finn);
+}
+
+.vendor-section-label {
+  font-family: var(--zz-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--zz-finn);
+}
+
+.vendor-section-count {
+  font-family: var(--zz-display);
+  font-size: 0.875rem;
+  font-style: italic;
+  color: var(--zz-ink);
+  opacity: 0.6;
+}
+
 /* ── Vendor list — single column, generous breathing room ───────────────── */
 
 .vendor-list {

@@ -11,26 +11,20 @@
     <h1 class="page-title">Vendors</h1>
     <p class="page-subtitle">
       The team behind <%= new Date(couple.wedding_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', timeZone: 'UTC' }) %>.
-      Each vendor with their contact details — booked, in conversation, or still on the shortlist.
     </p>
   </section>
 
   <%
-    // Status pills — display label + CSS class per status code stored
-    // in vendors.status. Anything we don't recognize falls back to a
-    // generic "Pending" pill so a typo at the data layer never breaks
-    // rendering.
     const STATUS = {
       booked:    { label: 'Booked',         cls: 'status-booked' },
       shortlist: { label: 'Shortlisting',   cls: 'status-shortlist' },
       pending:   { label: 'Pending',        cls: 'status-pending' },
       na:        { label: 'N / A',          cls: 'status-na' },
     };
-    function statusPill(s) {
-      return STATUS[s] || { label: s || 'Pending', cls: 'status-pending' };
-    }
+    function statusPill(s) { return STATUS[s] || { label: s || 'Pending', cls: 'status-pending' }; }
     function pad2(n) { return String(n).padStart(2, '0'); }
-
+    const portalSlug = couple.slug;
+    const portalPfx = (typeof portalBase !== 'undefined' && portalBase) ? portalBase : `/p/${portalSlug}`;
     const stillSelecting = (counts.shortlist || 0) + (counts.pending || 0);
   %>
 
@@ -40,7 +34,6 @@
       <div class="stat">
         <div class="stat-label">Vendors total</div>
         <div class="stat-number"><%= counts.total %></div>
-        <div class="stat-note">Across the full team</div>
       </div>
       <div class="stat">
         <div class="stat-label">Booked</div>
@@ -50,63 +43,70 @@
       <div class="stat">
         <div class="stat-label">Still selecting</div>
         <div class="stat-number"><%= stillSelecting %></div>
-        <div class="stat-note">In conversation or shortlisting</div>
       </div>
     </div>
   </section>
 
-  <!-- ── Vendor list ─────────────────────────────────────────────────────── -->
-  <section class="section vendor-list">
-    <% if (vendors.length === 0) { %>
-      <p class="vendor-tbc-note" style="text-align:center; padding: 4rem 0;">
-        No vendors yet. Zoe will add them as bookings come in.
+  <!-- ── Vendor sections ─────────────────────────────────────────────────── -->
+  <% if (sections.length === 0) { %>
+    <section class="section">
+      <p style="text-align:center; padding:4rem 0; font-family:var(--zz-display); font-style:italic; color:var(--zz-ink);">
+        No vendors yet — Zoe will add them as bookings come in.
       </p>
-    <% } %>
+    </section>
+  <% } %>
 
-    <% vendors.forEach((v, i) => {
-      const pill = statusPill(v.status);
-      const isTbc = !v.display_name;
-      const isBooked = v.status === 'booked';
-      const stateClass = isBooked ? 'is-booked' : (v.status === 'na' ? 'is-na' : 'is-tbc');
-      // Outreach drafts are admin-internal regardless of booking status.
-      // Only surface a note to the client if it's booked AND not a draft.
-      const showNote = isBooked && v.note && !v.note.startsWith('=== Outreach draft ===');
-    %>
-      <article class="vendor <%= stateClass %>">
-        <div class="vendor-meta">
-          <span class="label"><%= pad2(v.position || i + 1) %> · <%= v.vendor_type %></span>
-        </div>
-        <div class="vendor-body">
-          <% if (isTbc) { %>
-            <h2 class="vendor-name vendor-name--tbc"><em>To be confirmed</em></h2>
-          <% } else { %>
-            <h2 class="vendor-name"><em><%= v.display_name %></em></h2>
-            <ul class="vendor-contact">
-              <% if (v.contact_name) { %>
-                <li><span class="contact-label">Contact</span><%= v.contact_name %></li>
+  <% sections.forEach(section => { %>
+    <section class="section vendor-section">
+      <div class="vendor-section-head">
+        <span class="label vendor-section-label"><%= section.label %></span>
+        <span class="vendor-section-count"><%= section.vendors.length %> vendor<%= section.vendors.length === 1 ? '' : 's' %></span>
+      </div>
+
+      <% section.vendors.forEach((v, i) => {
+        const pill = statusPill(v.status);
+        const isTbc = !v.display_name;
+        const isBooked = v.status === 'booked';
+        const stateClass = isBooked ? 'is-booked' : (v.status === 'na' ? 'is-na' : 'is-tbc');
+        const showNote = isBooked && v.note && !v.note.startsWith('=== Outreach draft ===');
+      %>
+        <article class="vendor <%= stateClass %>">
+          <div class="vendor-meta">
+            <span class="label"><%= pad2(v.position || i + 1) %> · <%= v.vendor_type %></span>
+          </div>
+          <div class="vendor-body">
+            <% if (isTbc) { %>
+              <h2 class="vendor-name vendor-name--tbc"><em>To be confirmed</em></h2>
+              <% if (v.note) { %><p class="vendor-note"><%= v.note %></p><% } %>
+            <% } else { %>
+              <h2 class="vendor-name"><em><%= v.display_name %></em></h2>
+              <ul class="vendor-contact">
+                <% if (v.contact_name) { %>
+                  <li><span class="contact-label">Contact</span><%= v.contact_name %></li>
+                <% } %>
+                <% if (v.phone) { %>
+                  <li><span class="contact-label">Phone</span><a href="tel:<%= v.phone.replace(/[^+0-9]/g, '') %>"><%= v.phone %></a></li>
+                <% } %>
+                <% if (v.email) { %>
+                  <li><span class="contact-label">Email</span><a href="mailto:<%= v.email %>"><%= v.email %></a></li>
+                <% } %>
+                <% if (v.address) { %>
+                  <li><span class="contact-label">Address</span><%= v.address %></li>
+                <% } %>
+              </ul>
+              <% if (showNote) { %><p class="vendor-note"><%= v.note %></p><% } %>
+              <% if (isBooked && v.contract_url) { %>
+                <a href="<%= portalPfx %>/vendors/<%= v.id %>/contract" target="_blank" rel="noopener" class="vendor-contract-link">View contract ↗</a>
               <% } %>
-              <% if (v.phone) { %>
-                <li><span class="contact-label">Phone</span><a href="tel:<%= v.phone.replace(/[^+0-9]/g, '') %>"><%= v.phone %></a></li>
-              <% } %>
-              <% if (v.email) { %>
-                <li><span class="contact-label">Email</span><a href="mailto:<%= v.email %>"><%= v.email %></a></li>
-              <% } %>
-              <% if (v.address) { %>
-                <li><span class="contact-label">Address</span><%= v.address %></li>
-              <% } %>
-            </ul>
-            <% if (showNote) { %><p class="vendor-note"><%= v.note %></p><% } %>
-            <% if (isBooked && v.contract_url) { %>
-              <a href="/p/<%= couple.slug %>/vendors/<%= v.id %>/contract" target="_blank" rel="noopener" class="vendor-contract-link">View contract ↗</a>
             <% } %>
-          <% } %>
-        </div>
-        <div class="vendor-status">
-          <span class="status-pill <%= pill.cls %>"><%= pill.label %></span>
-        </div>
-      </article>
-    <% }) %>
-  </section>
+          </div>
+          <div class="vendor-status">
+            <span class="status-pill <%= pill.cls %>"><%= pill.label %></span>
+          </div>
+        </article>
+      <% }) %>
+    </section>
+  <% }) %>
 
   <%- include('partials/footer', { couple }) %>
 
