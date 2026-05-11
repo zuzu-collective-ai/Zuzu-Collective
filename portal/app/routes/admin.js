@@ -9,6 +9,7 @@
 
 import express from 'express';
 import multer from 'multer';
+import { createHash } from 'node:crypto';
 import { pool } from '../db/pool.js';
 import { requireAdmin, passwordsMatch } from '../middleware/auth.js';
 import { generateAllocation, generatePalette, generateChecklist, generateVendorOutreach, extractVendorInfo, describeTileImage, generateTimeline, importGuestList, generateVendorSearchQueries, parseVendorSearchResults, isConfigured as anthropicConfigured, STANDARD_CATEGORIES } from '../lib/anthropic.js';
@@ -674,6 +675,44 @@ router.post('/couples/:id/vendors/outreach/apply', async (req, res, next) => {
     }
     res.redirect(`/admin/couples/${couple.id}/vendors`);
   } catch (err) { next(err); }
+});
+
+// Contract PDF upload — server-side signed Cloudinary upload.
+// Accepts a PDF from the browser, re-uploads to Cloudinary using
+// API credentials (CLOUDINARY_URL env var) so unsigned-preset
+// restrictions don't apply.
+router.post('/couples/:id/vendors/upload-contract', requireAdmin, upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No file received.' });
+
+    // Parse CLOUDINARY_URL: cloudinary://api_key:api_secret@cloud_name
+    const rawUrl = process.env.CLOUDINARY_URL || '';
+    const m = rawUrl.match(/^cloudinary:\/\/([^:]+):([^@]+)@(.+)$/);
+    if (!m) return res.status(503).json({ error: 'CLOUDINARY_URL not configured on server.' });
+    const [, apiKey, apiSecret, cloudName] = m;
+
+    // Build signed upload params
+    const timestamp = Math.round(Date.now() / 1000);
+    const sigString = `timestamp=${timestamp}${apiSecret}`;
+    const signature = createHash('sha1').update(sigString).digest('hex');
+
+    const fd = new FormData();
+    fd.append('file', new Blob([req.file.buffer], { type: req.file.mimetype }), req.file.originalname || 'contract.pdf');
+    fd.append('timestamp', String(timestamp));
+    fd.append('api_key', apiKey);
+    fd.append('signature', signature);
+
+    const cldRes = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/raw/upload`, {
+      method: 'POST',
+      body: fd,
+    });
+    const data = await cldRes.json();
+    if (!cldRes.ok) return res.status(502).json({ error: data.error?.message || 'Cloudinary upload failed.' });
+
+    res.json({ url: data.secure_url });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // Contract PDF proxy — must appear before /:vid
