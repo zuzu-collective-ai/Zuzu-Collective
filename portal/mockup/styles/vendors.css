@@ -59,9 +59,12 @@
   opacity: 0.75;
 }
 
-/* ── Vendor section headers ──────────────────────────────────────────────── */
+/* ── Vendor filter strip — .guest-filters / .filter-chip from guest-list.css ── */
 
-.vendor-section { padding-bottom: var(--space-xl); }
+/* Spacing between the filter strip and vendor list below it */
+.vendor-list { padding-top: var(--space-lg); }
+
+/* ── Vendor section headers (unused — kept for reference) ────────────────── */
 
 .vendor-section-head {
   max-width: var(--content-max);
@@ -257,3 +260,6 @@
     gap: 2px;
   }
 }
+
+/* Filter hiding — vendor articles use CSS grid, which overrides [hidden] */
+.vendor[hidden] { display: none; }
