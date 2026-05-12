@@ -66,14 +66,17 @@
   </section>
 
   <!-- ── Phases ──────────────────────────────────────────────────────────── -->
-  <section class="phases">
+  <div class="reorder-bar">
+    <button id="timeline-edit-btn" class="reorder-btn">Edit order</button>
+  </div>
+  <section id="phases-list" class="phases">
     <% phases.forEach(phase => {
          const events = eventsByPhase.get(phase.id) || [];
          const variantClass = phase.variant === 'ceremony' ? ' phase--ceremony'
                             : phase.variant === 'sendoff'  ? ' phase--sendoff'
                             : '';
     %>
-      <article class="phase<%= variantClass %>">
+      <article class="phase<%= variantClass %>" data-phase="<%= phase.id %>">
         <header class="phase-head">
           <span class="phase-num">Phase <%= String(phase.phase_number).padStart(2, '0') %></span>
           <% if (phase.window_text) { %>
@@ -89,7 +92,7 @@
         <% if (events.length > 0) { %>
           <ul class="event-list">
             <% events.forEach(ev => { %>
-              <li class="event">
+              <li class="event" data-event="<%= ev.id %>">
                 <span class="event-time"><%= ev.time_text %><% if (ev.meridiem) { %><span class="event-time-meridiem"><%= ev.meridiem %></span><% } %></span>
                 <div class="event-body">
                   <h3 class="event-title"><%= ev.title %></h3>
@@ -121,6 +124,113 @@
 
 
   <%- include('partials/footer', { couple }) %>
+
+  <style>
+    .reorder-bar { display:flex; justify-content:flex-end; padding:0 var(--space-lg) var(--space-sm); }
+    .reorder-btn {
+      font-family: var(--zz-mono); font-size: 0.65rem; letter-spacing: 0.2em;
+      text-transform: uppercase; color: var(--zz-finn-60); background: none;
+      border: 1px solid var(--zz-finn-20); padding: 0.45em 1.1em; cursor: pointer;
+      transition: color 0.15s, border-color 0.15s; border-radius: 2px;
+    }
+    .reorder-btn:hover,
+    .reorder-btn.is-active { color: var(--zz-finn); border-color: var(--zz-finn-60); }
+    #phases-list.is-editing [data-phase] { outline: 1px dashed var(--zz-finn-20); outline-offset: -4px; }
+    #phases-list.is-editing .phase-head { cursor: grab; user-select: none; }
+    #phases-list.is-editing .phase-head:active { cursor: grabbing; }
+    #phases-list.is-editing .event-time { cursor: grab; user-select: none; }
+    #phases-list.is-editing .event-time::before { content: '⠿ '; opacity: 0.4; }
+    #phases-list.is-editing .event-time:active { cursor: grabbing; }
+    .reorder-ghost { opacity: 0.3; }
+    .reorder-chosen { position: relative; z-index: 10; }
+  </style>
+
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+  <script>
+  (function () {
+    var KEY_PHASES = 'zuzu-timeline-phases-<%= couple.slug %>';
+    var KEY_EVENTS = 'zuzu-timeline-events-<%= couple.slug %>';
+    var phaseList  = document.getElementById('phases-list');
+    var btn        = document.getElementById('timeline-edit-btn');
+    if (!phaseList || !btn) return;
+    var phaseSortable  = null;
+    var eventSortables = [];
+
+    // Restore phase order
+    try {
+      var savedPhases = JSON.parse(localStorage.getItem(KEY_PHASES));
+      if (Array.isArray(savedPhases)) {
+        savedPhases.forEach(function (id) {
+          var el = phaseList.querySelector('[data-phase="' + id + '"]');
+          if (el) phaseList.appendChild(el);
+        });
+      }
+    } catch (_) {}
+
+    // Restore event orders per phase
+    try {
+      var savedEvents = JSON.parse(localStorage.getItem(KEY_EVENTS));
+      if (savedEvents && typeof savedEvents === 'object') {
+        Object.keys(savedEvents).forEach(function (phaseId) {
+          var phase = phaseList.querySelector('[data-phase="' + phaseId + '"]');
+          if (!phase) return;
+          var ul = phase.querySelector('.event-list');
+          if (!ul) return;
+          savedEvents[phaseId].forEach(function (id) {
+            var el = ul.querySelector('[data-event="' + id + '"]');
+            if (el) ul.appendChild(el);
+          });
+        });
+      }
+    } catch (_) {}
+
+    function savePhaseOrder() {
+      var order = Array.from(phaseList.querySelectorAll('[data-phase]')).map(function (el) { return el.dataset.phase; });
+      try { localStorage.setItem(KEY_PHASES, JSON.stringify(order)); } catch (_) {}
+    }
+
+    function saveEventOrders() {
+      var orders = {};
+      phaseList.querySelectorAll('[data-phase]').forEach(function (phase) {
+        var ul = phase.querySelector('.event-list');
+        if (!ul) return;
+        orders[phase.dataset.phase] = Array.from(ul.querySelectorAll('[data-event]')).map(function (el) { return el.dataset.event; });
+      });
+      try { localStorage.setItem(KEY_EVENTS, JSON.stringify(orders)); } catch (_) {}
+    }
+
+    btn.addEventListener('click', function () {
+      var editing = phaseList.classList.toggle('is-editing');
+      btn.textContent = editing ? 'Done' : 'Edit order';
+      btn.classList.toggle('is-active', editing);
+
+      if (editing) {
+        phaseSortable = Sortable.create(phaseList, {
+          animation: 200,
+          handle: '.phase-head',
+          ghostClass: 'reorder-ghost',
+          chosenClass: 'reorder-chosen',
+          onEnd: savePhaseOrder,
+        });
+        phaseList.querySelectorAll('[data-phase]').forEach(function (phase) {
+          var ul = phase.querySelector('.event-list');
+          if (!ul) return;
+          eventSortables.push(Sortable.create(ul, {
+            animation: 150,
+            handle: '.event-time',
+            ghostClass: 'reorder-ghost',
+            chosenClass: 'reorder-chosen',
+            onEnd: saveEventOrders,
+          }));
+        });
+      } else {
+        if (phaseSortable) { phaseSortable.destroy(); phaseSortable = null; }
+        eventSortables.forEach(function (s) { s.destroy(); });
+        eventSortables = [];
+      }
+    });
+  })();
+  </script>
 
 </body>
 </html>
