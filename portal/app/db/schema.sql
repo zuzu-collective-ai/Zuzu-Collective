@@ -389,11 +389,13 @@ create table if not exists floorplan_spaces (
   square_feet     integer,               -- 2400
   location_label  text,                   -- "Outdoor" / "Indoor" / "Outdoor & covered"
   edge_top_label  text,                   -- "Pacific Ocean", "Bougainvillea wall"
+  layout_image_url text,                  -- optional uploaded venue layout image
 
   position        integer not null default 0,
   created_at      timestamptz not null default now(),
   updated_at      timestamptz not null default now()
 );
+alter table floorplan_spaces add column if not exists layout_image_url text;
 
 create index if not exists floorplan_spaces_couple_id_idx on floorplan_spaces(couple_id);
 

@@ -72,6 +72,34 @@
       </fieldset>
 
       <fieldset class="admin-fieldset">
+        <legend class="admin-legend">Layout image <span style="font-weight:400;opacity:.6;">(optional)</span></legend>
+        <p class="admin-fieldset-note">
+          Upload the venue's floor plan or any layout image. It will display in the client portal
+          in place of the CSS schematic when present. Accepts JPG, PNG, PDF, or WebP.
+        </p>
+
+        <input type="hidden" name="layout_image_url" id="layout-image-url" value="<%= space?.layout_image_url || '' %>">
+
+        <% if (space?.layout_image_url) { %>
+          <div id="layout-preview" style="margin-bottom: 0.75rem;">
+            <img src="<%= space.layout_image_url %>" alt="Current layout" style="max-width:320px; max-height:200px; object-fit:contain; border:1px solid var(--admin-border); border-radius:4px; display:block;">
+            <button type="button" id="remove-layout-image" class="admin-btn admin-btn--ghost admin-btn--small" style="margin-top:0.4rem;">Remove image</button>
+          </div>
+        <% } else { %>
+          <div id="layout-preview" style="display:none; margin-bottom:0.75rem;">
+            <img src="" alt="Layout preview" style="max-width:320px; max-height:200px; object-fit:contain; border:1px solid var(--admin-border); border-radius:4px; display:block;">
+            <button type="button" id="remove-layout-image" class="admin-btn admin-btn--ghost admin-btn--small" style="margin-top:0.4rem;">Remove image</button>
+          </div>
+        <% } %>
+
+        <div id="layout-upload-row" style="display:flex; gap:0.75rem; align-items:center;<%= space?.layout_image_url ? ' display:none;' : '' %>">
+          <input type="file" id="layout-file-input" accept=".jpg,.jpeg,.png,.webp,.pdf" style="flex:1;">
+          <button type="button" id="layout-upload-btn" class="admin-btn admin-btn--ghost">Upload</button>
+        </div>
+        <p id="layout-upload-status" class="admin-field-help" style="margin-top:0.4rem;"></p>
+      </fieldset>
+
+      <fieldset class="admin-fieldset">
         <legend class="admin-legend">Zones</legend>
         <p class="admin-fieldset-note">
           The shapes inside the schematic. <em>Position</em> and <em>size</em> are CSS percentages
@@ -269,6 +297,52 @@
           </div>
         </div>
       `);
+
+      // Layout image upload
+      (function () {
+        const urlInput    = document.getElementById('layout-image-url');
+        const fileInput   = document.getElementById('layout-file-input');
+        const uploadBtn   = document.getElementById('layout-upload-btn');
+        const uploadRow   = document.getElementById('layout-upload-row');
+        const preview     = document.getElementById('layout-preview');
+        const previewImg  = preview?.querySelector('img');
+        const removeBtn   = document.getElementById('remove-layout-image');
+        const statusEl    = document.getElementById('layout-upload-status');
+        if (!uploadBtn) return;
+
+        uploadBtn.addEventListener('click', async () => {
+          if (!fileInput.files[0]) { statusEl.textContent = 'Choose a file first.'; return; }
+          uploadBtn.disabled = true;
+          statusEl.textContent = 'Uploading…';
+          const fd = new FormData();
+          fd.append('file', fileInput.files[0]);
+          try {
+            const res = await fetch('<%= `/admin/couples/${couple.id}/floor-plan/upload-layout` %>', { method: 'POST', body: fd });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Upload failed.');
+            urlInput.value = data.url;
+            previewImg.src = data.url;
+            preview.style.display = '';
+            uploadRow.style.display = 'none';
+            statusEl.textContent = '';
+          } catch (err) {
+            statusEl.textContent = err.message;
+          } finally {
+            uploadBtn.disabled = false;
+          }
+        });
+
+        if (removeBtn) {
+          removeBtn.addEventListener('click', () => {
+            urlInput.value = '';
+            previewImg.src = '';
+            preview.style.display = 'none';
+            uploadRow.style.display = '';
+            fileInput.value = '';
+            statusEl.textContent = '';
+          });
+        }
+      })();
 
       setupRepeater('key-rows', 'add-key', (i) => `
         <div class="admin-key-row" data-row>

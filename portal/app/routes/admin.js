@@ -726,6 +726,48 @@ router.post('/couples/:id/vendors/upload-contract', requireAdmin, upload.single(
   }
 });
 
+// Floor plan layout image upload — Cloudinary image upload.
+router.post('/couples/:id/floor-plan/upload-layout', requireAdmin, upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No file received.' });
+
+    let apiKey, apiSecret, cloudName;
+    const rawUrl = process.env.CLOUDINARY_URL || '';
+    const m = rawUrl.match(/^cloudinary:\/\/([^:]+):([^@]+)@(.+)$/);
+    if (m) {
+      [, apiKey, apiSecret, cloudName] = m;
+    } else {
+      apiKey    = process.env.CLOUDINARY_API_KEY;
+      apiSecret = process.env.CLOUDINARY_API_SECRET;
+      cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+    }
+    if (!apiKey || !apiSecret || !cloudName) {
+      return res.status(503).json({ error: 'Cloudinary credentials not configured.' });
+    }
+
+    const timestamp = Math.round(Date.now() / 1000);
+    const sigString = `timestamp=${timestamp}${apiSecret}`;
+    const signature = createHash('sha1').update(sigString).digest('hex');
+
+    const fd = new FormData();
+    fd.append('file', new Blob([req.file.buffer], { type: req.file.mimetype }), req.file.originalname || 'layout');
+    fd.append('timestamp', String(timestamp));
+    fd.append('api_key', apiKey);
+    fd.append('signature', signature);
+
+    const cldRes = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+      method: 'POST',
+      body: fd,
+    });
+    const data = await cldRes.json();
+    if (!cldRes.ok) return res.status(502).json({ error: data.error?.message || 'Cloudinary upload failed.' });
+
+    res.json({ url: data.secure_url });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Contract PDF proxy — must appear before /:vid
 router.get('/couples/:id/vendors/:vid/contract', async (req, res, next) => {
   try {
@@ -2629,6 +2671,7 @@ router.post('/couples/:id/floor-plan', async (req, res, next) => {
       square_feet: intOrNull(req.body.square_feet),
       location_label: nullIfEmpty(req.body.location_label),
       edge_top_label: nullIfEmpty(req.body.edge_top_label),
+      layout_image_url: nullIfEmpty(req.body.layout_image_url),
       position: parseInt(req.body.position, 10) || 0,
     };
     const zones = parseFpZonesFromBody(req.body);
@@ -2651,10 +2694,11 @@ router.post('/couples/:id/floor-plan', async (req, res, next) => {
     await client.query('begin');
     const { rows } = await client.query(
       `insert into floorplan_spaces
-         (couple_id, eyebrow, title, capacity, square_feet, location_label, edge_top_label, position)
-       values ($1, $2, $3, $4, $5, $6, $7, $8) returning id`,
+         (couple_id, eyebrow, title, capacity, square_feet, location_label, edge_top_label, layout_image_url, position)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9) returning id`,
       [couple.id, spaceData.eyebrow, spaceData.title, spaceData.capacity,
-       spaceData.square_feet, spaceData.location_label, spaceData.edge_top_label, spaceData.position],
+       spaceData.square_feet, spaceData.location_label, spaceData.edge_top_label,
+       spaceData.layout_image_url, spaceData.position],
     );
     const spaceId = rows[0].id;
 
@@ -2700,6 +2744,7 @@ router.post('/couples/:id/floor-plan/:sid', async (req, res, next) => {
       square_feet: intOrNull(req.body.square_feet),
       location_label: nullIfEmpty(req.body.location_label),
       edge_top_label: nullIfEmpty(req.body.edge_top_label),
+      layout_image_url: nullIfEmpty(req.body.layout_image_url),
       position: parseInt(req.body.position, 10) || 0,
     };
     const zones = parseFpZonesFromBody(req.body);
@@ -2713,12 +2758,12 @@ router.post('/couples/:id/floor-plan/:sid', async (req, res, next) => {
     const { rowCount } = await client.query(
       `update floorplan_spaces set
          eyebrow = $1, title = $2, capacity = $3, square_feet = $4,
-         location_label = $5, edge_top_label = $6, position = $7,
+         location_label = $5, edge_top_label = $6, layout_image_url = $7, position = $8,
          updated_at = now()
-       where id = $8 and couple_id = $9`,
+       where id = $9 and couple_id = $10`,
       [spaceData.eyebrow, spaceData.title, spaceData.capacity, spaceData.square_feet,
-       spaceData.location_label, spaceData.edge_top_label, spaceData.position,
-       req.params.sid, couple.id],
+       spaceData.location_label, spaceData.edge_top_label, spaceData.layout_image_url,
+       spaceData.position, req.params.sid, couple.id],
     );
     if (rowCount === 0) {
       await client.query('rollback');
