@@ -393,3 +393,14 @@
   .floorplan { font-size: 0; }
   .compass, .scale-bar, .zone-num, .edge-label { font-size: 0.55rem; }
 }
+
+/* ── Uploaded layout image — shown in place of the CSS schematic ───────── */
+.floorplan-layout-img {
+  display: block;
+  width: 100%;
+  max-height: 640px;
+  object-fit: contain;
+  border: 1px solid var(--zz-finn-20);
+  border-radius: 2px;
+  background: var(--zz-ivory);
+}

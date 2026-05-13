@@ -96,6 +96,10 @@
       </header>
 
       <div class="floorplan-scene">
+        <% if (space.layout_image_url) { %>
+          <img src="<%= space.layout_image_url %>" alt="Layout of <%= space.title %>"
+               class="floorplan-layout-img">
+        <% } else { %>
         <div class="floorplan" role="img" aria-label="Top-down schematic of <%= space.title %>">
           <span class="compass">N&nbsp;↑</span>
           <span class="scale-bar">10 ft</span>
@@ -108,6 +112,7 @@
             <div class="<%= zoneClass(z) %>" style="<%= zoneStyle(z) %>"><%= z.label || '' %></div>
           <% }) %>
         </div>
+        <% } %>
 
         <% if (keys.length > 0) { %>
           <ol class="floorplan-key">
