@@ -3,10 +3,12 @@
   Optional:
     portalBase         — URL prefix, defaults to /p/<couple.slug>
     allowedPortalPages — array of page ids to show; null/undefined = all
+    previewMode        — if true, all tabs except home render as locked (non-clickable)
 %>
 <%
   const _base = (typeof portalBase !== 'undefined' && portalBase) ? portalBase : `/p/${couple.slug}`;
   const _allowed = (typeof allowedPortalPages !== 'undefined') ? allowedPortalPages : null;
+  const _preview = (typeof previewMode !== 'undefined') ? previewMode : false;
   const _allLinks = [
     { id: 'home',       href: '',             label: 'Home' },
     { id: 'design',     href: '/design',      label: 'Design' },
@@ -27,11 +29,21 @@
       <% _links.forEach(link => {
         const url = `${_base}${link.href}`;
         const isCurrent = link.id === currentPage;
+        const isLocked = _preview && link.id !== 'home';
       %>
-        <a href="<%= url %>"
-           class="topnav-link<%= isCurrent ? ' is-current' : '' %>"
-           <% if (isCurrent) { %>aria-current="page"<% } %>><%- link.label %></a>
+        <% if (isLocked) { %>
+          <span class="topnav-link is-locked" aria-disabled="true"><%- link.label %></span>
+        <% } else { %>
+          <a href="<%= url %>"
+             class="topnav-link<%= isCurrent ? ' is-current' : '' %>"
+             <% if (isCurrent) { %>aria-current="page"<% } %>><%- link.label %></a>
+        <% } %>
       <% }) %>
     </nav>
   <% } %>
 </header>
+<% if (_preview) { %>
+  <div class="preview-notice">
+    <span>Preview — your full portal is ready the day you book.</span>
+  </div>
+<% } %>

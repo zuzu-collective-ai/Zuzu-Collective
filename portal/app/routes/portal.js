@@ -624,37 +624,24 @@ router.get('/p/:slug/guest-list', async (req, res, next) => {
   }
 });
 
-// ── Proposal / preview page (/preview/:slug) ────────────────────────────
-// Beautiful standalone page Zoe sends to prospects before they book.
-// Uses the couple's real data (name, date, palette, inspiration tiles).
+// ── Proposal preview portal (/preview/:slug) ────────────────────────────
+// The real portal landing page sent to prospects before they book.
+// All nav tabs are visible but locked — they see exactly what they'll get.
 
-router.use('/preview/:slug', loadCouple, logPageView);
-
-router.get('/preview/:slug', async (req, res, next) => {
-  try {
-    const coupleId = res.locals.couple.id;
-
-    // Grab the first gallery's tiles for a visual teaser (up to 8).
-    const [galRes, tileRes] = await Promise.all([
-      pool.query(
-        'select * from inspiration_galleries where couple_id = $1 order by position asc limit 1',
-        [coupleId],
-      ),
-      pool.query(
-        `select t.* from inspiration_tiles t
-           join inspiration_galleries g on g.id = t.gallery_id
-          where g.couple_id = $1
-          order by t.is_hero desc, t.position asc limit 8`,
-        [coupleId],
-      ),
-    ]);
-
-    res.render('preview', {
-      gallery: galRes.rows[0] || null,
-      tiles: tileRes.rows,
-    });
-  } catch (err) { next(err); }
+router.use('/preview/:slug', loadCouple, logPageView, (req, res, next) => {
+  res.locals.portalBase  = `/preview/${req.params.slug}`;
+  res.locals.previewMode = true;
+  next();
 });
+
+router.get('/preview/:slug', (_req, res) =>
+  res.render('landing', { currentPage: 'home' }),
+);
+
+// Any attempt to navigate to a locked tab redirects back to the landing.
+router.get('/preview/:slug/*', (req, res) =>
+  res.redirect(`/preview/${req.params.slug}`),
+);
 
 // ── Vendor-facing portal (/v/:slug/*) ───────────────────────────────────
 // Same content as the full portal but without budget and guest-list.

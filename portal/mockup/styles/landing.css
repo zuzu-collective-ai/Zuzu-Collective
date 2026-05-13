@@ -63,6 +63,23 @@
   border-bottom-color: var(--zz-finn);
   font-style: italic;
 }
+.topnav-link.is-locked {
+  opacity: 0.35;
+  cursor: default;
+  border-bottom-color: transparent;
+}
+
+/* ── Preview notice — one-line banner below the topbar on proposal previews ── */
+.preview-notice {
+  background: var(--zz-finn);
+  color: var(--zz-ivory);
+  text-align: center;
+  padding: 0.45em var(--space-md);
+  font-family: var(--zz-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
 
 @media (max-width: 720px) {
   .topbar {
