@@ -708,7 +708,7 @@ export async function generateTimeline({ ceremonyTime, weddingDate, venueName, v
 
   const response = await client().messages.create({
     model: 'claude-sonnet-4-6',
-    max_tokens: 4096,
+    max_tokens: 8192,
     output_config: { format: { type: 'json_schema', schema: SCHEMA } },
     system: `You are a luxury wedding day coordinator generating a detailed minute-by-minute timeline.
 Create a complete, realistic wedding day schedule with 5-8 phases and 4-8 events per phase.
