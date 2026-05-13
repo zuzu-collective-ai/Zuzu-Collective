@@ -658,7 +658,7 @@ Write in a refined, editorial tone — poetic but concrete. No clichés.`,
   return JSON.parse(textBlock.text);
 }
 
-export async function generateTimeline({ ceremonyTime, weddingDate, venueName, venueLocation, guestCount, notes }) {
+export async function generateTimeline({ ceremonyTime, weddingDate, venueName, venueLocation, guestCount, notes, fileBuffer, fileMimeType }) {
   const SCHEMA = {
     type: 'object',
     properties: {
@@ -718,8 +718,18 @@ window_text format: "8:00 AM – 12:00 PM". time_text is just the time like "8:0
 where_label, lead_label, with_label are short detail lines (or empty string ""). note_text is an italic note (or "").
 Work backwards from the ceremony time to set getting-ready start. Cocktail hour immediately follows ceremony.
 Reception follows cocktail hour with dinner, toasts, first dance, parent dances, cake cutting, open dancing.
-Be specific and realistic — include buffer times, transitions, photography golden hour if applicable.`,
-    messages: [{ role: 'user', content: `Generate a full wedding day timeline.\n\n${ctx}` }],
+Be specific and realistic — include buffer times, transitions, photography golden hour if applicable.
+If a document or image is provided, extract all timing details, vendor names, locations, and special moments from it and incorporate them into the timeline.`,
+    messages: [{
+      role: 'user',
+      content: [
+        ...(fileBuffer ? [{
+          type: fileMimeType === 'application/pdf' ? 'document' : 'image',
+          source: { type: 'base64', media_type: fileMimeType, data: fileBuffer.toString('base64') },
+        }] : []),
+        { type: 'text', text: `Generate a full wedding day timeline.\n\n${ctx}` },
+      ],
+    }],
   });
 
   const textBlock = response.content.find(b => b.type === 'text');

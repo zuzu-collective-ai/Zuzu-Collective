@@ -30,7 +30,7 @@
       afterwards on the timeline tab.
     </p>
 
-    <form action="/admin/couples/<%= couple.id %>/timeline/generate" method="post" class="admin-form">
+    <form action="/admin/couples/<%= couple.id %>/timeline/generate" method="post" enctype="multipart/form-data" class="admin-form">
 
       <fieldset class="admin-fieldset">
         <legend class="admin-legend">The day</legend>
@@ -52,6 +52,15 @@
           <span class="admin-field-label">Special notes</span>
           <textarea name="notes" rows="4" placeholder="First look at 2:00 PM before ceremony. Sparkler send-off at 10:30 PM. Videographer arrives at 10 AM. Cocktail hour in the garden."></textarea>
           <span class="admin-field-help">Anything out of the ordinary — special moments, vendor arrival times, location changes, custom traditions.</span>
+        </label>
+      </fieldset>
+
+      <fieldset class="admin-fieldset">
+        <legend class="admin-legend">Reference document <span style="font-weight:400;opacity:.6;">(optional)</span></legend>
+        <label class="admin-field">
+          <span class="admin-field-label">Upload a file</span>
+          <input type="file" name="file" accept=".pdf,.png,.jpg,.jpeg,.webp">
+          <span class="admin-field-help">PDF or image — a previous timeline, venue run-of-show, vendor contract, or any document with timing details. Claude will pull from it when building the schedule.</span>
         </label>
       </fieldset>
 
