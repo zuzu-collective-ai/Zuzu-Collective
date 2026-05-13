@@ -2186,7 +2186,7 @@ router.get('/couples/:id/timeline/generate', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.post('/couples/:id/timeline/generate', async (req, res, next) => {
+router.post('/couples/:id/timeline/generate', upload.single('file'), async (req, res, next) => {
   try {
     const couple = await findCoupleById(req.params.id);
     if (!couple) return res.status(404).send('Couple not found.');
@@ -2205,6 +2205,8 @@ router.post('/couples/:id/timeline/generate', async (req, res, next) => {
         ceremonyTime, weddingDate,
         venueName: couple.venue_name, venueLocation: couple.venue_location,
         guestCount, notes: notes || null,
+        fileBuffer:   req.file?.buffer   || null,
+        fileMimeType: req.file?.mimetype || null,
       });
     } catch (err) {
       console.error('[timeline-generate]', err);
