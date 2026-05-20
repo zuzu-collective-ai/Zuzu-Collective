@@ -757,17 +757,20 @@ router.get('/v/:slug/floor-plan', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-// ── Day-of timeline portal (/t/:slug) ───────────────────────────────────
-// Clean standalone timeline — no nav, just the couple name wordmark.
+// ── Day-of portal (/t/:slug) ─────────────────────────────────────────────
+// Shared link for vendors and day-of staff. Shows landing, timeline,
+// and floor plan — no budget, guest list, checklist, or design.
+
+const DAY_OF_PAGES = ['home', 'timeline', 'floor-plan'];
 
 router.use('/t/:slug', loadCouple, logPageView, (req, res, next) => {
   res.locals.portalBase = `/t/${req.params.slug}`;
-  res.locals.allowedPortalPages = []; // wordmark only, no nav links
+  res.locals.allowedPortalPages = DAY_OF_PAGES;
   next();
 });
 
-router.get('/t/:slug', (req, res) =>
-  res.redirect(`/t/${req.params.slug}/timeline`),
+router.get('/t/:slug', (_req, res) =>
+  res.render('landing', { currentPage: 'home' }),
 );
 
 router.get('/t/:slug/timeline', async (req, res, next) => {
@@ -777,10 +780,28 @@ router.get('/t/:slug/timeline', async (req, res, next) => {
       pool.query('select * from timeline_phases where couple_id = $1 order by position asc, phase_number asc', [coupleId]),
       pool.query(`select e.* from timeline_events e join timeline_phases p on p.id = e.phase_id where p.couple_id = $1 order by e.position asc`, [coupleId]),
     ]);
-    const phases = phasesRes.rows; const events = eventsRes.rows;
+    const phases = phasesRes.rows;
+    const events = eventsRes.rows;
     const eventsByPhase = new Map();
     for (const e of events) { const list = eventsByPhase.get(e.phase_id) || []; list.push(e); eventsByPhase.set(e.phase_id, list); }
     res.render('timeline', { currentPage: 'timeline', phases, eventsByPhase, summary: { eventCount: events.length, phaseCount: phases.length } });
+  } catch (err) { next(err); }
+});
+
+router.get('/t/:slug/floor-plan', async (req, res, next) => {
+  try {
+    const coupleId = res.locals.couple.id;
+    const [spacesRes, zonesRes, keysRes] = await Promise.all([
+      pool.query('select * from floorplan_spaces where couple_id = $1 order by position asc', [coupleId]),
+      pool.query(`select z.* from floorplan_zones z join floorplan_spaces s on s.id = z.space_id where s.couple_id = $1 order by z.position asc`, [coupleId]),
+      pool.query(`select k.* from floorplan_key_items k join floorplan_spaces s on s.id = k.space_id where s.couple_id = $1 order by k.position asc`, [coupleId]),
+    ]);
+    const spaces = spacesRes.rows;
+    const zonesBySpace = new Map();
+    for (const z of zonesRes.rows) { const list = zonesBySpace.get(z.space_id) || []; list.push(z); zonesBySpace.set(z.space_id, list); }
+    const keysBySpace = new Map();
+    for (const k of keysRes.rows) { const list = keysBySpace.get(k.space_id) || []; list.push(k); keysBySpace.set(k.space_id, list); }
+    res.render('floor-plan', { currentPage: 'floor-plan', spaces, zonesBySpace, keysBySpace, summary: { spaceCount: spaces.length, totalFootprint: spaces.reduce((s, sp) => s + (sp.square_feet || 0), 0) } });
   } catch (err) { next(err); }
 });
 
