@@ -206,6 +206,62 @@
 .hero--light-text .hero-subtitle,
 .hero--light-text .hero-date { color: var(--zz-moonlight); }
 
+/* ── Countdown ────────────────────────────────────────────────────────────── */
+
+.hero-countdown {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: var(--space-lg);
+}
+
+.countdown-unit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2em;
+}
+
+.countdown-num {
+  font-family: var(--zz-mono);
+  font-size: clamp(1.5rem, 3vw, 2.5rem);
+  letter-spacing: 0.06em;
+  color: var(--zz-finn);
+  line-height: 1;
+  min-width: 2.5ch;
+  text-align: center;
+}
+
+.countdown-label {
+  font-family: var(--zz-mono);
+  font-size: 0.55rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--zz-tobacco);
+}
+
+.countdown-sep {
+  font-family: var(--zz-display);
+  color: var(--zz-finn-40);
+  font-size: 1.5rem;
+  align-self: center;
+  margin-bottom: 0.8em;
+}
+
+.countdown-wedding-day {
+  font-family: var(--zz-display);
+  font-style: italic;
+  font-size: var(--fs-display-sm);
+  color: var(--zz-finn);
+}
+
+.hero--light-text .countdown-num,
+.hero--light-text .countdown-sep,
+.hero--light-text .countdown-wedding-day { color: var(--zz-moonlight); }
+
+.hero--light-text .countdown-label { color: rgba(255, 255, 255, 0.7); }
+
 /* ── Intro strip ─────────────────────────────────────────────────────────── */
 
 .intro {
