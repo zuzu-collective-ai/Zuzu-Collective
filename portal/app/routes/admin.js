@@ -52,6 +52,7 @@ const COUPLE_FIELDS = [
   'palette_color_2', 'palette_color_2_name',
   'palette_color_3', 'palette_color_3_name',
   'palette_color_4', 'palette_color_4_name',
+  'palette_color_5', 'palette_color_5_name',
   'tone_keywords',
   'tone_statement',
   'hero_subtitle',
@@ -555,13 +556,32 @@ router.post('/couples/:id/vendors/search/add', async (req, res, next) => {
     let pos = (existing[0]?.max_pos || 0) + 1;
 
     for (const c of toAdd) {
-      await pool.query(
-        `insert into vendors (couple_id, vendor_type, display_name, phone, email, address, note, website_url, status, position)
-         values ($1,$2,$3,$4,$5,$6,$7,$8,'shortlist',$9)`,
-        [couple.id, c.vendor_type || req.body.vendor_type, c.display_name, c.phone || null,
-         c.email || null, c.address || null, c.description || null,
-         c.website || null, pos++],
+      const name = c.display_name;
+      const websiteUrl = c.website || null;
+
+      // If a vendor with this name already exists for this couple, just
+      // update their website_url rather than create a duplicate.
+      const { rows: existing } = await pool.query(
+        `select id from vendors where couple_id = $1 and lower(display_name) = lower($2) limit 1`,
+        [couple.id, name],
       );
+
+      if (existing.length > 0) {
+        if (websiteUrl) {
+          await pool.query(
+            `update vendors set website_url = $1, updated_at = now() where id = $2`,
+            [websiteUrl, existing[0].id],
+          );
+        }
+      } else {
+        await pool.query(
+          `insert into vendors (couple_id, vendor_type, display_name, phone, email, address, note, website_url, status, position)
+           values ($1,$2,$3,$4,$5,$6,$7,$8,'shortlist',$9)`,
+          [couple.id, c.vendor_type || req.body.vendor_type, name, c.phone || null,
+           c.email || null, c.address || null, c.description || null,
+           websiteUrl, pos++],
+        );
+      }
     }
 
     setFlash(req, 'success', `Added ${toAdd.length} vendor${toAdd.length === 1 ? '' : 's'} to shortlist.`);
@@ -3235,7 +3255,7 @@ router.post('/couples/:id/design/generate/apply', async (req, res, next) => {
     const wantsPalette = (n) => req.body[`apply_palette_${n}`] === 'true';
     const wantsTone    = req.body.apply_tone === 'true';
 
-    for (const n of [1, 2, 3, 4]) {
+    for (const n of [1, 2, 3, 4, 5]) {
       if (wantsPalette(n)) {
         const hex  = (req.body[`palette_color_${n}`] || '').trim();
         const name = (req.body[`palette_color_${n}_name`] || '').trim() || null;

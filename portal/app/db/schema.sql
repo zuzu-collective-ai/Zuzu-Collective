@@ -29,6 +29,8 @@ create table if not exists couples (
   palette_color_3_name  text default 'Crisp White',
   palette_color_4       text not null default '#F5F0E4',
   palette_color_4_name  text default 'Cream',
+  palette_color_5       text,
+  palette_color_5_name  text,
 
   -- Tone & feeling — used on the design page, previewed on landing
   tone_keywords   text default 'Elegant · Coastal · Candlelit · Californian · Timeless · Intentional',
@@ -96,6 +98,8 @@ alter table couples add column if not exists design_materials_title text;
 alter table couples add column if not exists design_materials_note text;
 alter table couples add column if not exists hero_photo_url text;
 alter table couples add column if not exists hero_text_color text default 'dark';
+alter table couples add column if not exists palette_color_5 text;
+alter table couples add column if not exists palette_color_5_name text;
 alter table couples add column if not exists couple_phone text;
 
 alter table vendors add column if not exists contract_url text;
