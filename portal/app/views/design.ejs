@@ -41,11 +41,13 @@
   <section class="section palette-primary">
     <div class="section-head">
       <span class="label">The palette</span>
-      <h2 class="section-title">Four colors, one mood.</h2>
+      <h2 class="section-title"><%= couple.palette_color_5 ? 'Five colors, one mood.' : 'Four colors, one mood.' %></h2>
     </div>
 
     <div class="circle-swatches">
-      <% [1, 2, 3, 4].forEach(n => { %>
+      <% [1, 2, 3, 4, 5].forEach(n => {
+           if (n === 5 && !couple.palette_color_5) return;
+      %>
         <div class="circle-swatch">
           <div class="circle-swatch-disc" style="background: <%= couple[`palette_color_${n}`] %>; <% if (n === 3) { %>border-color: var(--zz-finn-20);<% } %>"></div>
           <div class="circle-swatch-name"><%= couple[`palette_color_${n}_name`] || '' %></div>

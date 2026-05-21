@@ -72,7 +72,8 @@
       const isTbc = !v.display_name;
       const isBooked = v.status === 'booked';
       const stateClass = isBooked ? 'is-booked' : (v.status === 'na' ? 'is-na' : 'is-tbc');
-      const showNote = isBooked && v.note && !v.note.startsWith('=== Outreach draft ===');
+      const showNote = v.note && !v.note.startsWith('=== Outreach draft ===') &&
+                       (isBooked || v.status === 'shortlist');
     %>
       <article class="vendor <%= stateClass %>" data-status="<%= v.status %>">
         <div class="vendor-meta">
