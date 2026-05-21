@@ -50,6 +50,13 @@ function sendFirstViewNotification(couple, section) {
   req.end();
 }
 
+async function getTeamMembers() {
+  const { rows } = await pool.query(
+    'select * from team_members order by sort_order asc',
+  );
+  return rows;
+}
+
 async function findCoupleBySlug(slug) {
   const { rows } = await pool.query(
     'select * from couples where slug = $1 limit 1',
@@ -115,9 +122,12 @@ router.use('/p/:slug', loadCouple, logPageView);
 
 // ── Pages ──────────────────────────────────────────────────────────────
 
-router.get('/p/:slug', (_req, res) =>
-  res.render('landing', { currentPage: 'home' }),
-);
+router.get('/p/:slug', async (_req, res, next) => {
+  try {
+    const teamMembers = await getTeamMembers();
+    res.render('landing', { currentPage: 'home', teamMembers });
+  } catch (err) { next(err); }
+});
 
 router.get('/p/:slug/design', async (req, res, next) => {
   try {
@@ -639,9 +649,12 @@ router.use('/preview/:slug', loadCouple, logPageView, (req, res, next) => {
   next();
 });
 
-router.get('/preview/:slug', (_req, res) =>
-  res.render('landing', { currentPage: 'home' }),
-);
+router.get('/preview/:slug', async (_req, res, next) => {
+  try {
+    const teamMembers = await getTeamMembers();
+    res.render('landing', { currentPage: 'home', teamMembers });
+  } catch (err) { next(err); }
+});
 
 // Any attempt to navigate to a locked tab redirects back to the landing.
 router.get('/preview/:slug/*', (req, res) =>
@@ -660,9 +673,12 @@ router.use('/v/:slug', loadCouple, logPageView, (req, res, next) => {
   next();
 });
 
-router.get('/v/:slug', (_req, res) =>
-  res.render('landing', { currentPage: 'home' }),
-);
+router.get('/v/:slug', async (_req, res, next) => {
+  try {
+    const teamMembers = await getTeamMembers();
+    res.render('landing', { currentPage: 'home', teamMembers });
+  } catch (err) { next(err); }
+});
 
 router.get('/v/:slug/design', async (req, res, next) => {
   try {
@@ -774,9 +790,12 @@ router.use('/t/:slug', loadCouple, logPageView, (req, res, next) => {
   next();
 });
 
-router.get('/t/:slug', (_req, res) =>
-  res.render('landing', { currentPage: 'home' }),
-);
+router.get('/t/:slug', async (_req, res, next) => {
+  try {
+    const teamMembers = await getTeamMembers();
+    res.render('landing', { currentPage: 'home', teamMembers });
+  } catch (err) { next(err); }
+});
 
 router.get('/t/:slug/timeline', async (req, res, next) => {
   try {

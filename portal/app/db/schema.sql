@@ -532,7 +532,36 @@ create table if not exists design_materials (
 
 create index if not exists design_materials_couple_id_idx on design_materials(couple_id);
 
--- ── Portal events (analytics) ────────────────────────────────────────────
+-- ── Team members ─────────────────────────────────────────────────────────
+--
+-- Global (not per-couple). Shown on every landing page in the "Meet your
+-- team" section. Seeded with Zoe and Amanda on first run.
+
+create table if not exists team_members (
+  id          uuid primary key default gen_random_uuid(),
+  sort_order  integer not null default 0,
+  name        text not null,
+  role        text,
+  bio         text,
+  photo_url   text,
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now()
+);
+
+-- Seed only when the table is empty (first deploy).
+insert into team_members (sort_order, name, role, bio)
+select v.sort_order, v.name, v.role, v.bio
+from (values
+  (0, 'Zoe McDaniel',
+      'Founder & Creative Director · Zuzu Collective · San Diego, CA',
+      'Story-driven design rooted in intention. I build bespoke weddings and events that escape the mundane — dark, moody, specific, and entirely yours. Nothing cookie-cutter, nothing ordinary.'),
+  (1, 'Amanda',
+      'Associate Coordinator · Zuzu Collective',
+      'Amanda joins select Zuzu coordination clients to make sure every detail executes exactly as designed. She''s the reason the day flows.')
+) as v(sort_order, name, role, bio)
+where not exists (select 1 from team_members);
+
+create index if not exists team_members_sort_idx on team_members(sort_order);
 --
 -- Append-only log of client page views. ip_hash is SHA-256(ip + salt)
 -- truncated to 16 hex chars — enough for session-level deduplication,

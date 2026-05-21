@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include('partials/head', { title: `Edit — ${member.name}` }) %>
+<body class="admin-body">
+
+  <%- include('partials/sidebar', { currentSection: 'team' }) %>
+
+  <main class="admin-main">
+    <header class="admin-header">
+      <div>
+        <a href="/admin/team" class="admin-back">← Team members</a>
+        <h1 class="admin-title"><%= member.name %></h1>
+      </div>
+    </header>
+
+    <%- include('partials/flash', { flash }) %>
+
+    <% if (error) { %>
+      <div class="admin-flash admin-flash--error" role="alert"><%= error %></div>
+    <% } %>
+
+    <form action="<%= formAction %>" method="post" class="admin-form">
+
+      <fieldset class="admin-fieldset">
+        <legend class="admin-legend">Info</legend>
+
+        <label class="admin-field">
+          <span class="admin-field-label">Name *</span>
+          <input type="text" name="name" value="<%= member.name || '' %>" required>
+        </label>
+
+        <label class="admin-field">
+          <span class="admin-field-label">Role / title line</span>
+          <input type="text" name="role" value="<%= member.role || '' %>"
+                 placeholder="Founder & Creative Director · Zuzu Collective · San Diego, CA">
+          <span class="admin-field-help">Shown in small caps below the name.</span>
+        </label>
+
+        <label class="admin-field">
+          <span class="admin-field-label">Bio</span>
+          <textarea name="bio" rows="4"><%= member.bio || '' %></textarea>
+          <span class="admin-field-help">2–3 sentences max.</span>
+        </label>
+
+        <label class="admin-field">
+          <span class="admin-field-label">Display order</span>
+          <input type="number" name="sort_order" value="<%= member.sort_order ?? 0 %>" min="0" style="max-width:80px;">
+          <span class="admin-field-help">Lower numbers appear first (Zoe = 0, Amanda = 1).</span>
+        </label>
+      </fieldset>
+
+      <fieldset class="admin-fieldset">
+        <legend class="admin-legend">Photo</legend>
+        <div class="admin-field">
+          <span class="admin-field-label">Photo</span>
+
+          <% if (member.photo_url) { %>
+            <div style="margin-bottom:0.75rem;">
+              <img src="<%= member.photo_url %>" alt="<%= member.name %>"
+                   style="width:80px;height:80px;border-radius:50%;object-fit:cover;display:block;">
+            </div>
+          <% } %>
+
+          <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+            <input type="hidden" name="photo_url" id="photo-url" value="<%= member.photo_url || '' %>">
+            <input type="file" id="photo-file" accept="image/*" style="display:none;">
+            <button type="button" id="photo-upload-btn" class="admin-btn admin-btn--ghost">↑ Upload photo</button>
+            <% if (member.photo_url) { %>
+              <button type="button" id="photo-remove-btn" class="admin-btn admin-btn--ghost"
+                      style="color:var(--zz-danger,#c0392b);">Remove</button>
+            <% } %>
+          </div>
+          <div id="photo-status" style="font-size:0.8rem;color:var(--zz-tobacco);margin-top:0.4rem;"></div>
+          <div id="photo-preview" style="margin-top:0.75rem;display:<%= member.photo_url ? 'block' : 'none' %>;">
+            <img id="photo-preview-img" src="<%= member.photo_url || '' %>" alt=""
+                 style="width:80px;height:80px;border-radius:50%;object-fit:cover;">
+          </div>
+        </div>
+      </fieldset>
+
+      <div class="admin-form-actions">
+        <button type="submit" class="admin-btn admin-btn--primary">Save changes</button>
+        <a href="/admin/team" class="admin-btn admin-btn--ghost">Cancel</a>
+      </div>
+    </form>
+
+    <div class="admin-danger-zone">
+      <h2 class="admin-legend">Danger zone</h2>
+      <p>Remove <%= member.name %> from the team section on all portals.</p>
+      <form action="/admin/team/<%= member.id %>/delete" method="post"
+            onsubmit="return confirm('Remove <%= member.name %>? This cannot be undone.');">
+        <button type="submit" class="admin-btn admin-btn--danger">Remove team member</button>
+      </form>
+    </div>
+  </main>
+
+  <script>
+    (function () {
+      const uploadBtn  = document.getElementById('photo-upload-btn');
+      const fileInput  = document.getElementById('photo-file');
+      const urlInput   = document.getElementById('photo-url');
+      const statusEl   = document.getElementById('photo-status');
+      const previewWrap = document.getElementById('photo-preview');
+      const previewImg  = document.getElementById('photo-preview-img');
+      const removeBtn  = document.getElementById('photo-remove-btn');
+
+      if (uploadBtn) {
+        uploadBtn.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', async () => {
+          const file = fileInput.files[0];
+          if (!file) return;
+          uploadBtn.disabled = true;
+          statusEl.textContent = 'Uploading…';
+          try {
+            const fd = new FormData();
+            fd.append('file', file);
+            const r = await fetch('/admin/team/<%= member.id %>/upload-photo', {
+              method: 'POST', body: fd,
+            });
+            const data = await r.json();
+            if (!r.ok) throw new Error(data.error || 'Upload failed');
+            urlInput.value = data.url;
+            previewImg.src = data.url;
+            previewWrap.style.display = 'block';
+            statusEl.textContent = '✓ Uploaded — save to apply.';
+          } catch (err) {
+            statusEl.textContent = '✗ ' + err.message;
+          }
+          uploadBtn.disabled = false;
+          fileInput.value = '';
+        });
+      }
+
+      if (removeBtn) {
+        removeBtn.addEventListener('click', () => {
+          urlInput.value = '';
+          previewWrap.style.display = 'none';
+          statusEl.textContent = 'Photo removed — save to apply.';
+        });
+      }
+    })();
+  </script>
+
+</body>
+</html>
