@@ -105,6 +105,22 @@
 
       <fieldset class="admin-fieldset">
         <legend class="admin-legend">Contract</legend>
+
+        <label class="admin-field">
+          <span class="admin-field-label">Contract status</span>
+          <%
+            const CONTRACT_LABELS = { not_started: 'Not Started', pending: 'Pending (sent for review)', signed: 'Signed' };
+          %>
+          <select name="contract_status">
+            <% contractStatuses.forEach(s => { %>
+              <option value="<%= s %>" <%= (vendor?.contract_status || 'not_started') === s ? 'selected' : '' %>>
+                <%= CONTRACT_LABELS[s] || s %>
+              </option>
+            <% }) %>
+          </select>
+          <span class="admin-field-help">Shown as a badge on the vendor page.</span>
+        </label>
+
         <div class="admin-field">
           <span class="admin-field-label">Contract PDF</span>
           <div style="display:flex; gap:0.5rem; align-items:center;">

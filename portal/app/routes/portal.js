@@ -391,18 +391,23 @@ router.get('/p/:slug/budget', async (req, res, next) => {
     const openCategories = Array.from(categoryStats.values())
       .filter(x => x.contracted > 0 && x.actual < x.contracted).length;
 
-    // Payment schedule — line items with a due_date not yet fully paid,
-    // sorted ascending so the next payment is always first.
+    // Payment schedule — all line items with a due_date, sorted ascending.
+    // Includes paid ones so clients see their full payment history.
     const today = new Date();
     today.setUTCHours(0, 0, 0, 0);
     const scheduledPayments = lines
-      .filter(l => l.due_date && l.status_kind !== 'paid')
+      .filter(l => l.due_date)
       .map(l => {
         const cat = categories.find(c => c.id === l.category_id);
         const due = new Date(l.due_date);
         due.setUTCHours(0, 0, 0, 0);
         const daysUntil = Math.round((due - today) / 86400000);
-        return { ...l, categoryTitle: cat?.title || '', daysUntil };
+        const isPaid    = l.status_kind === 'paid' || (l.paid_cents || 0) >= (l.amount_cents || 0);
+        const statusBadge = isPaid ? 'paid'
+          : daysUntil < 0   ? 'overdue'
+          : daysUntil <= 14 ? 'soon'
+          : 'upcoming';
+        return { ...l, categoryTitle: cat?.title || '', daysUntil, isPaid, statusBadge };
       })
       .sort((a, b) => new Date(a.due_date) - new Date(b.due_date));
 

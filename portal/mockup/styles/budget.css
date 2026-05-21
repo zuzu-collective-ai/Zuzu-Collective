@@ -327,6 +327,98 @@
   .line-status  { grid-area: status; justify-self: start; }
 }
 
+/* ── Investment tracker ─────────────────────────────────────────────────── */
+
+.investment-tracker {
+  max-width: var(--content-max);
+  margin: 0 auto var(--space-xl);
+  padding: var(--space-lg) var(--space-md);
+  border: 1px solid var(--zz-finn-20);
+  background: rgba(239, 237, 225, 0.5);
+}
+
+.investment-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+
+.investment-bar {
+  flex: 1;
+  height: 4px;
+  background: var(--zz-finn-20);
+  position: relative;
+  overflow: hidden;
+}
+
+.investment-bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--zz-finn);
+  transition: width 800ms ease;
+}
+
+.investment-bar-pct {
+  font-family: var(--zz-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--zz-finn-60);
+  white-space: nowrap;
+}
+
+.investment-cols {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0;
+  border-top: 1px solid var(--zz-finn-20);
+  padding-top: var(--space-md);
+}
+
+.investment-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0 var(--space-md);
+  border-right: 1px solid var(--zz-finn-20);
+  text-align: center;
+}
+.investment-col:first-child { padding-left: 0; text-align: left; }
+.investment-col:last-child  { border-right: 0; padding-right: 0; text-align: right; }
+
+.investment-col-label {
+  font-family: var(--zz-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--zz-finn-60);
+}
+
+.investment-col-amount {
+  font-family: var(--zz-display);
+  font-style: italic;
+  font-size: clamp(1.5rem, 2.8vw, 2.25rem);
+  line-height: 1;
+  color: var(--zz-finn);
+}
+.investment-col-amount--paid    { color: var(--zz-tobacco); }
+.investment-col-amount--balance { color: var(--zz-smoky); }
+
+@media (max-width: 600px) {
+  .investment-cols {
+    grid-template-columns: 1fr;
+    gap: var(--space-md);
+  }
+  .investment-col {
+    border-right: 0;
+    border-bottom: 1px solid var(--zz-finn-20);
+    padding: 0 0 var(--space-md);
+    text-align: left !important;
+  }
+  .investment-col:last-child { border-bottom: 0; }
+}
+
 /* ── Payment schedule ───────────────────────────────────────────────────── */
 
 .payment-list {
@@ -347,6 +439,7 @@
   border-left: 3px solid transparent;
   transition: border-color 0.15s;
 }
+.payment-item--paid { opacity: 0.65; }
 .payment-item:last-child { border-bottom: 0; }
 .payment-item--soon    { border-left-color: var(--zz-tobacco); background: rgba(160,100,40,0.04); }
 .payment-item--overdue { border-left-color: #c0392b; background: rgba(192,57,43,0.05); }
@@ -407,16 +500,32 @@
   white-space: nowrap;
 }
 
+.payment-badge {
+  font-family: var(--zz-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border: 1px solid currentColor;
+  white-space: nowrap;
+  text-align: center;
+  min-width: 6rem;
+}
+.payment-badge--paid     { color: var(--zz-finn); opacity: 0.6; }
+.payment-badge--overdue  { color: #c0392b; }
+.payment-badge--soon     { color: var(--zz-tobacco); }
+.payment-badge--upcoming { color: var(--zz-smoky); }
+
 @media (max-width: 680px) {
   .payment-item {
     grid-template-columns: 1fr auto;
     grid-template-areas:
       "date amount"
-      "desc status";
+      "desc badge";
     row-gap: var(--space-xs);
   }
-  .payment-date  { grid-area: date; }
-  .payment-desc  { grid-area: desc; }
+  .payment-date   { grid-area: date; }
+  .payment-desc   { grid-area: desc; }
   .payment-amount { grid-area: amount; }
-  .payment-status { grid-area: status; justify-self: end; }
+  .payment-badge  { grid-area: badge; justify-self: end; }
 }

@@ -70,6 +70,7 @@ const COUPLE_FIELDS = [
   'design_materials_note',
   'hero_photo_url',
   'hero_text_color',
+  'couple_phone',
 ];
 
 // Currency parsing — admin enters dollars (e.g. "120000", "$120,000",
@@ -98,6 +99,8 @@ function pickCoupleFields(body) {
       if (!raw) { out[f] = null; continue; }
       const words = raw.split(/\s*[,\-·|\/]\s*/).map(w => w.trim()).filter(Boolean);
       out[f] = words.length > 0 ? words.join(' · ') : null;
+    } else if (f === 'couple_phone') {
+      out[f] = v ? normalizePhone(v) : null;
     } else {
       out[f] = v === '' || v === undefined ? null : v;
     }
@@ -325,8 +328,11 @@ const VENDOR_FIELDS = [
   'status',
   'note',
   'contract_url',
+  'contract_status',
   'position',
 ];
+
+const CONTRACT_STATUSES = ['not_started', 'pending', 'signed'];
 
 function normalizePhone(input) {
   if (!input) return null;
@@ -358,6 +364,7 @@ function pickVendorFields(body) {
     out[f] = v;
   }
   if (!VENDOR_STATUSES.includes(out.status)) out.status = 'pending';
+  if (!CONTRACT_STATUSES.includes(out.contract_status)) out.contract_status = 'not_started';
   if (out.phone) out.phone = normalizePhone(out.phone);
   return out;
 }
@@ -394,6 +401,7 @@ router.get('/couples/:id/vendors/new', async (req, res, next) => {
       formAction: `/admin/couples/${couple.id}/vendors`,
       vendorTypes: COMMON_VENDOR_TYPES,
       statuses: VENDOR_STATUSES,
+      contractStatuses: CONTRACT_STATUSES,
       configured: anthropicConfigured(),
       error: null,
       flash: consumeFlash(req),
@@ -417,6 +425,7 @@ router.post('/couples/:id/vendors', async (req, res, next) => {
         formAction: `/admin/couples/${couple.id}/vendors`,
         vendorTypes: COMMON_VENDOR_TYPES,
         statuses: VENDOR_STATUSES,
+        contractStatuses: CONTRACT_STATUSES,
         configured: anthropicConfigured(),
         error: 'Vendor type is required.',
         flash: null,
@@ -805,6 +814,7 @@ router.get('/couples/:id/vendors/:vid', async (req, res, next) => {
       formAction: `/admin/couples/${couple.id}/vendors/${rows[0].id}`,
       vendorTypes: COMMON_VENDOR_TYPES,
       statuses: VENDOR_STATUSES,
+      contractStatuses: CONTRACT_STATUSES,
       configured: anthropicConfigured(),
       error: null,
       flash: consumeFlash(req),
