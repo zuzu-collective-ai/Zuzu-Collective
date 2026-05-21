@@ -1582,10 +1582,10 @@ router.post('/couples/:id/budget/:cid', async (req, res, next) => {
       await client.query(
         `insert into budget_line_items
            (category_id, name, vendor_label, amount_cents, paid_cents,
-            status_kind, status_label, position)
-         values ($1, $2, $3, $4, $5, $6, $7, $8)`,
+            status_kind, status_label, due_date, position)
+         values ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
         [req.params.cid, l.name, l.vendor_label, l.amount_cents, l.paid_cents,
-         l.status_kind, l.status_label, l.position],
+         l.status_kind, l.status_label, l.due_date || null, l.position],
       );
     }
     await client.query('commit');
