@@ -290,6 +290,107 @@
   color: var(--zz-finn);
 }
 
+/* ── Meet your team ──────────────────────────────────────────────────────── */
+
+.team {
+  padding: var(--space-2xl) var(--space-md);
+  border-top: 1px solid var(--zz-finn-20);
+  background: var(--zz-moonlight);
+}
+
+.team-inner {
+  max-width: var(--content-max);
+  margin-inline: auto;
+}
+
+.team-eyebrow {
+  display: block;
+  margin-bottom: var(--space-md);
+}
+
+.team-heading {
+  font-family: var(--zz-display);
+  font-style: italic;
+  font-size: var(--fs-display-md);
+  color: var(--zz-finn);
+  margin: 0 0 var(--space-xl);
+}
+
+.team-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-xl);
+}
+
+.team-card {
+  display: flex;
+  gap: var(--space-md);
+  align-items: flex-start;
+}
+
+.team-photo-wrap {
+  flex-shrink: 0;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: var(--zz-finn-20);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.team-photo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.team-initials {
+  font-family: var(--zz-display);
+  font-style: italic;
+  font-size: 1.5rem;
+  color: var(--zz-finn-60);
+  line-height: 1;
+}
+
+.team-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.team-name {
+  font-family: var(--zz-display);
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: var(--zz-finn);
+  margin-bottom: 0.15rem;
+}
+
+.team-role {
+  font-family: var(--zz-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--zz-finn-60);
+  margin-bottom: var(--space-sm);
+}
+
+.team-bio {
+  font-family: var(--zz-display);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--zz-ink);
+  margin: 0;
+}
+
+@media (max-width: 720px) {
+  .team-cards {
+    grid-template-columns: 1fr;
+    gap: var(--space-lg);
+  }
+}
+
 /* ── Palette preview — Alicia & Jack's couple layer ─────────────────────── */
 
 .palette-preview {

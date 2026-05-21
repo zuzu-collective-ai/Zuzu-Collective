@@ -44,6 +44,47 @@
     <% } %>
   </section>
 
+  <!-- ── Meet your team ────────────────────────────────────────────────── -->
+  <section class="team">
+    <div class="team-inner">
+      <span class="label team-eyebrow">Your team</span>
+      <h2 class="team-heading"><em>The people behind the process.</em></h2>
+      <div class="team-cards">
+
+        <article class="team-card">
+          <div class="team-photo-wrap">
+            <% if (locals.zoePhotoUrl) { %>
+              <img src="<%= zoePhotoUrl %>" alt="Zoe McDaniel" class="team-photo-img">
+            <% } else { %>
+              <span class="team-initials">ZM</span>
+            <% } %>
+          </div>
+          <div class="team-info">
+            <div class="team-name">Zoe McDaniel</div>
+            <div class="team-role">Founder &amp; Creative Director · Zuzu Collective · San Diego, CA</div>
+            <p class="team-bio">Story-driven design rooted in intention. I build bespoke weddings and events that escape the mundane — dark, moody, specific, and entirely yours. Nothing cookie-cutter, nothing ordinary.</p>
+          </div>
+        </article>
+
+        <article class="team-card">
+          <div class="team-photo-wrap">
+            <% if (locals.amandaPhotoUrl) { %>
+              <img src="<%= amandaPhotoUrl %>" alt="Amanda" class="team-photo-img">
+            <% } else { %>
+              <span class="team-initials">AM</span>
+            <% } %>
+          </div>
+          <div class="team-info">
+            <div class="team-name">Amanda</div>
+            <div class="team-role">Associate Coordinator · Zuzu Collective</div>
+            <p class="team-bio">Amanda joins select Zuzu coordination clients to make sure every detail executes exactly as designed. She's the reason the day flows.</p>
+          </div>
+        </article>
+
+      </div>
+    </div>
+  </section>
+
   <%- include('partials/footer', { couple }) %>
 
   <script>

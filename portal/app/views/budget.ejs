@@ -50,28 +50,58 @@
     </div>
   </section>
 
-  <!-- ── Payment schedule ──────────────────────────────────────────────── -->
+  <!-- ── Payment tracker ───────────────────────────────────────────────── -->
   <% if (scheduledPayments.length > 0) { %>
     <section class="section payment-schedule">
       <div class="section-head">
         <span class="label">Payment schedule</span>
-        <h2 class="section-title"><em>Upcoming due dates.</em></h2>
+        <h2 class="section-title"><em>Where the investment stands.</em></h2>
       </div>
+
+      <%
+        const paidTotal       = summary.totalSpent;
+        const investmentTotal = summary.totalContracted || summary.totalBudget;
+        const pctPaid         = investmentTotal > 0 ? Math.min(100, Math.round((paidTotal / investmentTotal) * 100)) : 0;
+        const balanceTotal    = Math.max(0, investmentTotal - paidTotal);
+      %>
+      <div class="investment-tracker">
+        <div class="investment-bar-wrap">
+          <div class="investment-bar">
+            <span class="investment-bar-fill" style="width:<%= pctPaid %>%;"></span>
+          </div>
+          <span class="investment-bar-pct"><%= pctPaid %>% paid</span>
+        </div>
+        <div class="investment-cols">
+          <div class="investment-col">
+            <span class="investment-col-label">Total Investment</span>
+            <span class="investment-col-amount"><%= fmtCurrency(investmentTotal) %></span>
+          </div>
+          <div class="investment-col">
+            <span class="investment-col-label">Paid to Date</span>
+            <span class="investment-col-amount investment-col-amount--paid"><%= fmtCurrency(paidTotal) %></span>
+          </div>
+          <div class="investment-col">
+            <span class="investment-col-label">Balance Remaining</span>
+            <span class="investment-col-amount investment-col-amount--balance"><%= fmtCurrency(balanceTotal) %></span>
+          </div>
+        </div>
+      </div>
+
       <ul class="payment-list">
         <% scheduledPayments.forEach(p => {
-          const due = new Date(p.due_date);
+          const due    = new Date(p.due_date);
           const fmtDue = due.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
-          const isOverdue = p.daysUntil < 0;
-          const isSoon    = !isOverdue && p.daysUntil <= 14;
-          const urgency   = isOverdue ? 'overdue' : isSoon ? 'soon' : '';
-          const balance   = Math.max(0, (p.amount_cents || 0) - (p.paid_cents || 0));
+          const balance = Math.max(0, (p.amount_cents || 0) - (p.paid_cents || 0));
+          const badge = p.statusBadge;
+          const BADGE_LABELS = { paid: 'Paid', overdue: 'Overdue', soon: 'Due Soon', upcoming: 'Upcoming' };
+          const itemClass = badge === 'overdue' ? 'payment-item--overdue' : badge === 'soon' ? 'payment-item--soon' : '';
         %>
-          <li class="payment-item<%= urgency ? ` payment-item--${urgency}` : '' %>">
+          <li class="payment-item<%= itemClass ? ` ${itemClass}` : '' %>">
             <div class="payment-date">
               <span class="payment-date-main"><%= fmtDue %></span>
-              <% if (isOverdue) { %>
+              <% if (!p.isPaid && p.daysUntil < 0) { %>
                 <span class="payment-urgency">Overdue by <%= Math.abs(p.daysUntil) %> day<%= Math.abs(p.daysUntil) === 1 ? '' : 's' %></span>
-              <% } else if (isSoon) { %>
+              <% } else if (!p.isPaid && p.daysUntil <= 14) { %>
                 <span class="payment-urgency"><%= p.daysUntil === 0 ? 'Due today' : `${p.daysUntil} day${p.daysUntil === 1 ? '' : 's'} away` %></span>
               <% } %>
             </div>
@@ -80,10 +110,8 @@
               <% if (p.categoryTitle) { %><span class="payment-category"><%= p.categoryTitle %></span><% } %>
               <% if (p.vendor_label) { %><span class="payment-vendor"><%= p.vendor_label %></span><% } %>
             </div>
-            <div class="payment-amount"><%= fmtCurrency(balance) %></div>
-            <% if (p.status_label) { %>
-              <div class="payment-status"><%= p.status_label %></div>
-            <% } %>
+            <div class="payment-amount"><%= fmtCurrency(p.isPaid ? p.paid_cents : balance) %></div>
+            <div class="payment-badge payment-badge--<%= badge %>"><%= BADGE_LABELS[badge] %></div>
           </li>
         <% }) %>
       </ul>

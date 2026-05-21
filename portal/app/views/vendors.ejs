@@ -106,6 +106,13 @@
         </div>
         <div class="vendor-status">
           <span class="status-pill <%= pill.cls %>"><%= pill.label %></span>
+          <% if (isBooked || v.status === 'shortlist') {
+               const cs = v.contract_status || 'not_started';
+               const CONTRACT_CLS = { signed: 'contract-badge--signed', pending: 'contract-badge--pending', not_started: 'contract-badge--not-started' };
+               const CONTRACT_LBL = { signed: 'Signed', pending: 'Pending', not_started: 'Not Started' };
+          %>
+            <span class="contract-badge <%= CONTRACT_CLS[cs] %>"><%= CONTRACT_LBL[cs] %></span>
+          <% } %>
         </div>
       </article>
     <% }) %>

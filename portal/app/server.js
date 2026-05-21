@@ -17,6 +17,7 @@ import { pool } from './db/pool.js';
 import { initDb } from './db/init.js';
 import portalRoutes from './routes/portal.js';
 import adminRoutes from './routes/admin.js';
+import { startPaymentReminderScheduler } from './lib/sms.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const mockupRoot = join(here, '..', 'mockup');
@@ -73,6 +74,11 @@ app.use(
 app.set('view engine', 'ejs');
 app.set('views', join(here, 'views'));
 
+// Team photo URLs — set ZOE_PHOTO_URL / AMANDA_PHOTO_URL in Render env vars
+// once photos are uploaded to Cloudinary. Available in every template as locals.
+app.locals.zoePhotoUrl    = process.env.ZOE_PHOTO_URL    || null;
+app.locals.amandaPhotoUrl = process.env.AMANDA_PHOTO_URL || null;
+
 // Serve the mockup's CSS folder directly so the app and the static
 // mockup share one stylesheet source. /styles/landing.css → portal/mockup/styles/landing.css
 app.use('/styles', express.static(join(mockupRoot, 'styles')));
@@ -109,6 +115,7 @@ const PORT = Number(process.env.PORT) || 3000;
 (async () => {
   try {
     await initDb();
+    startPaymentReminderScheduler(pool);
     app.listen(PORT, () => {
       console.log(`[zuzu-portal] listening on :${PORT}`);
       if (!process.env.ADMIN_PASSWORD) {

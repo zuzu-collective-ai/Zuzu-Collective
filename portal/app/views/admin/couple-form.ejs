@@ -80,6 +80,12 @@
           <span class="admin-field-label">Wedding date *</span>
           <input type="date" name="wedding_date" value="<%= couple?.wedding_date ? new Date(couple.wedding_date).toISOString().slice(0, 10) : '' %>" required>
         </label>
+
+        <label class="admin-field">
+          <span class="admin-field-label">Couple's phone (for SMS reminders)</span>
+          <input type="tel" name="couple_phone" value="<%= couple?.couple_phone || '' %>" placeholder="(619) 555-0100">
+          <span class="admin-field-help">If set, the couple receives an SMS 7 days before each scheduled payment. Requires TWILIO_* env vars.</span>
+        </label>
       </fieldset>
 
       <fieldset class="admin-fieldset">
