@@ -1,0 +1,232 @@
+/*
+ * Zuzu Collective portal — payments page
+ * Vertical timeline of payment due dates grouped by month.
+ */
+
+/* ── Summary stats ───────────────────────────────────────────────────────── */
+
+.pay-summary {
+  padding-top: var(--space-lg);
+  padding-bottom: 0;
+}
+
+.pay-summary-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  max-width: var(--content-max);
+  margin: 0 auto;
+  gap: 0;
+}
+
+.pay-summary-stats .stat {
+  text-align: center;
+  padding: var(--space-md);
+  border-right: 1px solid var(--zz-finn-20);
+}
+.pay-summary-stats .stat:last-child { border-right: 0; }
+
+.pay-progress-wrap {
+  max-width: var(--content-max);
+  margin: var(--space-lg) auto 0;
+  padding: 0 var(--space-md);
+}
+
+.pay-progress-bar {
+  height: 3px;
+  background: var(--zz-finn-20);
+  overflow: hidden;
+}
+.pay-progress-bar > span {
+  display: block;
+  height: 100%;
+  background: var(--zz-finn);
+  transition: width 800ms ease;
+}
+
+/* ── Timeline ────────────────────────────────────────────────────────────── */
+
+.pay-timeline {
+  max-width: var(--content-max);
+  margin-inline: auto;
+  padding-top: var(--space-xl);
+  padding-bottom: var(--space-2xl);
+}
+
+/* Month group */
+.pay-month {
+  margin-bottom: var(--space-xl);
+}
+
+.pay-month-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+
+.pay-month-name {
+  font-family: var(--zz-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--zz-finn-60);
+  white-space: nowrap;
+}
+
+.pay-month-line {
+  flex: 1;
+  height: 1px;
+  background: var(--zz-finn-20);
+}
+
+/* Payment item */
+.pay-item {
+  display: flex;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+  position: relative;
+}
+
+/* Vertical spine connecting dots */
+.pay-item-spine {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  width: 16px;
+  padding-top: 4px;
+}
+
+.pay-item-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid var(--zz-finn-40);
+  background: var(--zz-moonlight);
+  flex-shrink: 0;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.pay-item--paid     .pay-item-dot { background: var(--zz-finn); border-color: var(--zz-finn); }
+.pay-item--overdue  .pay-item-dot { background: #c0392b; border-color: #c0392b; }
+.pay-item--soon     .pay-item-dot { background: var(--zz-tobacco); border-color: var(--zz-tobacco); }
+.pay-item--upcoming .pay-item-dot { border-color: var(--zz-finn-40); }
+
+/* Connecting line between items within a month */
+.pay-item:not(:last-child) .pay-item-spine::after {
+  content: '';
+  flex: 1;
+  width: 1px;
+  background: var(--zz-finn-20);
+  margin-top: 4px;
+  min-height: 2rem;
+}
+
+/* Card */
+.pay-item-card {
+  flex: 1;
+  min-width: 0;
+  padding-bottom: var(--space-lg);
+  border-bottom: 1px solid var(--zz-finn-20);
+}
+.pay-item:last-child .pay-item-card {
+  border-bottom: 0;
+}
+
+.pay-item--paid .pay-item-card { opacity: 0.6; }
+
+.pay-item-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-md);
+  margin-bottom: 0.35rem;
+}
+
+.pay-item-date {
+  font-family: var(--zz-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  color: var(--zz-finn-60);
+}
+
+.pay-item-badge {
+  font-family: var(--zz-mono);
+  font-size: 0.55rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border: 1px solid currentColor;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.pay-item-badge--paid     { color: var(--zz-finn); }
+.pay-item-badge--overdue  { color: #c0392b; }
+.pay-item-badge--soon     { color: var(--zz-tobacco); }
+.pay-item-badge--upcoming { color: var(--zz-finn-40); }
+
+.pay-item-name {
+  font-family: var(--zz-display);
+  font-size: 1.25rem;
+  color: var(--zz-finn);
+  margin-bottom: 0.25rem;
+}
+.pay-item-name em { font-style: italic; }
+
+.pay-item-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-sm);
+  font-family: var(--zz-display);
+  font-size: 0.85rem;
+  color: var(--zz-ink);
+  opacity: 0.7;
+  margin-bottom: 0.4rem;
+}
+.pay-item-meta span + span::before {
+  content: '·';
+  margin-right: var(--space-sm);
+}
+
+.pay-item-amount {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-sm);
+  font-family: var(--zz-display);
+  font-style: italic;
+  font-size: 1.5rem;
+  color: var(--zz-finn);
+  margin-top: 0.35rem;
+}
+
+.pay-item-amount-paid { color: var(--zz-tobacco); }
+
+.pay-item-amount-note {
+  font-size: 0.85rem;
+  opacity: 0.6;
+  font-style: normal;
+}
+
+.pay-item-urgency {
+  font-family: var(--zz-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--zz-tobacco);
+  margin-top: 0.4rem;
+}
+.pay-item-urgency--overdue { color: #c0392b; }
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+
+@media (max-width: 760px) {
+  .pay-summary-stats {
+    grid-template-columns: 1fr;
+  }
+  .pay-summary-stats .stat {
+    border-right: 0;
+    border-bottom: 1px solid var(--zz-finn-20);
+    padding: var(--space-md) 0;
+  }
+  .pay-summary-stats .stat:last-child { border-bottom: 0; }
+}

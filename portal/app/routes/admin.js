@@ -325,6 +325,8 @@ const VENDOR_FIELDS = [
   'phone',
   'email',
   'address',
+  'website_url',
+  'instagram_url',
   'status',
   'note',
   'contract_url',

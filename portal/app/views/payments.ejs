@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include('partials/head', { couple, title: 'Payments', extraStyles: ['palette.css', 'payments.css'] }) %>
+<body>
+
+  <%- include('partials/topbar', { couple, currentPage }) %>
+
+  <%
+    function fmtCurrency(cents) {
+      const d = (cents || 0) / 100;
+      return '$' + d.toLocaleString('en-US', Number.isInteger(d)
+        ? { maximumFractionDigits: 0 }
+        : { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    const BADGE_LABELS = { paid: 'Paid', overdue: 'Overdue', soon: 'Due Soon', upcoming: 'Upcoming' };
+  %>
+
+  <!-- ── Page header ─────────────────────────────────────────────────────── -->
+  <section class="page-header">
+    <span class="label page-eyebrow"><%= couple.display_name %></span>
+    <h1 class="page-title">Payments</h1>
+    <p class="page-subtitle">
+      Every payment, every due date — in one place.
+    </p>
+  </section>
+
+  <!-- ── Investment summary ─────────────────────────────────────────────── -->
+  <section class="section pay-summary">
+    <div class="pay-summary-stats">
+      <div class="stat">
+        <div class="stat-label">Total Investment</div>
+        <div class="stat-number"><%= fmtCurrency(summary.totalContracted) %></div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Paid to Date</div>
+        <div class="stat-number stat-number--accent"><%= fmtCurrency(summary.totalPaid) %></div>
+        <div class="stat-note"><%= summary.pctPaid %>% complete</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Balance Due</div>
+        <div class="stat-number"><%= fmtCurrency(summary.totalDue) %></div>
+        <div class="stat-note">Remaining to vendors</div>
+      </div>
+    </div>
+    <div class="pay-progress-wrap">
+      <div class="pay-progress-bar">
+        <span style="width:<%= summary.pctPaid %>%;"></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Timeline ───────────────────────────────────────────────────────── -->
+  <% if (monthGroups.length === 0) { %>
+    <section class="section">
+      <p style="text-align:center;padding:4rem 0;font-family:var(--zz-display);font-style:italic;color:var(--zz-ink);opacity:0.6;">
+        No payment due dates yet — Zoe will add them as contracts are signed.
+      </p>
+    </section>
+  <% } else { %>
+    <section class="section pay-timeline">
+      <% monthGroups.forEach((group, gi) => { %>
+        <div class="pay-month">
+          <div class="pay-month-label">
+            <span class="pay-month-name"><%= group.label %></span>
+            <span class="pay-month-line"></span>
+          </div>
+
+          <% group.payments.forEach(p => {
+               const balance = Math.max(0, (p.amount_cents || 0) - (p.paid_cents || 0));
+               const fmtDue  = new Date(p.due_date).toLocaleDateString('en-US', {
+                 weekday: 'long', month: 'long', day: 'numeric', timeZone: 'UTC'
+               });
+          %>
+            <div class="pay-item pay-item--<%= p.statusBadge %>">
+              <div class="pay-item-spine">
+                <span class="pay-item-dot"></span>
+              </div>
+              <div class="pay-item-card">
+                <div class="pay-item-top">
+                  <div class="pay-item-date"><%= fmtDue %></div>
+                  <span class="pay-item-badge pay-item-badge--<%= p.statusBadge %>">
+                    <%= BADGE_LABELS[p.statusBadge] %>
+                  </span>
+                </div>
+                <div class="pay-item-name"><em><%= p.name %></em></div>
+                <% if (p.categoryTitle || p.vendor_label) { %>
+                  <div class="pay-item-meta">
+                    <% if (p.categoryTitle) { %><span><%= p.categoryTitle %></span><% } %>
+                    <% if (p.vendor_label)  { %><span><%= p.vendor_label %></span><% } %>
+                  </div>
+                <% } %>
+                <div class="pay-item-amount">
+                  <% if (p.isPaid) { %>
+                    <span class="pay-item-amount-paid"><%= fmtCurrency(p.paid_cents) %> paid</span>
+                  <% } else { %>
+                    <span><%= fmtCurrency(balance) %> due</span>
+                    <% if (p.paid_cents > 0) { %>
+                      <span class="pay-item-amount-note"><%= fmtCurrency(p.paid_cents) %> already paid</span>
+                    <% } %>
+                  <% } %>
+                </div>
+                <% if (!p.isPaid && p.daysUntil <= 14 && p.daysUntil >= 0) { %>
+                  <div class="pay-item-urgency">
+                    <%= p.daysUntil === 0 ? 'Due today' : `${p.daysUntil} day${p.daysUntil === 1 ? '' : 's'} away` %>
+                  </div>
+                <% } else if (!p.isPaid && p.daysUntil < 0) { %>
+                  <div class="pay-item-urgency pay-item-urgency--overdue">
+                    Overdue by <%= Math.abs(p.daysUntil) %> day<%= Math.abs(p.daysUntil) === 1 ? '' : 's' %>
+                  </div>
+                <% } %>
+              </div>
+            </div>
+          <% }) %>
+        </div>
+      <% }) %>
+    </section>
+  <% } %>
+
+  <%- include('partials/footer', { couple }) %>
+
+</body>
+</html>
