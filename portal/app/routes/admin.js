@@ -1650,7 +1650,7 @@ router.get('/couples/:id/payments', async (req, res, next) => {
       grouped,
       currentTab: 'payments',
       statusKinds: BUDGET_STATUS_KINDS,
-      flash: popFlash(req),
+      flash: consumeFlash(req),
     });
   } catch (err) { next(err); }
 });
