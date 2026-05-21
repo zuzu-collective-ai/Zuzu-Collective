@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include('partials/head', { title: `${couple.display_name} — Payments` }) %>
+<body class="admin-body">
+
+  <%- include('partials/sidebar', { currentSection: 'couples' }) %>
+
+  <main class="admin-main">
+    <header class="admin-header">
+      <div>
+        <a href="/admin/couples/<%= couple.id %>" class="admin-back">← <%= couple.display_name %></a>
+        <h1 class="admin-title">Payments</h1>
+      </div>
+    </header>
+
+    <%- include('partials/couple-tabs', { couple, currentTab: 'payments' }) %>
+
+    <%- include('partials/flash', { flash }) %>
+
+    <%
+      const STATUS_LABELS = { paid: 'Paid', deposited: 'Deposited', upcoming: 'Upcoming' };
+      function dollarsValue(cents) {
+        if (!cents) return '';
+        const n = Number(cents) / 100;
+        if (Number.isNaN(n) || n === 0) return '';
+        return n.toFixed(n % 1 === 0 ? 0 : 2);
+      }
+    %>
+
+    <% if (grouped.length === 0) { %>
+      <p class="admin-empty">No budget categories yet. <a href="/admin/couples/<%= couple.id %>/budget">Add budget categories first.</a></p>
+    <% } %>
+
+    <% grouped.forEach(group => { %>
+      <section class="admin-payments-group">
+        <div class="admin-payments-group-header">
+          <h2 class="admin-payments-group-title"><%= group.title %></h2>
+          <a href="/admin/couples/<%= couple.id %>/budget/<%= group.id %>" class="admin-link">Edit category →</a>
+        </div>
+
+        <% group.items.forEach(item => { %>
+          <details class="admin-payment-row">
+            <summary class="admin-payment-summary">
+              <span class="admin-payment-name"><%= item.name %></span>
+              <% if (item.vendor_label) { %><span class="admin-payment-vendor"><%= item.vendor_label %></span><% } %>
+              <span class="admin-payment-amount">$<%= (item.amount_cents / 100).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) %></span>
+              <% if (item.due_date) { %><span class="admin-payment-date"><%= new Date(item.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }) %></span><% } %>
+              <span class="admin-payment-status admin-payment-status--<%= item.status_kind %>"><%= STATUS_LABELS[item.status_kind] || item.status_kind %></span>
+            </summary>
+
+            <div class="admin-payment-edit">
+              <form action="/admin/couples/<%= couple.id %>/payments/<%= item.id %>" method="post" class="admin-payment-form">
+                <div class="admin-payment-fields">
+                  <label class="admin-field admin-field--inline">
+                    <span class="admin-field-label">Name</span>
+                    <input type="text" name="name" value="<%= item.name || '' %>" placeholder="Payment name">
+                  </label>
+                  <label class="admin-field admin-field--inline">
+                    <span class="admin-field-label">Vendor / detail</span>
+                    <input type="text" name="vendor_label" value="<%= item.vendor_label || '' %>" placeholder="La Playa catering">
+                  </label>
+                  <label class="admin-field admin-field--inline">
+                    <span class="admin-field-label">Amount ($)</span>
+                    <input type="text" name="amount_cents" inputmode="decimal" value="<%= dollarsValue(item.amount_cents) %>" placeholder="0">
+                  </label>
+                  <label class="admin-field admin-field--inline">
+                    <span class="admin-field-label">Paid ($)</span>
+                    <input type="text" name="paid_cents" inputmode="decimal" value="<%= dollarsValue(item.paid_cents) %>" placeholder="0">
+                  </label>
+                  <label class="admin-field admin-field--inline">
+                    <span class="admin-field-label">Status</span>
+                    <select name="status_kind">
+                      <% statusKinds.forEach(s => { %>
+                        <option value="<%= s %>" <%= item.status_kind === s ? 'selected' : '' %>><%= STATUS_LABELS[s] || s %></option>
+                      <% }) %>
+                    </select>
+                  </label>
+                  <label class="admin-field admin-field--inline">
+                    <span class="admin-field-label">Status label</span>
+                    <input type="text" name="status_label" value="<%= item.status_label || '' %>" placeholder="$5,000 deposit">
+                  </label>
+                  <label class="admin-field admin-field--inline">
+                    <span class="admin-field-label">Due date</span>
+                    <input type="date" name="due_date" value="<%= item.due_date ? String(item.due_date).slice(0,10) : '' %>">
+                  </label>
+                </div>
+                <div class="admin-payment-actions">
+                  <button type="submit" class="admin-btn admin-btn--primary admin-btn--small">Save</button>
+                  <button type="button" class="admin-btn admin-btn--ghost admin-btn--small"
+                          onclick="this.closest('details').removeAttribute('open')">Cancel</button>
+                </div>
+              </form>
+              <form action="/admin/couples/<%= couple.id %>/payments/<%= item.id %>/delete" method="post"
+                    onsubmit="return confirm('Remove this payment line? This cannot be undone.');"
+                    style="margin-top: 0.5rem;">
+                <button type="submit" class="admin-btn admin-btn--danger admin-btn--small">Remove</button>
+              </form>
+            </div>
+          </details>
+        <% }) %>
+      </section>
+    <% }) %>
+
+    <!-- ── Add new payment ──────────────────────────────────────────────── -->
+    <% if (grouped.length > 0) { %>
+    <section class="admin-payments-group" style="margin-top: var(--space-xl);">
+      <div class="admin-payments-group-header">
+        <h2 class="admin-payments-group-title">Add payment</h2>
+      </div>
+      <form action="/admin/couples/<%= couple.id %>/payments" method="post" class="admin-payment-form admin-payment-form--add">
+        <div class="admin-payment-fields">
+          <label class="admin-field admin-field--inline">
+            <span class="admin-field-label">Category *</span>
+            <select name="category_id" required>
+              <option value="">Select category…</option>
+              <% grouped.forEach(g => { %>
+                <option value="<%= g.id %>"><%= g.title %></option>
+              <% }) %>
+            </select>
+          </label>
+          <label class="admin-field admin-field--inline">
+            <span class="admin-field-label">Name *</span>
+            <input type="text" name="name" placeholder="Deposit" required>
+          </label>
+          <label class="admin-field admin-field--inline">
+            <span class="admin-field-label">Vendor / detail</span>
+            <input type="text" name="vendor_label" placeholder="">
+          </label>
+          <label class="admin-field admin-field--inline">
+            <span class="admin-field-label">Amount ($)</span>
+            <input type="text" name="amount_cents" inputmode="decimal" placeholder="0">
+          </label>
+          <label class="admin-field admin-field--inline">
+            <span class="admin-field-label">Paid ($)</span>
+            <input type="text" name="paid_cents" inputmode="decimal" placeholder="0">
+          </label>
+          <label class="admin-field admin-field--inline">
+            <span class="admin-field-label">Status</span>
+            <select name="status_kind">
+              <% statusKinds.forEach(s => { %>
+                <option value="<%= s %>"><%= STATUS_LABELS[s] || s %></option>
+              <% }) %>
+            </select>
+          </label>
+          <label class="admin-field admin-field--inline">
+            <span class="admin-field-label">Status label</span>
+            <input type="text" name="status_label" placeholder="$5,000 deposit">
+          </label>
+          <label class="admin-field admin-field--inline">
+            <span class="admin-field-label">Due date</span>
+            <input type="date" name="due_date">
+          </label>
+        </div>
+        <div class="admin-payment-actions">
+          <button type="submit" class="admin-btn admin-btn--primary">Add payment</button>
+        </div>
+      </form>
+    </section>
+    <% } %>
+  </main>
+
+  <style>
+    .admin-payments-group {
+      margin: 0 var(--space-lg) var(--space-lg);
+      border: 1px solid var(--admin-border);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .admin-payments-group-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.6rem 1rem;
+      background: var(--admin-surface);
+      border-bottom: 1px solid var(--admin-border);
+    }
+    .admin-payments-group-title {
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--admin-fg-muted);
+      margin: 0;
+    }
+    .admin-link {
+      font-size: 0.75rem;
+      color: var(--admin-accent);
+      text-decoration: none;
+    }
+    .admin-payment-row {
+      border-bottom: 1px solid var(--admin-border);
+    }
+    .admin-payment-row:last-child { border-bottom: none; }
+    .admin-payment-summary {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.7rem 1rem;
+      cursor: pointer;
+      list-style: none;
+      font-size: 0.85rem;
+    }
+    .admin-payment-summary::-webkit-details-marker { display: none; }
+    .admin-payment-summary::before {
+      content: '›';
+      color: var(--admin-fg-muted);
+      font-size: 1rem;
+      transition: transform 0.15s;
+      flex-shrink: 0;
+    }
+    details[open] .admin-payment-summary::before { transform: rotate(90deg); }
+    .admin-payment-name { font-weight: 500; flex: 1; min-width: 0; }
+    .admin-payment-vendor { color: var(--admin-fg-muted); font-size: 0.78rem; flex: 1; min-width: 0; }
+    .admin-payment-amount { font-weight: 600; flex-shrink: 0; }
+    .admin-payment-date { color: var(--admin-fg-muted); font-size: 0.78rem; flex-shrink: 0; }
+    .admin-payment-status {
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 0.15em 0.5em;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+    .admin-payment-status--paid     { background: #d1fae5; color: #065f46; }
+    .admin-payment-status--deposited{ background: #dbeafe; color: #1e40af; }
+    .admin-payment-status--upcoming  { background: #f3f4f6; color: #6b7280; }
+    .admin-payment-edit {
+      padding: 1rem;
+      background: #fafafa;
+      border-top: 1px solid var(--admin-border);
+    }
+    .admin-payment-form { display: flex; flex-direction: column; gap: 0.75rem; }
+    .admin-payment-form--add { padding: 1rem; }
+    .admin-payment-fields {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 0.75rem;
+    }
+    .admin-payment-actions { display: flex; gap: 0.5rem; align-items: center; }
+    .admin-btn--small { font-size: 0.75rem; padding: 0.3em 0.8em; }
+    .admin-empty { padding: 2rem; color: var(--admin-fg-muted); }
+  </style>
+
+</body>
+</html>
