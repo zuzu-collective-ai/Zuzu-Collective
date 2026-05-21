@@ -442,6 +442,73 @@ router.get('/p/:slug/budget', async (req, res, next) => {
   }
 });
 
+router.get('/p/:slug/payments', async (req, res, next) => {
+  try {
+    const coupleId = res.locals.couple.id;
+
+    const [catsRes, linesRes] = await Promise.all([
+      pool.query(
+        'select * from budget_categories where couple_id = $1 order by position asc',
+        [coupleId],
+      ),
+      pool.query(
+        `select l.*
+           from budget_line_items l
+           join budget_categories c on c.id = l.category_id
+          where c.couple_id = $1
+          order by l.due_date asc nulls last, l.position asc`,
+        [coupleId],
+      ),
+    ]);
+
+    const categories = catsRes.rows;
+    const lines      = linesRes.rows;
+
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+
+    // Attach category title and derived status to every line that has a due date.
+    const payments = lines
+      .filter(l => l.due_date)
+      .map(l => {
+        const cat      = categories.find(c => c.id === l.category_id);
+        const due      = new Date(l.due_date);
+        due.setUTCHours(0, 0, 0, 0);
+        const daysUntil  = Math.round((due - today) / 86400000);
+        const isPaid     = l.status_kind === 'paid' || (l.paid_cents || 0) >= (l.amount_cents || 0);
+        const statusBadge = isPaid ? 'paid'
+          : daysUntil < 0    ? 'overdue'
+          : daysUntil <= 14  ? 'soon'
+          : 'upcoming';
+        return { ...l, categoryTitle: cat?.title || '', daysUntil, isPaid, statusBadge };
+      });
+
+    // Group payments by month label for the timeline.
+    const monthGroups = [];
+    for (const p of payments) {
+      const due   = new Date(p.due_date);
+      const label = due.toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+      let group   = monthGroups.find(g => g.label === label);
+      if (!group) { group = { label, payments: [] }; monthGroups.push(group); }
+      group.payments.push(p);
+    }
+
+    const totalContracted = lines.reduce((s, l) => s + (l.amount_cents || 0), 0);
+    const totalPaid       = lines.reduce((s, l) => s + (l.paid_cents  || 0), 0);
+    const totalDue        = Math.max(0, totalContracted - totalPaid);
+    const pctPaid         = totalContracted > 0
+      ? Math.min(100, Math.round((totalPaid / totalContracted) * 100))
+      : 0;
+
+    res.render('payments', {
+      currentPage: 'payments',
+      monthGroups,
+      payments,
+      summary: { totalContracted, totalPaid, totalDue, pctPaid, count: payments.length },
+    });
+  } catch (err) { next(err); }
+});
+
 router.get('/p/:slug/timeline', async (req, res, next) => {
   try {
     const coupleId = res.locals.couple.id;

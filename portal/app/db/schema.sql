@@ -100,6 +100,8 @@ alter table couples add column if not exists couple_phone text;
 
 alter table vendors add column if not exists contract_url text;
 alter table vendors add column if not exists contract_status text not null default 'not_started';
+alter table vendors add column if not exists website_url text;
+alter table vendors add column if not exists instagram_url text;
 
 alter table budget_line_items add column if not exists due_date date;
 alter table budget_line_items add column if not exists payment_sms_sent_at timestamptz;

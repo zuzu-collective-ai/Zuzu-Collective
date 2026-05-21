@@ -99,9 +99,23 @@
               <% } %>
             </ul>
             <% if (showNote) { %><p class="vendor-note"><%= v.note %></p><% } %>
-            <% if (isBooked && v.contract_url) { %>
-              <a href="<%= portalPfx %>/vendors/<%= v.id %>/contract" target="_blank" rel="noopener" class="vendor-contract-link">View contract ↗</a>
-            <% } %>
+            <div class="vendor-links">
+              <% if (v.website_url) {
+                   const href = v.website_url.startsWith('http') ? v.website_url : `https://${v.website_url}`;
+              %>
+                <a href="<%= href %>" target="_blank" rel="noopener" class="vendor-link">Website ↗</a>
+              <% } %>
+              <% if (v.instagram_url) {
+                   const igHref = v.instagram_url.startsWith('http') ? v.instagram_url
+                     : v.instagram_url.startsWith('@') ? `https://instagram.com/${v.instagram_url.slice(1)}`
+                     : `https://instagram.com/${v.instagram_url}`;
+              %>
+                <a href="<%= igHref %>" target="_blank" rel="noopener" class="vendor-link">Instagram ↗</a>
+              <% } %>
+              <% if (isBooked && v.contract_url) { %>
+                <a href="<%= portalPfx %>/vendors/<%= v.id %>/contract" target="_blank" rel="noopener" class="vendor-link">Contract ↗</a>
+              <% } %>
+            </div>
           <% } %>
         </div>
         <div class="vendor-status">

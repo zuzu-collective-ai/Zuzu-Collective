@@ -145,17 +145,24 @@
   opacity: 0.85;
 }
 
-.vendor-contract-link {
-  display: inline-block;
+.vendor-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-md);
   margin-top: 0.6rem;
-  font-size: 0.8rem;
-  letter-spacing: 0.04em;
+}
+
+.vendor-link {
+  font-family: var(--zz-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--zz-finn);
   border-bottom: 1px solid var(--zz-finn-20);
   text-decoration: none;
+  white-space: nowrap;
 }
-.vendor-contract-link:hover { border-bottom-color: var(--zz-finn); }
+.vendor-link:hover { border-bottom-color: var(--zz-finn); }
 
 /* Contact details — list of label + value pairs, no grid lines */
 .vendor-contact {

@@ -101,6 +101,15 @@
           <span class="admin-field-label">Address</span>
           <input type="text" name="address" value="<%= vendor?.address || '' %>">
         </label>
+        <label class="admin-field">
+          <span class="admin-field-label">Website</span>
+          <input type="url" name="website_url" value="<%= vendor?.website_url || '' %>" placeholder="https://vendor.com">
+        </label>
+        <label class="admin-field">
+          <span class="admin-field-label">Instagram</span>
+          <input type="text" name="instagram_url" value="<%= vendor?.instagram_url || '' %>" placeholder="https://instagram.com/vendorhandle">
+          <span class="admin-field-help">Full URL or just the handle — e.g. @vendorname</span>
+        </label>
       </fieldset>
 
       <fieldset class="admin-fieldset">
