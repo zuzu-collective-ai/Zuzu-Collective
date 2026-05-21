@@ -191,10 +191,10 @@
 
       <fieldset class="admin-fieldset">
         <legend class="admin-legend">Palette</legend>
-        <p class="admin-fieldset-note">Four colors plus optional friendly names. The portal recolors itself wherever <code>--couple-1..4</code> is referenced.</p>
+        <p class="admin-fieldset-note">Up to five colors plus optional friendly names. The portal recolors itself wherever <code>--couple-1..5</code> is referenced.</p>
 
-        <% [1, 2, 3, 4].forEach(n => {
-             const colorVal = couple?.[`palette_color_${n}`] || (n === 1 ? '#EFEDE1' : n === 2 ? '#64690C' : n === 3 ? '#FFFFFF' : '#F5F0E4');
+        <% [1, 2, 3, 4, 5].forEach(n => {
+             const colorVal = couple?.[`palette_color_${n}`] || (n === 1 ? '#EFEDE1' : n === 2 ? '#64690C' : n === 3 ? '#FFFFFF' : n === 4 ? '#F5F0E4' : '');
         %>
           <div class="admin-row admin-row--palette">
             <label class="admin-field admin-field--swatch">

@@ -29,6 +29,7 @@
       --couple-2: <%= couple.palette_color_2 %>;
       --couple-3: <%= couple.palette_color_3 %>;
       --couple-4: <%= couple.palette_color_4 %>;
+      <% if (couple.palette_color_5) { %>--couple-5: <%= couple.palette_color_5 %>;<% } %>
       --couple-accent:    var(--couple-2);
       --couple-accent-on: var(--couple-3);
     }
