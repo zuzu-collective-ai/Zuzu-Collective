@@ -1616,6 +1616,158 @@ router.post('/couples/:id/budget/:cid/delete', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// ── Payments tab ──────────────────────────────────────────────────────
+// Shows all budget line items for a couple in one editable list,
+// grouped by category. Each row can be updated individually.
+
+router.get('/couples/:id/payments', async (req, res, next) => {
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+
+    const { rows: items } = await pool.query(
+      `select l.*, c.title as category_title, c.id as category_id
+         from budget_line_items l
+         join budget_categories c on c.id = l.category_id
+        where c.couple_id = $1
+        order by c.position asc, c.category_number asc, l.position asc`,
+      [couple.id],
+    );
+
+    // Group by category
+    const grouped = [];
+    const seen = new Map();
+    for (const item of items) {
+      if (!seen.has(item.category_id)) {
+        seen.set(item.category_id, { title: item.category_title, id: item.category_id, items: [] });
+        grouped.push(seen.get(item.category_id));
+      }
+      seen.get(item.category_id).items.push(item);
+    }
+
+    res.render('admin/payments-list', {
+      couple,
+      grouped,
+      currentTab: 'payments',
+      statusKinds: BUDGET_STATUS_KINDS,
+      flash: popFlash(req),
+    });
+  } catch (err) { next(err); }
+});
+
+// Update a single line item from the payments tab
+router.post('/couples/:id/payments/:lid', async (req, res, next) => {
+  if (!isUuid(req.params.lid)) return next();
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+
+    const status_kind = BUDGET_STATUS_KINDS.includes(req.body.status_kind)
+      ? req.body.status_kind : 'upcoming';
+
+    await pool.query(
+      `update budget_line_items set
+         name         = $1,
+         vendor_label = $2,
+         amount_cents = $3,
+         paid_cents   = $4,
+         status_kind  = $5,
+         status_label = $6,
+         due_date     = $7,
+         updated_at   = now()
+       where id = $8
+         and category_id in (
+           select id from budget_categories where couple_id = $9
+         )`,
+      [
+        req.body.name?.trim() || 'Payment',
+        req.body.vendor_label?.trim() || null,
+        dollarsToCents(req.body.amount_cents),
+        dollarsToCents(req.body.paid_cents),
+        status_kind,
+        req.body.status_label?.trim() || null,
+        req.body.due_date?.trim() || null,
+        req.params.lid,
+        couple.id,
+      ],
+    );
+
+    setFlash(req, 'success', 'Payment updated.');
+    res.redirect(`/admin/couples/${couple.id}/payments`);
+  } catch (err) { next(err); }
+});
+
+// Add a new line item from the payments tab
+router.post('/couples/:id/payments', async (req, res, next) => {
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+
+    const category_id = req.body.category_id;
+    if (!isUuid(category_id)) {
+      setFlash(req, 'error', 'Please select a category.');
+      return res.redirect(`/admin/couples/${couple.id}/payments`);
+    }
+
+    // Verify category belongs to this couple
+    const { rows } = await pool.query(
+      'select id from budget_categories where id = $1 and couple_id = $2',
+      [category_id, couple.id],
+    );
+    if (!rows.length) return res.status(404).send('Category not found.');
+
+    const { rows: posRows } = await pool.query(
+      'select coalesce(max(position), 0) + 1 as next_pos from budget_line_items where category_id = $1',
+      [category_id],
+    );
+
+    const status_kind = BUDGET_STATUS_KINDS.includes(req.body.status_kind)
+      ? req.body.status_kind : 'upcoming';
+
+    await pool.query(
+      `insert into budget_line_items
+         (category_id, name, vendor_label, amount_cents, paid_cents,
+          status_kind, status_label, due_date, position)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+      [
+        category_id,
+        req.body.name?.trim() || 'Payment',
+        req.body.vendor_label?.trim() || null,
+        dollarsToCents(req.body.amount_cents),
+        dollarsToCents(req.body.paid_cents),
+        status_kind,
+        req.body.status_label?.trim() || null,
+        req.body.due_date?.trim() || null,
+        posRows[0].next_pos,
+      ],
+    );
+
+    setFlash(req, 'success', 'Payment added.');
+    res.redirect(`/admin/couples/${couple.id}/payments`);
+  } catch (err) { next(err); }
+});
+
+// Delete a single line item from the payments tab
+router.post('/couples/:id/payments/:lid/delete', async (req, res, next) => {
+  if (!isUuid(req.params.lid)) return next();
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+
+    await pool.query(
+      `delete from budget_line_items
+        where id = $1
+          and category_id in (
+            select id from budget_categories where couple_id = $2
+          )`,
+      [req.params.lid, couple.id],
+    );
+
+    setFlash(req, 'success', 'Payment removed.');
+    res.redirect(`/admin/couples/${couple.id}/payments`);
+  } catch (err) { next(err); }
+});
+
 // ── AI budget allocator (Phase 4a) ────────────────────────────────────
 //
 // NOTE on route ordering: these handlers must be declared BEFORE the
