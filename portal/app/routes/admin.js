@@ -556,10 +556,11 @@ router.post('/couples/:id/vendors/search/add', async (req, res, next) => {
 
     for (const c of toAdd) {
       await pool.query(
-        `insert into vendors (couple_id, vendor_type, display_name, phone, email, address, note, status, position)
-         values ($1,$2,$3,$4,$5,$6,$7,'shortlist',$8)`,
+        `insert into vendors (couple_id, vendor_type, display_name, phone, email, address, note, website_url, status, position)
+         values ($1,$2,$3,$4,$5,$6,$7,$8,'shortlist',$9)`,
         [couple.id, c.vendor_type || req.body.vendor_type, c.display_name, c.phone || null,
-         c.email || null, c.address || null, c.description || null, pos++],
+         c.email || null, c.address || null, c.description || null,
+         c.website || null, pos++],
       );
     }
 
