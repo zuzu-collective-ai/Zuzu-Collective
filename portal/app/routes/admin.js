@@ -3289,4 +3289,130 @@ router.post('/couples/:id/delete', async (req, res, next) => {
   }
 });
 
+// ── Team members ─────────────────────────────────────────────────────────
+// Global (not per-couple). Edit name, role, bio, and photo for Zoe & Amanda.
+
+router.get('/team', requireAdmin, async (req, res, next) => {
+  try {
+    const { rows: members } = await pool.query(
+      'select * from team_members order by sort_order asc',
+    );
+    res.render('admin/team-list', { members, flash: consumeFlash(req) });
+  } catch (err) { next(err); }
+});
+
+router.get('/team/:id/edit', requireAdmin, async (req, res, next) => {
+  try {
+    const { rows: [member] } = await pool.query(
+      'select * from team_members where id = $1', [req.params.id],
+    );
+    if (!member) return res.status(404).send('Team member not found.');
+    res.render('admin/team-form', {
+      member,
+      formAction: `/admin/team/${member.id}`,
+      error: null,
+      flash: consumeFlash(req),
+    });
+  } catch (err) { next(err); }
+});
+
+router.post('/team/:id', requireAdmin, async (req, res, next) => {
+  try {
+    const { name, role, bio, photo_url, sort_order } = req.body;
+    if (!name?.trim()) {
+      const { rows: [member] } = await pool.query('select * from team_members where id = $1', [req.params.id]);
+      return res.status(400).render('admin/team-form', {
+        member: { ...member, name, role, bio, photo_url, sort_order },
+        formAction: `/admin/team/${req.params.id}`,
+        error: 'Name is required.',
+        flash: null,
+      });
+    }
+    await pool.query(
+      `update team_members
+          set name = $1, role = $2, bio = $3, photo_url = $4,
+              sort_order = $5, updated_at = now()
+        where id = $6`,
+      [
+        name.trim(),
+        role?.trim() || null,
+        bio?.trim()  || null,
+        photo_url?.trim() || null,
+        parseInt(sort_order, 10) || 0,
+        req.params.id,
+      ],
+    );
+    setFlash(req, 'success', `Saved ${name.trim()}.`);
+    res.redirect('/admin/team');
+  } catch (err) { next(err); }
+});
+
+// Photo upload for a team member — same Cloudinary pattern as layout images.
+router.post('/team/:id/upload-photo', requireAdmin, upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No file received.' });
+
+    let apiKey, apiSecret, cloudName;
+    const rawUrl = process.env.CLOUDINARY_URL || '';
+    const m = rawUrl.match(/^cloudinary:\/\/([^:]+):([^@]+)@(.+)$/);
+    if (m) {
+      [, apiKey, apiSecret, cloudName] = m;
+    } else {
+      apiKey    = process.env.CLOUDINARY_API_KEY;
+      apiSecret = process.env.CLOUDINARY_API_SECRET;
+      cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+    }
+    if (!apiKey || !apiSecret || !cloudName) {
+      return res.status(503).json({ error: 'Cloudinary credentials not configured.' });
+    }
+
+    const timestamp = Math.round(Date.now() / 1000);
+    const signature = createHash('sha1').update(`timestamp=${timestamp}${apiSecret}`).digest('hex');
+
+    const fd = new FormData();
+    fd.append('file', new Blob([req.file.buffer], { type: req.file.mimetype }), req.file.originalname || 'photo');
+    fd.append('timestamp', String(timestamp));
+    fd.append('api_key', apiKey);
+    fd.append('signature', signature);
+
+    const cldRes = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+      method: 'POST', body: fd,
+    });
+    const data = await cldRes.json();
+    if (!cldRes.ok) return res.status(502).json({ error: data.error?.message || 'Upload failed.' });
+
+    res.json({ url: data.secure_url });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Add a new team member
+router.post('/team', requireAdmin, async (req, res, next) => {
+  try {
+    const { name, role, bio } = req.body;
+    if (!name?.trim()) return res.redirect('/admin/team');
+    const { rows: [{ max_order }] } = await pool.query(
+      'select coalesce(max(sort_order), -1) as max_order from team_members',
+    );
+    await pool.query(
+      'insert into team_members (name, role, bio, sort_order) values ($1,$2,$3,$4)',
+      [name.trim(), role?.trim() || null, bio?.trim() || null, max_order + 1],
+    );
+    setFlash(req, 'success', `Added ${name.trim()}.`);
+    res.redirect('/admin/team');
+  } catch (err) { next(err); }
+});
+
+// Delete a team member
+router.post('/team/:id/delete', requireAdmin, async (req, res, next) => {
+  try {
+    const { rows: [m] } = await pool.query(
+      'delete from team_members where id = $1 returning name', [req.params.id],
+    );
+    if (m) setFlash(req, 'success', `Removed ${m.name}.`);
+    res.redirect('/admin/team');
+  } catch (err) { next(err); }
+});
+
 export default router;

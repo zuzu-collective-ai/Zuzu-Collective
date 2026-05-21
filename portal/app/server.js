@@ -74,10 +74,6 @@ app.use(
 app.set('view engine', 'ejs');
 app.set('views', join(here, 'views'));
 
-// Team photo URLs — set ZOE_PHOTO_URL / AMANDA_PHOTO_URL in Render env vars
-// once photos are uploaded to Cloudinary. Available in every template as locals.
-app.locals.zoePhotoUrl    = process.env.ZOE_PHOTO_URL    || null;
-app.locals.amandaPhotoUrl = process.env.AMANDA_PHOTO_URL || null;
 
 // Serve the mockup's CSS folder directly so the app and the static
 // mockup share one stylesheet source. /styles/landing.css → portal/mockup/styles/landing.css

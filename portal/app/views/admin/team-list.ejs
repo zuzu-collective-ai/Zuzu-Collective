@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include('partials/head', { title: 'Team members' }) %>
+<body class="admin-body">
+
+  <%- include('partials/sidebar', { currentSection: 'team' }) %>
+
+  <main class="admin-main">
+    <header class="admin-header">
+      <div>
+        <h1 class="admin-title">Meet your team</h1>
+        <p class="admin-subtitle">Shown on every client's landing page.</p>
+      </div>
+    </header>
+
+    <%- include('partials/flash', { flash }) %>
+
+    <% if (members.length > 0) { %>
+      <table class="admin-table" style="margin-bottom: 2rem;">
+        <thead>
+          <tr>
+            <th>Order</th>
+            <th>Photo</th>
+            <th>Name</th>
+            <th>Role</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% members.forEach(m => { %>
+            <tr>
+              <td style="color:var(--zz-finn-60);"><%= m.sort_order %></td>
+              <td>
+                <% if (m.photo_url) { %>
+                  <img src="<%= m.photo_url %>" alt="<%= m.name %>"
+                       style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
+                <% } else { %>
+                  <span style="display:inline-flex;width:40px;height:40px;border-radius:50%;background:var(--zz-finn-20);align-items:center;justify-content:center;font-family:var(--zz-display);font-style:italic;font-size:0.85rem;color:var(--zz-finn-60);">
+                    <%= m.name.split(' ').map(w => w[0]).slice(0,2).join('') %>
+                  </span>
+                <% } %>
+              </td>
+              <td><strong><%= m.name %></strong></td>
+              <td style="color:var(--zz-finn-60);font-size:0.85rem;"><%= m.role || '—' %></td>
+              <td style="text-align:right;">
+                <a href="/admin/team/<%= m.id %>/edit" class="admin-btn admin-btn--ghost" style="font-size:0.8rem;">Edit</a>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    <% } %>
+
+    <details class="admin-fieldset" style="margin-top: 1rem;">
+      <summary class="admin-legend" style="cursor:pointer;">+ Add team member</summary>
+      <form action="/admin/team" method="post" class="admin-form" style="margin-top:1rem;">
+        <label class="admin-field">
+          <span class="admin-field-label">Name *</span>
+          <input type="text" name="name" required>
+        </label>
+        <label class="admin-field">
+          <span class="admin-field-label">Role / title</span>
+          <input type="text" name="role" placeholder="Lead Coordinator · Zuzu Collective">
+        </label>
+        <label class="admin-field">
+          <span class="admin-field-label">Bio</span>
+          <textarea name="bio" rows="3"></textarea>
+        </label>
+        <div class="admin-form-actions">
+          <button type="submit" class="admin-btn admin-btn--primary">Add member</button>
+        </div>
+      </form>
+    </details>
+  </main>
+
+</body>
+</html>
