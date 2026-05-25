@@ -75,6 +75,7 @@
           "Where", "With", and "Lead" labels on the public page.
         </p>
 
+        <p style="font-size:0.75rem; color:var(--admin-fg-muted); margin:0 0 0.5rem;">Drag ≡ to reorder events.</p>
         <div id="event-rows" class="admin-event-rows">
           <%
             const initial = (events && events.length) ? events : [
@@ -86,6 +87,7 @@
               <input type="hidden" name="events[<%= i %>][id]" value="<%= ev.id || '' %>">
 
               <div class="admin-event-row-line">
+                <span class="admin-drag-handle admin-drag-handle--event" title="Drag to reorder">≡</span>
                 <label class="admin-field admin-field--inline" style="max-width: 110px;">
                   <span class="admin-field-label">Time</span>
                   <input type="text" name="events[<%= i %>][time_text]" value="<%= ev.time_text || '' %>" placeholder="8:00">
@@ -151,11 +153,45 @@
     <% } %>
   </main>
 
+  <style>
+    .admin-drag-handle--event {
+      flex-shrink: 0;
+      padding: 0 0.5rem 0 0;
+      cursor: grab;
+      color: var(--admin-fg-muted);
+      font-size: 1.1rem;
+      user-select: none;
+      opacity: 0.4;
+      align-self: center;
+      transition: opacity 0.15s;
+    }
+    .admin-drag-handle--event:hover { opacity: 1; }
+    .admin-drag-handle--event:active { cursor: grabbing; }
+    .admin-event-row.sortable-ghost { opacity: 0.3; }
+  </style>
+
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
   <script>
     (function () {
       const container = document.getElementById('event-rows');
       const addBtn = document.getElementById('add-event');
       if (!container || !addBtn) return;
+
+      // After drag, rename all events[old_i][field] → events[new_i][field]
+      function reindexRows() {
+        container.querySelectorAll('[data-row]').forEach((row, i) => {
+          row.querySelectorAll('[name]').forEach(el => {
+            el.name = el.name.replace(/^events\[\d+\]/, `events[${i}]`);
+          });
+        });
+      }
+
+      Sortable.create(container, {
+        handle: '.admin-drag-handle--event',
+        animation: 150,
+        ghostClass: 'sortable-ghost',
+        onEnd: reindexRows,
+      });
 
       function nextIndex() {
         return container.querySelectorAll('[data-row]').length;
@@ -169,6 +205,7 @@
         row.innerHTML = `
           <input type="hidden" name="events[${i}][id]" value="">
           <div class="admin-event-row-line">
+            <span class="admin-drag-handle admin-drag-handle--event" title="Drag to reorder">≡</span>
             <label class="admin-field admin-field--inline" style="max-width: 110px;">
               <span class="admin-field-label">Time</span>
               <input type="text" name="events[${i}][time_text]" placeholder="8:00">
