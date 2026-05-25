@@ -25,6 +25,11 @@
         if (Number.isNaN(n) || n === 0) return '';
         return n.toFixed(n % 1 === 0 ? 0 : 2);
       }
+      function dateValue(d) {
+        if (!d) return '';
+        if (d instanceof Date) return d.toISOString().slice(0, 10);
+        return String(d).slice(0, 10);
+      }
     %>
 
     <% if (grouped.length === 0) { %>
@@ -81,7 +86,7 @@
                   </label>
                   <label class="admin-field admin-field--inline">
                     <span class="admin-field-label">Due date</span>
-                    <input type="date" name="due_date" value="<%= item.due_date ? String(item.due_date).slice(0,10) : '' %>">
+                    <input type="date" name="due_date" value="<%= dateValue(item.due_date) %>">
                   </label>
                 </div>
                 <div class="admin-payment-actions">

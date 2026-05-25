@@ -2555,6 +2555,35 @@ router.get('/couples/:id/timeline/:pid', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// Reorder phases via drag-and-drop (called via fetch from the list page)
+router.post('/couples/:id/timeline/reorder', async (req, res, next) => {
+  const client = await pool.connect();
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).json({ error: 'not found' });
+
+    const ids = req.body.ids;
+    if (!Array.isArray(ids) || ids.some(id => !isUuid(id))) {
+      return res.status(400).json({ error: 'invalid ids' });
+    }
+
+    await client.query('begin');
+    for (let i = 0; i < ids.length; i++) {
+      await client.query(
+        'update timeline_phases set position = $1 where id = $2 and couple_id = $3',
+        [i + 1, ids[i], couple.id],
+      );
+    }
+    await client.query('commit');
+    res.json({ ok: true });
+  } catch (err) {
+    await client.query('rollback').catch(() => {});
+    next(err);
+  } finally {
+    client.release();
+  }
+});
+
 router.post('/couples/:id/timeline', async (req, res, next) => {
   const client = await pool.connect();
   try {

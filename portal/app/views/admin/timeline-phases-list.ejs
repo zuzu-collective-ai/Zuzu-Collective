@@ -41,9 +41,11 @@
       </p>
     <% } else { %>
       <% const VARIANT = { standard: 'Standard', ceremony: 'Ceremony · accent', sendoff: 'Send-off · close' }; %>
-      <ul class="admin-list">
+      <p class="admin-drag-hint">Drag ≡ to reorder phases.</p>
+      <ul class="admin-list" id="phase-list">
         <% phases.forEach(p => { %>
-          <li class="admin-list-item">
+          <li class="admin-list-item" data-id="<%= p.id %>">
+            <span class="admin-drag-handle" title="Drag to reorder">≡</span>
             <a href="/admin/couples/<%= couple.id %>/timeline/<%= p.id %>" class="admin-list-link">
               <div class="admin-list-name">
                 <%= String(p.phase_number).padStart(2, '0') %> · <em><%= p.title %></em>
@@ -60,5 +62,57 @@
     <% } %>
   </main>
 
+  <style>
+    .admin-drag-hint { font-size: 0.75rem; color: var(--admin-fg-muted); padding: 0 0 0.5rem; margin: 0 0 0.25rem; }
+    .admin-list-item { display: flex; align-items: center; }
+    .admin-drag-handle {
+      flex-shrink: 0;
+      padding: 0 0.75rem;
+      cursor: grab;
+      color: var(--admin-fg-muted);
+      font-size: 1.1rem;
+      user-select: none;
+      opacity: 0.5;
+      transition: opacity 0.15s;
+    }
+    .admin-drag-handle:hover { opacity: 1; }
+    .admin-drag-handle:active { cursor: grabbing; }
+    .admin-list-item.sortable-ghost { opacity: 0.3; }
+    .admin-list-item.sortable-chosen { background: var(--admin-surface); }
+    .admin-list-link { flex: 1; }
+    #phase-save-status { font-size: 0.75rem; color: var(--admin-fg-muted); margin-left: 1rem; }
+  </style>
+
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+  <script>
+  (function () {
+    var list = document.getElementById('phase-list');
+    if (!list) return;
+
+    var status = document.createElement('span');
+    status.id = 'phase-save-status';
+    var header = document.querySelector('.admin-header');
+    if (header) header.appendChild(status);
+
+    Sortable.create(list, {
+      handle: '.admin-drag-handle',
+      animation: 150,
+      ghostClass: 'sortable-ghost',
+      chosenClass: 'sortable-chosen',
+      onEnd: function () {
+        var ids = Array.from(list.querySelectorAll('[data-id]')).map(function (el) { return el.dataset.id; });
+        status.textContent = 'Saving…';
+        fetch('/admin/couples/<%= couple.id %>/timeline/reorder', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ids: ids }),
+        })
+          .then(function (r) { return r.json(); })
+          .then(function (d) { status.textContent = d.ok ? 'Saved ✓' : 'Error saving'; })
+          .catch(function () { status.textContent = 'Error saving'; });
+      },
+    });
+  })();
+  </script>
 </body>
 </html>
