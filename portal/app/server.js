@@ -44,7 +44,7 @@ app.use(
         // Inline scripts are limited to admin form helpers (add/remove
         // guest rows). Move to external files + nonces if the admin
         // ever needs anything more substantial.
-        scriptSrc: ["'self'", "'unsafe-inline'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", 'https://cdn.jsdelivr.net'],
       },
     },
   }),
