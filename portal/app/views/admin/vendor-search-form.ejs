@@ -125,6 +125,9 @@
                       <% if (c.website) { %>
                         <span><a href="<%= c.website %>" target="_blank" rel="noopener" class="admin-link" onclick="event.stopPropagation()"><%= c.website.replace(/^https?:\/\/(www\.)?/, '').split('/')[0] %> ↗</a></span>
                       <% } %>
+                      <% if (c.instagram_url) { %>
+                        <span><a href="<%= c.instagram_url %>" target="_blank" rel="noopener" class="admin-link" onclick="event.stopPropagation()">Instagram ↗</a></span>
+                      <% } %>
                       <% if (c.email) { %><span><%= c.email %></span><% } %>
                       <% if (c.phone) { %><span><%= c.phone %></span><% } %>
                       <% if (c.address) { %><span><%= c.address %></span><% } %>

@@ -552,6 +552,36 @@ router.post('/couples/:id/vendors/search', async (req, res, next) => {
       location: resolvedLocation,
     });
 
+    // Enrich candidates that are missing a website or Instagram by doing a
+    // targeted follow-up search for their direct web presence.
+    const DIRECTORY_DOMAINS = Object.values(CURATED_SITE_DOMAINS)
+      .concat(['theknot.com', 'weddingwire.com', 'yelp.com', 'weddingpro.com']);
+
+    await Promise.all(candidates.map(async (c) => {
+      const needsWebsite = !c.website;
+      const needsIg = !c.instagram_url;
+      if (!needsWebsite && !needsIg) return;
+
+      try {
+        const enrichResults = await serperSearch(
+          `"${c.display_name}" ${vendor_type.trim()} ${resolvedLocation}`,
+          5,
+        );
+        for (const r of enrichResults) {
+          const domain = r.link.replace(/^https?:\/\/(www\.)?/, '').split('/')[0];
+          const isDirectory = DIRECTORY_DOMAINS.some(d => domain.endsWith(d));
+          const isInstagram = domain === 'instagram.com';
+
+          if (needsWebsite && !isDirectory && !isInstagram && r.link) {
+            c.website = r.link.split('/').slice(0, 3).join('/'); // keep just the root domain URL
+          }
+          if (needsIg && isInstagram && r.link) {
+            c.instagram_url = r.link;
+          }
+        }
+      } catch (_) { /* enrichment is best-effort */ }
+    }));
+
     res.render('admin/vendor-search-form', {
       couple,
       configured: true,
@@ -586,28 +616,31 @@ router.post('/couples/:id/vendors/search/add', async (req, res, next) => {
     for (const c of toAdd) {
       const name = c.display_name;
       const websiteUrl = c.website || null;
+      const instagramUrl = c.instagram_url || null;
 
       // If a vendor with this name already exists for this couple, just
-      // update their website_url rather than create a duplicate.
-      const { rows: existing } = await pool.query(
+      // update their links rather than create a duplicate.
+      const { rows: existingVendor } = await pool.query(
         `select id from vendors where couple_id = $1 and lower(display_name) = lower($2) limit 1`,
         [couple.id, name],
       );
 
-      if (existing.length > 0) {
-        if (websiteUrl) {
-          await pool.query(
-            `update vendors set website_url = $1, updated_at = now() where id = $2`,
-            [websiteUrl, existing[0].id],
-          );
-        }
+      if (existingVendor.length > 0) {
+        await pool.query(
+          `update vendors set
+             website_url   = coalesce($1, website_url),
+             instagram_url = coalesce($2, instagram_url),
+             updated_at    = now()
+           where id = $3`,
+          [websiteUrl, instagramUrl, existingVendor[0].id],
+        );
       } else {
         await pool.query(
-          `insert into vendors (couple_id, vendor_type, display_name, phone, email, address, note, website_url, status, position)
-           values ($1,$2,$3,$4,$5,$6,$7,$8,'shortlist',$9)`,
+          `insert into vendors (couple_id, vendor_type, display_name, phone, email, address, note, website_url, instagram_url, status, position)
+           values ($1,$2,$3,$4,$5,$6,$7,$8,$9,'shortlist',$10)`,
           [couple.id, c.vendor_type || req.body.vendor_type, name, c.phone || null,
            c.email || null, c.address || null, c.description || null,
-           websiteUrl, pos++],
+           websiteUrl, instagramUrl, pos++],
         );
       }
     }
