@@ -856,19 +856,26 @@ const VENDOR_CANDIDATES_SCHEMA = {
   additionalProperties: false,
 };
 
-export async function parseVendorSearchResults({ results, vendorType, styleDescription }) {
+export async function parseVendorSearchResults({ results, vendorType, styleDescription, location }) {
   if (!results || results.length === 0) return { candidates: [] };
 
   const resultText = results.map((r, i) =>
     `[${i + 1}] ${r.title}\n${r.link}\n${r.snippet}`
   ).join('\n\n');
 
+  const locationNote = location ? `\nLocation filter: Only include vendors that appear to serve or be based in/near ${location}. If a result clearly shows a different city or region with no connection to ${location}, exclude it.` : '';
+
   const response = await client().messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 2048,
     output_config: { format: { type: 'json_schema', schema: VENDOR_CANDIDATES_SCHEMA } },
-    system: `You are a researcher for a luxury wedding planning company. Given Google search results, extract distinct vendor businesses that match the requested vendor type and style. Deduplicate — if the same business appears multiple times, include it once. Skip directories, review sites, and listicles — only include individual businesses. For each, write a one-sentence description of why they might be a good match based on what's visible in the snippet.`,
-    messages: [{ role: 'user', content: `Vendor type being searched: ${vendorType}\nStyle: ${styleDescription || 'elegant, refined'}\n\nSearch results:\n\n${resultText}\n\nExtract vendor candidates now.` }],
+    system: `You are a researcher for a luxury wedding planning company. Given Google search results, extract distinct vendor businesses that match the requested vendor type and style. Rules:
+- Deduplicate: if the same business appears multiple times, include it once.
+- Skip directories, review aggregators, and listicles — only individual businesses.
+- For the website field: use the result link if it appears to be the vendor's own website (e.g. their own domain). If the link is from a directory or editorial site (stylemepretty.com, caratsandcake.com, theknot.com, etc.), try to extract the vendor's direct website URL from the snippet or title; if you cannot find it, leave website as an empty string.
+- For the address field: include the city/region even if a full street address isn't available.
+- Write a one-sentence description of why they might be a good match.${locationNote}`,
+    messages: [{ role: 'user', content: `Vendor type: ${vendorType}\nStyle: ${styleDescription || 'elegant, refined'}\nLocation: ${location || 'not specified'}\n\nSearch results:\n\n${resultText}\n\nExtract vendor candidates now.` }],
   });
 
   const textBlock = response.content.find(b => b.type === 'text');

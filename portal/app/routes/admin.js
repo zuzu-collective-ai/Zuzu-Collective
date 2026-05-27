@@ -549,6 +549,7 @@ router.post('/couples/:id/vendors/search', async (req, res, next) => {
       results: allResults,
       vendorType: vendor_type.trim(),
       styleDescription: styleDesc,
+      location: resolvedLocation,
     });
 
     res.render('admin/vendor-search-form', {
