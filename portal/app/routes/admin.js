@@ -588,7 +588,22 @@ router.post('/couples/:id/vendors/search', async (req, res, next) => {
       candidates,
       query,
     });
-  } catch (err) { next(err); }
+  } catch (err) {
+    console.error('[vendor-search] ERROR:', err?.message, err?.stack);
+    try {
+      const couple = await findCoupleById(req.params.id);
+      const { vendor_type, location, style } = req.body;
+      const sources = [].concat(req.body.sources || ['general']);
+      return res.status(500).render('admin/vendor-search-form', {
+        couple,
+        configured: anthropicConfigured() && serperConfigured(),
+        flash: null,
+        error: `Search failed: ${err?.message || 'Unknown error'}`,
+        candidates: null,
+        query: { vendor_type, location, style, sources },
+      });
+    } catch (_) { next(err); }
+  }
 });
 
 router.post('/couples/:id/vendors/search/add', async (req, res, next) => {
