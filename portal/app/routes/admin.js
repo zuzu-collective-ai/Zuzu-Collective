@@ -490,13 +490,22 @@ router.get('/couples/:id/vendors/search', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+const CURATED_SITE_DOMAINS = {
+  style_me_pretty:     'stylemepretty.com',
+  carats_and_cake:     'caratsandcake.com',
+  junebug:             'junebugweddings.com',
+  green_wedding_shoes: 'greenweddingshoes.com',
+  once_wed:            'oncewed.com',
+};
+
 router.post('/couples/:id/vendors/search', async (req, res, next) => {
   try {
     const couple = await findCoupleById(req.params.id);
     if (!couple) return res.status(404).send('Couple not found.');
 
     const { vendor_type, location, style } = req.body;
-    const query = { vendor_type, location, style };
+    const sources = [].concat(req.body.sources || ['general']);
+    const query = { vendor_type, location, style, sources };
 
     const renderForm = (extra) => res.status(extra.error ? 400 : 200).render('admin/vendor-search-form', {
       couple, flash: null, candidates: null, query,
@@ -508,20 +517,38 @@ router.post('/couples/:id/vendors/search', async (req, res, next) => {
     if (!anthropicConfigured()) return renderForm({ error: 'ANTHROPIC_API_KEY not set.' });
     if (!serperConfigured()) return renderForm({ error: 'SERPER_API_KEY not set — add it in Render → Environment.' });
 
-    const { queries } = await generateVendorSearchQueries({
-      styleDescription: style,
-      vendorType: vendor_type.trim(),
-      location: location?.trim() || couple.venue_location || 'San Diego, CA',
-    });
+    const resolvedLocation = location?.trim() || couple.venue_location || 'San Diego, CA';
+    const styleDesc = style?.trim() || 'elegant, refined';
+    const allResults = [];
 
-    const allResults = (await Promise.all(
-      queries.map(q => serperSearch(q, 5).catch(() => []))
-    )).flat();
+    // General web search via Claude-generated queries
+    if (sources.includes('general')) {
+      const { queries } = await generateVendorSearchQueries({
+        styleDescription: styleDesc,
+        vendorType: vendor_type.trim(),
+        location: resolvedLocation,
+      });
+      const results = (await Promise.all(
+        queries.map(q => serperSearch(q, 5).catch(() => []))
+      )).flat();
+      allResults.push(...results);
+    }
+
+    // Curated site searches — one targeted query per selected site
+    const curatedSites = sources.filter(s => s !== 'general' && CURATED_SITE_DOMAINS[s]);
+    for (const siteKey of curatedSites) {
+      const domain = CURATED_SITE_DOMAINS[siteKey];
+      // Style keywords condensed to top 3 words so the query isn't too long
+      const styleKw = styleDesc.split(/[,\s]+/).slice(0, 3).join(' ');
+      const q = `site:${domain} ${vendor_type.trim()} ${resolvedLocation} ${styleKw}`;
+      const results = await serperSearch(q, 8).catch(() => []);
+      allResults.push(...results);
+    }
 
     const { candidates } = await parseVendorSearchResults({
       results: allResults,
       vendorType: vendor_type.trim(),
-      styleDescription: style,
+      styleDescription: styleDesc,
     });
 
     res.render('admin/vendor-search-form', {

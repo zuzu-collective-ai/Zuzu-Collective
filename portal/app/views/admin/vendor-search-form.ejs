@@ -61,6 +61,33 @@
           <textarea name="style" rows="3" placeholder="Romantic, coastal, organic florals, candlelit, intimate"><%= query?.style || couple.tone_keywords || '' %></textarea>
           <span class="admin-field-help">Describe the wedding's aesthetic — Claude uses this to write targeted search queries.</span>
         </label>
+
+        <div class="admin-field">
+          <span class="admin-field-label">Search sources</span>
+          <span class="admin-field-help" style="margin-bottom: 0.6rem; display:block;">Pick curated sites to find editorially featured vendors, or search the general web.</span>
+          <div class="admin-source-grid">
+            <%
+              const SOURCES = [
+                { id: 'general',              label: 'General web',         sub: 'Broad Google search' },
+                { id: 'style_me_pretty',      label: 'Style Me Pretty',     sub: 'stylemepretty.com' },
+                { id: 'carats_and_cake',      label: 'Carats & Cake',       sub: 'caratsandcake.com' },
+                { id: 'junebug',              label: 'Junebug Weddings',    sub: 'junebugweddings.com' },
+                { id: 'green_wedding_shoes',  label: 'Green Wedding Shoes', sub: 'greenweddingshoes.com' },
+                { id: 'once_wed',             label: 'Once Wed',            sub: 'oncewed.com' },
+              ];
+              const selectedSources = query?.sources ? [].concat(query.sources) : ['general'];
+            %>
+            <% SOURCES.forEach(s => { %>
+              <label class="admin-source-chip <%= selectedSources.includes(s.id) ? 'is-checked' : '' %>">
+                <input type="checkbox" name="sources" value="<%= s.id %>"
+                       <%= selectedSources.includes(s.id) ? 'checked' : '' %>
+                       onchange="this.closest('label').classList.toggle('is-checked', this.checked)">
+                <span class="admin-source-name"><%= s.label %></span>
+                <span class="admin-source-sub"><%= s.sub %></span>
+              </label>
+            <% }) %>
+          </div>
+        </div>
       </fieldset>
 
       <div class="admin-form-actions" style="margin-bottom: 0;">
@@ -76,6 +103,11 @@
         <% } else { %>
           <h2 class="admin-legend" style="margin-bottom: 1rem;">
             <%= candidates.length %> candidate<%= candidates.length === 1 ? '' : 's' %> found
+            <% if (query?.sources && [].concat(query.sources).filter(s => s !== 'general').length) { %>
+              <span style="font-weight:400; font-size:0.75rem; color:var(--admin-fg-muted); margin-left:0.5rem;">
+                from <%= [].concat(query.sources).filter(s => s !== 'general').map(s => ({style_me_pretty:'Style Me Pretty',carats_and_cake:'Carats & Cake',junebug:'Junebug Weddings',green_wedding_shoes:'Green Wedding Shoes',once_wed:'Once Wed'}[s] || s)).join(', ') %>
+              </span>
+            <% } %>
           </h2>
 
           <form action="/admin/couples/<%= couple.id %>/vendors/search/add" method="post">
@@ -117,5 +149,31 @@
     <% } %>
   </main>
 
+  <style>
+    .admin-source-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .admin-source-chip {
+      display: flex;
+      flex-direction: column;
+      gap: 0.1rem;
+      padding: 0.5rem 0.9rem;
+      border: 1px solid var(--admin-border);
+      border-radius: 4px;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+      min-width: 130px;
+    }
+    .admin-source-chip input[type=checkbox] { display: none; }
+    .admin-source-chip:hover { border-color: var(--admin-fg-muted); }
+    .admin-source-chip.is-checked {
+      border-color: var(--admin-accent, #7c6f5b);
+      background: color-mix(in srgb, var(--admin-accent, #7c6f5b) 8%, transparent);
+    }
+    .admin-source-name { font-size: 0.82rem; font-weight: 600; }
+    .admin-source-sub  { font-size: 0.72rem; color: var(--admin-fg-muted); }
+  </style>
 </body>
 </html>
