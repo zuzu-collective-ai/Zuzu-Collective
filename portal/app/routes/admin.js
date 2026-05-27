@@ -552,35 +552,33 @@ router.post('/couples/:id/vendors/search', async (req, res, next) => {
       location: resolvedLocation,
     });
 
-    // Enrich candidates that are missing a website or Instagram by doing a
-    // targeted follow-up search for their direct web presence.
+    // Enrich candidates missing a website or Instagram with a follow-up search.
+    // Run sequentially to avoid hammering the Serper rate limit.
     const DIRECTORY_DOMAINS = Object.values(CURATED_SITE_DOMAINS)
       .concat(['theknot.com', 'weddingwire.com', 'yelp.com', 'weddingpro.com']);
 
-    await Promise.all(candidates.map(async (c) => {
-      const needsWebsite = !c.website;
-      const needsIg = !c.instagram_url;
-      if (!needsWebsite && !needsIg) return;
-
+    for (const c of candidates) {
+      if (c.website && c.instagram_url) continue;
       try {
         const enrichResults = await serperSearch(
           `"${c.display_name}" ${vendor_type.trim()} ${resolvedLocation}`,
           5,
         );
         for (const r of enrichResults) {
+          if (!r.link) continue;
           const domain = r.link.replace(/^https?:\/\/(www\.)?/, '').split('/')[0];
-          const isDirectory = DIRECTORY_DOMAINS.some(d => domain.endsWith(d));
           const isInstagram = domain === 'instagram.com';
-
-          if (needsWebsite && !isDirectory && !isInstagram && r.link) {
-            c.website = r.link.split('/').slice(0, 3).join('/'); // keep just the root domain URL
+          const isDirectory = DIRECTORY_DOMAINS.some(d => domain.endsWith(d));
+          if (!c.website && !isDirectory && !isInstagram) {
+            c.website = r.link.split('/').slice(0, 3).join('/');
           }
-          if (needsIg && isInstagram && r.link) {
+          if (!c.instagram_url && isInstagram) {
             c.instagram_url = r.link;
           }
+          if (c.website && c.instagram_url) break;
         }
-      } catch (_) { /* enrichment is best-effort */ }
-    }));
+      } catch (_) { /* enrichment is best-effort — never fail the whole search */ }
+    }
 
     res.render('admin/vendor-search-form', {
       couple,
