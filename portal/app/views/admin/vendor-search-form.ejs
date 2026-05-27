@@ -78,10 +78,9 @@
               const selectedSources = query?.sources ? [].concat(query.sources) : ['general'];
             %>
             <% SOURCES.forEach(s => { %>
-              <label class="admin-source-chip <%= selectedSources.includes(s.id) ? 'is-checked' : '' %>">
+              <label class="admin-source-chip">
                 <input type="checkbox" name="sources" value="<%= s.id %>"
-                       <%= selectedSources.includes(s.id) ? 'checked' : '' %>
-                       onchange="this.closest('label').classList.toggle('is-checked', this.checked)">
+                       <%= selectedSources.includes(s.id) ? 'checked' : '' %>>
                 <span class="admin-source-name"><%= s.label %></span>
                 <span class="admin-source-sub"><%= s.sub %></span>
               </label>
@@ -165,12 +164,18 @@
       cursor: pointer;
       transition: border-color 0.15s, background 0.15s;
       min-width: 130px;
+      position: relative;
     }
-    .admin-source-chip input[type=checkbox] { display: none; }
+    .admin-source-chip input[type=checkbox] {
+      position: absolute;
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
     .admin-source-chip:hover { border-color: var(--admin-fg-muted); }
-    .admin-source-chip.is-checked {
-      border-color: var(--admin-accent, #7c6f5b);
-      background: color-mix(in srgb, var(--admin-accent, #7c6f5b) 8%, transparent);
+    .admin-source-chip:has(input:checked) {
+      border-color: #7c6f5b;
+      background: #f5f2ee;
     }
     .admin-source-name { font-size: 0.82rem; font-weight: 600; }
     .admin-source-sub  { font-size: 0.72rem; color: var(--admin-fg-muted); }
