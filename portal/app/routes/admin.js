@@ -555,7 +555,12 @@ router.post('/couples/:id/vendors/search', async (req, res, next) => {
     // Enrich candidates missing a website or Instagram with a follow-up search.
     // Run sequentially to avoid hammering the Serper rate limit.
     const DIRECTORY_DOMAINS = Object.values(CURATED_SITE_DOMAINS)
-      .concat(['theknot.com', 'weddingwire.com', 'yelp.com', 'weddingpro.com']);
+      .concat([
+        'theknot.com', 'weddingwire.com', 'yelp.com', 'weddingpro.com',
+        'facebook.com', 'fb.com', 'pinterest.com', 'tiktok.com',
+        'twitter.com', 'x.com', 'linkedin.com', 'youtube.com',
+        'google.com', 'maps.google.com', 'bing.com',
+      ]);
 
     for (const c of candidates) {
       if (c.website && c.instagram_url) continue;
