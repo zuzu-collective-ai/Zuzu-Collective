@@ -848,7 +848,7 @@ const VENDOR_CANDIDATES_SCHEMA = {
           address:        { type: 'string', description: 'Location/address or empty string.' },
           description:    { type: 'string', description: 'One sentence about what makes them a good match.' },
         },
-        required: ['display_name','vendor_type','website','instagram_url','email','phone','address','description'],
+        required: ['display_name','vendor_type','website','email','phone','address','description'],
         additionalProperties: false,
       },
     },
