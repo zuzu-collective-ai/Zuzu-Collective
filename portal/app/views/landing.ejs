@@ -8,7 +8,7 @@
   <!-- ── Hero ────────────────────────────────────────────────────────────── -->
   <section class="hero<%= couple.hero_text_color === 'light' ? ' hero--light-text' : '' %>">
     <div class="hero-photo" aria-hidden="true"
-         <% if (couple.hero_photo_url) { %>style="background-image: linear-gradient(rgba(0,0,0,0.38), rgba(0,0,0,0.38)), url('<%= couple.hero_photo_url %>');"<% } %>>
+         <% if (couple.hero_photo_url) { %>style="background-image: linear-gradient(rgba(0,0,0,0.38), rgba(0,0,0,0.38)), url('<%= couple.hero_photo_url %>'); background-position: <%= couple.hero_bg_position_x ?? 50 %>% <%= couple.hero_bg_position_y ?? 50 %>%;"<% } %>>
     </div>
 
     <div class="hero-inner">
