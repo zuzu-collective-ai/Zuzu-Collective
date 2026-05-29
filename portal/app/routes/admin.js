@@ -70,6 +70,8 @@ const COUPLE_FIELDS = [
   'design_materials_title',
   'design_materials_note',
   'hero_photo_url',
+  'hero_bg_position_x',
+  'hero_bg_position_y',
   'hero_text_color',
   'couple_phone',
 ];
@@ -102,6 +104,9 @@ function pickCoupleFields(body) {
       out[f] = words.length > 0 ? words.join(' · ') : null;
     } else if (f === 'couple_phone') {
       out[f] = v ? normalizePhone(v) : null;
+    } else if (f === 'hero_bg_position_x' || f === 'hero_bg_position_y') {
+      const n = parseInt(v, 10);
+      out[f] = Number.isNaN(n) ? 50 : Math.min(100, Math.max(0, n));
     } else {
       out[f] = v === '' || v === undefined ? null : v;
     }

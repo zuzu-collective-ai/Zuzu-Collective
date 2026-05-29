@@ -238,9 +238,23 @@
                     class="admin-btn admin-btn--ghost" style="white-space:nowrap; flex-shrink:0;">↑ Upload</button>
           </div>
           <div id="hero-photo-status" style="font-size:0.8rem; color:var(--zz-tobacco);"></div>
-          <img id="hero-photo-preview" src="<%= couple?.hero_photo_url || '' %>"
-               style="max-height:80px; border-radius:2px; margin-top:0.25rem; display:<%= couple?.hero_photo_url ? 'block' : 'none' %>;">
-          <span class="admin-field-help">
+          <!-- Focal point picker — shown once a photo URL is present -->
+          <div id="focal-wrap" style="margin-top:0.75rem; display:<%= couple?.hero_photo_url ? 'block' : 'none' %>;">
+            <span class="admin-field-label" style="display:block; margin-bottom:0.4rem;">Photo focal point</span>
+            <span class="admin-field-help" style="display:block; margin-bottom:0.5rem;">Click or drag the dot to set which part of the photo stays centred in the hero.</span>
+            <div id="focal-picker"
+                 style="position:relative; width:100%; max-width:420px; aspect-ratio:16/7; border-radius:3px; overflow:hidden; cursor:crosshair; background:#eee;">
+              <img id="focal-img"
+                   src="<%= couple?.hero_photo_url || '' %>"
+                   style="width:100%; height:100%; object-fit:cover; object-position:<%= couple?.hero_bg_position_x ?? 50 %>% <%= couple?.hero_bg_position_y ?? 50 %>%; pointer-events:none; display:block;">
+              <div id="focal-dot"
+                   style="position:absolute; width:20px; height:20px; border-radius:50%; background:white; border:2px solid rgba(0,0,0,0.6); box-shadow:0 1px 4px rgba(0,0,0,0.4); transform:translate(-50%,-50%); pointer-events:none;
+                          left:<%= couple?.hero_bg_position_x ?? 50 %>%; top:<%= couple?.hero_bg_position_y ?? 50 %>%;"></div>
+            </div>
+            <input type="hidden" name="hero_bg_position_x" id="focal-x" value="<%= couple?.hero_bg_position_x ?? 50 %>">
+            <input type="hidden" name="hero_bg_position_y" id="focal-y" value="<%= couple?.hero_bg_position_y ?? 50 %>">
+          </div>
+          <span class="admin-field-help" style="margin-top:0.4rem; display:block;">
             Full-bleed hero photo. Upload a file or paste a URL.
             Leave blank to show the palette gradient.
           </span>
@@ -321,7 +335,45 @@
         } else {
           preview.style.display = 'none';
         }
+        // Show/hide focal picker when URL changes
+        const focalWrap = document.getElementById('focal-wrap');
+        const focalImg  = document.getElementById('focal-img');
+        if (focalWrap) {
+          const hasUrl = /^https?:\/\//.test(urlInput.value);
+          focalWrap.style.display = hasUrl ? 'block' : 'none';
+          if (hasUrl) focalImg.src = urlInput.value;
+        }
       });
+
+      // ── Focal point picker ─────────────────────────────────────────────
+      (function () {
+        const picker = document.getElementById('focal-picker');
+        const dot    = document.getElementById('focal-dot');
+        const xInput = document.getElementById('focal-x');
+        const yInput = document.getElementById('focal-y');
+        const img    = document.getElementById('focal-img');
+        if (!picker) return;
+
+        function setFocal(e) {
+          const rect = picker.getBoundingClientRect();
+          const x = Math.round(Math.min(100, Math.max(0, (e.clientX - rect.left) / rect.width  * 100)));
+          const y = Math.round(Math.min(100, Math.max(0, (e.clientY - rect.top)  / rect.height * 100)));
+          dot.style.left = x + '%';
+          dot.style.top  = y + '%';
+          xInput.value = x;
+          yInput.value = y;
+          img.style.objectPosition = x + '% ' + y + '%';
+        }
+
+        let dragging = false;
+        picker.addEventListener('mousedown', (e) => { dragging = true; setFocal(e); e.preventDefault(); });
+        document.addEventListener('mousemove', (e) => { if (dragging) setFocal(e); });
+        document.addEventListener('mouseup',   ()  => { dragging = false; });
+
+        // Touch support
+        picker.addEventListener('touchstart', (e) => { setFocal(e.touches[0]); e.preventDefault(); }, { passive: false });
+        picker.addEventListener('touchmove',  (e) => { setFocal(e.touches[0]); e.preventDefault(); }, { passive: false });
+      })();
 
       // Auto-format tone keywords to " · " on blur
       const kwInput = document.querySelector('[name="tone_keywords"]');

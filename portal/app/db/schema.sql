@@ -98,6 +98,8 @@ alter table couples add column if not exists design_materials_title text;
 alter table couples add column if not exists design_materials_note text;
 alter table couples add column if not exists hero_photo_url text;
 alter table couples add column if not exists hero_text_color text default 'dark';
+alter table couples add column if not exists hero_bg_position_x integer default 50;
+alter table couples add column if not exists hero_bg_position_y integer default 50;
 alter table couples add column if not exists palette_color_5 text;
 alter table couples add column if not exists palette_color_5_name text;
 alter table couples add column if not exists couple_phone text;
