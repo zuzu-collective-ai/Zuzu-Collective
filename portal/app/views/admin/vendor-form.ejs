@@ -263,8 +263,6 @@
   <script src="/zz-upload.js"></script>
   <script>
     (function () {
-      // Contract PDF upload — server-side route so API credentials bypass
-      // Cloudinary unsigned-preset file-type restrictions.
       const contractBtn    = document.getElementById('contract-upload-btn');
       const contractFile   = document.getElementById('contract-file');
       const contractUrl    = document.getElementById('contract-url');
@@ -275,21 +273,9 @@
           const file = contractFile.files[0];
           if (!file) return;
           contractBtn.disabled = true;
-          if (contractStatus) contractStatus.textContent = 'Uploading…';
           try {
-            const fd = new FormData();
-            fd.append('file', file);
-            const r = await fetch(`/admin/couples/<%= couple.id %>/vendors/upload-contract`, {
-              method: 'POST',
-              body: fd,
-            });
-            const data = await r.json();
-            if (!r.ok) throw new Error(data.error || 'Upload failed');
-            if (contractUrl) { contractUrl.value = data.url; contractUrl.dispatchEvent(new Event('input')); }
-            if (contractStatus) { contractStatus.textContent = '✓ Uploaded'; setTimeout(() => { contractStatus.textContent = ''; }, 3000); }
-          } catch (err) {
-            if (contractStatus) contractStatus.textContent = '✗ ' + err.message;
-          }
+            await window.zzCloudinary.upload(file, contractUrl, contractStatus, 'auto');
+          } catch (_) {}
           contractBtn.disabled = false;
           contractFile.value = '';
         });
