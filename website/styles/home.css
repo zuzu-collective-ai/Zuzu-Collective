@@ -1,5 +1,54 @@
-/* ── Hero ────────────────────────────────────────────────────────────────── */
+/* ── Sticky ZUZU hero wrapper ────────────────────────────────────────────── */
+.sticky-hero-wrap {
+  position: relative;
+  background: var(--cream);
+}
+
+.sticky-zuzu {
+  position: sticky;
+  top: 20vh;
+  padding: 60px 60px 10vh;
+  text-align: center;
+  z-index: 0;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.wordmark {
+  display: block;
+  font-family: var(--font-header);
+  font-size: clamp(120px, 20vw, 260px);
+  font-weight: 400;
+  letter-spacing: -0.03em;
+  line-height: 0.85;
+  color: var(--ink);
+  user-select: none;
+}
+
+.wordmark-sub {
+  display: block;
+  font-family: var(--font-sans);
+  font-size: clamp(13px, 1.5vw, 20px);
+  letter-spacing: 0.3em;
+  color: var(--ink);
+}
+
+.wordmark-tagline {
+  font-family: var(--font-body);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--ink);
+  opacity: 0.6;
+  margin-top: 4px;
+}
+
+/* ── Hero (scrolls over the sticky ZUZU) ─────────────────────────────────── */
 .hero {
+  position: relative;
+  z-index: 1; /* sits above the sticky ZUZU */
   position: relative;
   min-height: 100vh;
   display: flex;
@@ -69,6 +118,25 @@
   letter-spacing: -0.01em;
   line-height: 1.45;
   color: var(--ink);
+}
+
+/* ── Rotating spiral ─────────────────────────────────────────────────────── */
+.spiral-divider {
+  display: flex;
+  justify-content: center;
+  padding: 20px 0 0;
+  background: var(--cream);
+}
+
+.spiral {
+  width: 72px;
+  height: 72px;
+  animation: rotate 20s linear infinite;
+}
+
+@keyframes rotate {
+  from { transform: rotate(0turn); }
+  to   { transform: rotate(1turn); }
 }
 
 /* ── Packages ────────────────────────────────────────────────────────────── */
