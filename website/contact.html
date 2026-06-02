@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contact — Zuzu Collective</title>
+  <meta name="description" content="Ready to escape the mundane? Get in touch with Zuzu Collective to start planning your bespoke wedding or event.">
+  <link rel="canonical" href="https://www.zuzucollective.com/contact">
+  <link rel="stylesheet" href="styles/tokens.css">
+  <link rel="stylesheet" href="styles/base.css">
+  <link rel="stylesheet" href="styles/inner.css">
+</head>
+<body>
+
+  <!-- ── Left vertical sidenav ──────────────────────────────────────────── -->
+  <nav class="sidenav" aria-label="Site sections">
+    <ul class="sidenav-list">
+      <li class="sidenav-item"><a href="contact.html">Contact</a></li>
+      <li class="sidenav-item"><a href="#calendar">Calendar</a></li>
+      <li class="sidenav-item"><a href="#testimonials">Testimonials</a></li>
+      <li class="sidenav-item"><a href="#journal">The Zuzu Journal</a></li>
+      <li class="sidenav-item"><a href="investment.html">Investment</a></li>
+      <li class="sidenav-item"><a href="about.html">Meet The Visionary</a></li>
+    </ul>
+  </nav>
+
+  <div class="page-wrap">
+
+    <div class="contact-grid">
+
+      <!-- ── Contact form ────────────────────────────────────────────────── -->
+      <div class="contact-form-wrap">
+        <h2>Let's build<br>something<br>extraordinary.</h2>
+        <!-- Replace this form action with your actual form endpoint (Formspree, etc.) -->
+        <form class="contact-form" action="https://formspree.io/f/YOUR_FORM_ID" method="POST">
+          <div class="field-group">
+            <label for="name">Name *</label>
+            <input type="text" id="name" name="name" required>
+          </div>
+          <div class="field-group">
+            <label for="email">Email *</label>
+            <input type="email" id="email" name="email" required>
+          </div>
+          <div class="field-group">
+            <label for="event-type">Event Type</label>
+            <select id="event-type" name="event_type">
+              <option value="" disabled selected></option>
+              <option value="wedding">Wedding</option>
+              <option value="immersive">Immersive Event</option>
+              <option value="corporate">Corporate / Brand</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label for="date">Estimated Date</label>
+            <input type="text" id="date" name="date" placeholder="Month / Year">
+          </div>
+          <div class="field-group">
+            <label for="message">Tell me about your vision *</label>
+            <textarea id="message" name="message" required></textarea>
+          </div>
+          <button type="submit">send →</button>
+        </form>
+      </div>
+
+      <!-- ── Contact info ────────────────────────────────────────────────── -->
+      <div class="contact-info">
+        <h2>Say hello.</h2>
+        <p>
+          Based in San Diego, California.<br>
+          Available worldwide.
+        </p>
+        <p>
+          <a href="mailto:info@zuzucollective.com">info@zuzucollective.com</a>
+        </p>
+        <p style="margin-top:40px; font-size:11px; opacity:.6; font-family:var(--font-body);">
+          Response time: 24–48 hours.<br>
+          We can't wait to hear what you're dreaming of.
+        </p>
+      </div>
+
+    </div>
+
+    <!-- ── Footer ─────────────────────────────────────────────────────────── -->
+    <footer class="footer">
+      <div class="footer-inner">
+        <div class="footer-logo">
+          <svg viewBox="0 0 220 220" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <text x="10" y="180" font-family="'Cormorant Garamond', serif" font-size="200" fill="#EFEDE1" letter-spacing="-8">Z</text>
+            <circle cx="158" cy="140" r="52" stroke="#EFEDE1" stroke-width="1.2" fill="none" opacity="0.9"/>
+            <circle cx="158" cy="140" r="41" stroke="#EFEDE1" stroke-width="1"   fill="none" opacity="0.8"/>
+            <circle cx="158" cy="140" r="30" stroke="#EFEDE1" stroke-width="1"   fill="none" opacity="0.7"/>
+            <circle cx="158" cy="140" r="19" stroke="#EFEDE1" stroke-width="1"   fill="none" opacity="0.6"/>
+            <circle cx="158" cy="140" r="9"  stroke="#EFEDE1" stroke-width="1"   fill="none" opacity="0.5"/>
+          </svg>
+        </div>
+        <div class="footer-brand">
+          <p class="footer-name">ZUZU COLLECTIVE</p>
+          <p class="footer-tagline">A portal to escape the mundane.</p>
+          <p class="footer-sub">( event planning &amp; design )</p>
+        </div>
+        <nav class="footer-nav" aria-label="Footer navigation">
+          <a href="index.html">Home</a>
+          <a href="about.html">About</a>
+          <a href="events.html">Events</a>
+          <a href="contact.html">Contact</a>
+          <a href="https://www.instagram.com/zuzucollective" target="_blank" rel="noopener noreferrer">Instagram</a>
+        </nav>
+        <form class="newsletter-form" action="#" method="post" aria-label="Newsletter signup">
+          <input type="email" name="email" placeholder="email address" required>
+          <button type="submit" aria-label="Subscribe">→</button>
+        </form>
+      </div>
+      <div class="footer-bottom">
+        <a href="#" class="footer-credit">Site Credit</a>
+      </div>
+    </footer>
+
+  </div><!-- /.page-wrap -->
+
+  <script src="scripts/main.js"></script>
+</body>
+</html>

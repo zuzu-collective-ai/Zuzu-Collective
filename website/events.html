@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Events — Zuzu Collective</title>
+  <meta name="description" content="Browse upcoming and past immersive events by Zuzu Collective. From whimsical to profound — every gathering tells a story.">
+  <link rel="canonical" href="https://www.zuzucollective.com/events">
+  <link rel="stylesheet" href="styles/tokens.css">
+  <link rel="stylesheet" href="styles/base.css">
+  <link rel="stylesheet" href="styles/inner.css">
+</head>
+<body>
+
+  <!-- ── Left vertical sidenav ──────────────────────────────────────────── -->
+  <nav class="sidenav" aria-label="Site sections">
+    <ul class="sidenav-list">
+      <li class="sidenav-item"><a href="contact.html">Contact</a></li>
+      <li class="sidenav-item"><a href="#calendar">Calendar</a></li>
+      <li class="sidenav-item"><a href="#testimonials">Testimonials</a></li>
+      <li class="sidenav-item"><a href="#journal">The Zuzu Journal</a></li>
+      <li class="sidenav-item"><a href="investment.html">Investment</a></li>
+      <li class="sidenav-item"><a href="about.html">Meet The Visionary</a></li>
+    </ul>
+  </nav>
+
+  <div class="page-wrap">
+
+    <!-- ── Page header ────────────────────────────────────────────────────── -->
+    <div class="page-header">
+      <h1><em>Recent</em> Events</h1>
+      <p>A growing gallery of worlds we've built — from the whimsical to the profound. Each event is a universe unto itself.</p>
+    </div>
+
+    <!-- ── Events grid ─────────────────────────────────────────────────────
+         Replace the placeholders below with your actual event entries.
+         Each .event-card represents one past or upcoming event.
+    ─────────────────────────────────────────────────────────────────────── -->
+    <div class="page-content" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(320px,1fr)); gap:40px; max-width:100%; padding:80px 80px;">
+
+      <article class="event-card" style="border:1px solid var(--plum);">
+        <img src="images/event-table.jpg" alt="Candlelit Dinner Event" style="width:100%; height:240px; object-fit:cover; border-bottom:1px solid var(--plum);">
+        <div style="padding:24px;">
+          <p style="font-family:var(--font-body); font-size:10px; letter-spacing:.1em; opacity:.6; margin-bottom:8px;">PAST EVENT</p>
+          <h2 style="font-family:var(--font-header); font-size:28px; font-weight:400; letter-spacing:-0.02em; margin-bottom:12px;">Event Name Here</h2>
+          <p style="font-family:var(--font-body); font-size:11px; line-height:1.7;">Short description of the event — its theme, atmosphere, and what made it unforgettable.</p>
+        </div>
+      </article>
+
+      <article class="event-card" style="border:1px solid var(--plum);">
+        <img src="images/event-forest.jpg" alt="Forest Lantern Event" style="width:100%; height:240px; object-fit:cover; border-bottom:1px solid var(--plum);">
+        <div style="padding:24px;">
+          <p style="font-family:var(--font-body); font-size:10px; letter-spacing:.1em; opacity:.6; margin-bottom:8px;">PAST EVENT</p>
+          <h2 style="font-family:var(--font-header); font-size:28px; font-weight:400; letter-spacing:-0.02em; margin-bottom:12px;">Event Name Here</h2>
+          <p style="font-family:var(--font-body); font-size:11px; line-height:1.7;">Short description of the event — its theme, atmosphere, and what made it unforgettable.</p>
+        </div>
+      </article>
+
+    </div>
+
+    <!-- ── Newsletter CTA ─────────────────────────────────────────────────── -->
+    <div style="background:var(--plum); padding:80px; text-align:center;">
+      <p style="font-family:var(--font-header); font-size:clamp(28px,4vw,48px); color:var(--cream); font-weight:400; letter-spacing:-0.02em; margin-bottom:32px;">Stay in the world.</p>
+      <form style="display:inline-flex; border:1px solid var(--cream); height:48px; min-width:360px;" action="#" method="post">
+        <input type="email" name="email" placeholder="email address" required
+          style="flex:1; background:transparent; border:none; outline:none; padding:0 16px; font-family:var(--font-body); font-size:11px; color:var(--cream);">
+        <button type="submit"
+          style="background:transparent; border:none; border-left:1px solid var(--cream); color:var(--cream); padding:0 20px; font-size:16px; cursor:pointer;">→</button>
+      </form>
+    </div>
+
+    <!-- ── Footer ─────────────────────────────────────────────────────────── -->
+    <footer class="footer">
+      <div class="footer-inner">
+        <div class="footer-logo">
+          <svg viewBox="0 0 220 220" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <text x="10" y="180" font-family="'Cormorant Garamond', serif" font-size="200" fill="#EFEDE1" letter-spacing="-8">Z</text>
+            <circle cx="158" cy="140" r="52" stroke="#EFEDE1" stroke-width="1.2" fill="none" opacity="0.9"/>
+            <circle cx="158" cy="140" r="41" stroke="#EFEDE1" stroke-width="1"   fill="none" opacity="0.8"/>
+            <circle cx="158" cy="140" r="30" stroke="#EFEDE1" stroke-width="1"   fill="none" opacity="0.7"/>
+            <circle cx="158" cy="140" r="19" stroke="#EFEDE1" stroke-width="1"   fill="none" opacity="0.6"/>
+            <circle cx="158" cy="140" r="9"  stroke="#EFEDE1" stroke-width="1"   fill="none" opacity="0.5"/>
+          </svg>
+        </div>
+        <div class="footer-brand">
+          <p class="footer-name">ZUZU COLLECTIVE</p>
+          <p class="footer-tagline">A portal to escape the mundane.</p>
+          <p class="footer-sub">( event planning &amp; design )</p>
+        </div>
+        <nav class="footer-nav" aria-label="Footer navigation">
+          <a href="index.html">Home</a>
+          <a href="about.html">About</a>
+          <a href="events.html">Events</a>
+          <a href="contact.html">Contact</a>
+          <a href="https://www.instagram.com/zuzucollective" target="_blank" rel="noopener noreferrer">Instagram</a>
+        </nav>
+        <form class="newsletter-form" action="#" method="post" aria-label="Newsletter signup">
+          <input type="email" name="email" placeholder="email address" required>
+          <button type="submit" aria-label="Subscribe">→</button>
+        </form>
+      </div>
+      <div class="footer-bottom">
+        <a href="#" class="footer-credit">Site Credit</a>
+      </div>
+    </footer>
+
+  </div><!-- /.page-wrap -->
+
+  <script src="scripts/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,200 @@
+/* ── Reset ───────────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; font-size: 16px; }
+body {
+  background: var(--cream);
+  color: var(--ink);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+img { display: block; max-width: 100%; height: auto; }
+a { color: inherit; text-decoration: none; }
+
+/* ── Left vertical sidenav ──────────────────────────────────────────────── */
+.sidenav {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 100;
+  width: 140vh;
+  background: var(--cream);
+  border: 1px solid var(--plum);
+  padding: 16px 20px;
+  transform: rotate(-90deg) translateX(-85%);
+  transform-origin: top left;
+  pointer-events: auto;
+}
+
+.sidenav-list {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  list-style: none;
+}
+
+.sidenav-item {
+  font-family: var(--font-body);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  white-space: nowrap;
+}
+
+.sidenav-item:not(:first-child) {
+  border-left: 1px solid var(--plum);
+  margin-left: 1.5vw;
+  padding-left: 1.5vw;
+}
+
+.sidenav-item a {
+  font-family: var(--font-body);
+  font-size: 11px;
+  transition: font-style 0.1s;
+}
+.sidenav-item a:hover { font-style: italic; }
+
+/* ── Main content offset (accounts for sidenav strip) ───────────────────── */
+.page-wrap {
+  padding-left: var(--sidenav-w);
+}
+
+/* ── Footer ──────────────────────────────────────────────────────────────── */
+.footer {
+  background: var(--plum);
+  color: var(--cream);
+  padding: 56px 80px 32px;
+}
+
+.footer-inner {
+  display: grid;
+  grid-template-columns: 140px 1fr auto auto;
+  gap: 32px 48px;
+  align-items: start;
+  margin-bottom: 40px;
+}
+
+.footer-logo svg {
+  width: 140px;
+  height: 140px;
+}
+
+.footer-brand {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.footer-name {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  color: var(--cream);
+}
+
+.footer-tagline,
+.footer-sub {
+  font-family: var(--font-body);
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--cream);
+}
+
+.footer-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.footer-nav a {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--cream);
+  transition: opacity 0.2s;
+}
+.footer-nav a:hover { opacity: 0.65; }
+
+.newsletter-form {
+  display: flex;
+  border: 1px solid var(--cream);
+  height: 48px;
+  min-width: 320px;
+}
+
+.newsletter-form input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: 0 16px;
+  font-family: var(--font-body);
+  font-size: 11px;
+  color: var(--cream);
+}
+.newsletter-form input::placeholder { color: var(--cream); opacity: 0.6; font-size: 10px; }
+
+.newsletter-form button {
+  background: transparent;
+  border: none;
+  border-left: 1px solid var(--cream);
+  color: var(--cream);
+  font-size: 16px;
+  padding: 0 20px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.newsletter-form button:hover { opacity: 0.65; }
+
+.footer-bottom {
+  border-top: 1px solid rgba(239,237,225,0.2);
+  padding-top: 20px;
+  text-align: right;
+}
+
+.footer-credit {
+  font-family: var(--font-body);
+  font-size: 10px;
+  color: var(--cream);
+  opacity: 0.5;
+  text-decoration: underline;
+}
+
+/* ── Link with arrow ────────────────────────────────────────────────────── */
+.link-arrow {
+  font-family: var(--font-body);
+  font-size: 12px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: font-style 0.1s;
+  display: inline-block;
+}
+.link-arrow:hover { font-style: italic; }
+
+/* ── Button ──────────────────────────────────────────────────────────────── */
+.btn-outline {
+  display: inline-block;
+  border: 1px solid var(--cream);
+  color: var(--cream);
+  font-family: var(--font-body);
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  padding: 16px 40px;
+  transition: background 0.2s, color 0.2s;
+}
+.btn-outline:hover {
+  background: var(--cream);
+  color: var(--plum-dark);
+}
+
+/* ── Mobile ──────────────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  .sidenav { display: none; }
+  .page-wrap { padding-left: 0; }
+
+  .footer { padding: 40px 24px 24px; }
+  .footer-inner {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+  .newsletter-form { min-width: 0; width: 100%; }
+}

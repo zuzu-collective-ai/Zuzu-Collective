@@ -1,0 +1,48 @@
+/* ── Fonts ──────────────────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=Fragment+Mono:ital@0;1&display=swap');
+
+@font-face {
+  font-family: 'Romie';
+  src: url('../fonts/RomieRegular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Romie';
+  src: url('../fonts/RomieRegularItalic.otf') format('opentype');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'ArtMono';
+  src: url('../fonts/ArtCompanyMono-Light.otf') format('opentype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'NeueHaas';
+  src: url('../fonts/NeueHaasDisplayRoman.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ── Color tokens ────────────────────────────────────────────────────────── */
+:root {
+  --cream:      #EFEDE1;
+  --plum:       #412734;
+  --plum-dark:  #311810;
+  --ink:        #1a1810;
+
+  /* font stacks — custom → Google fallback */
+  --font-header: 'Romie', 'Cormorant Garamond', Georgia, serif;
+  --font-italic: 'Romie', 'Cormorant Garamond', Georgia, serif;
+  --font-body:   'ArtMono', 'Fragment Mono', 'Courier New', monospace;
+  --font-sans:   'NeueHaas', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+
+  /* spacing */
+  --sidenav-w: 32px;
+}

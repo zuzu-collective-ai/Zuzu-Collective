@@ -5,6 +5,27 @@
 # them with DATABASE_URL, and starts the app. No manual config.
 
 services:
+  # ── Marketing website (static) ──────────────────────────────────────────
+  - type: web
+    name: zuzu-website
+    runtime: static
+    staticPublishPath: website
+    pullRequestPreviewsEnabled: true
+    routes:
+      - type: rewrite
+        source: /about
+        destination: /about.html
+      - type: rewrite
+        source: /events
+        destination: /events.html
+      - type: rewrite
+        source: /contact
+        destination: /contact.html
+      - type: rewrite
+        source: /investment
+        destination: /investment.html
+
+  # ── Portal app (Node + Postgres) ─────────────────────────────────────────
   - type: web
     name: zuzu-portal
     runtime: node
