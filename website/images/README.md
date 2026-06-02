@@ -1,28 +1,27 @@
 # Images
 
-Download these from your Squarespace media library (Pages → Media, or via your Squarespace admin) and place them here with these exact filenames:
+Download these from your Squarespace media library (or your own files) and place them here with these exact filenames:
 
 | Filename | Used on | Description |
 |---|---|---|
-| `hero-mask.jpg` | Home | Full-width B&W masquerade / dramatic event scene |
-| `dance.jpg` | Home | Aerial/top-down B&W photo of guests dancing |
-| `event-table.jpg` | Home, Events | Candlelit dinner table with coupes & candles |
-| `event-forest.jpg` | Home, Events | Forest scene with hanging lanterns |
-| `candles-church.jpg` | Home | Candlelit cathedral / event space (used for Escape CTA) |
-| `zoe-portrait.jpg` | About | Zoe's portrait (blonde, dark background) |
-| `why-architecture.jpg` | About | Gothic cathedral / ornate ceiling |
-| `why-staircase.jpg` | About | Silhouette figure on baroque staircase |
+| `hero-wedding.jpg` | Home hero | Full-width, high-quality wedding photo (full-screen background) |
+| `wedding-1.jpg` | Home portfolio teaser | Recent wedding — portrait or detail shot |
+| `wedding-2.jpg` | Home portfolio teaser | Recent wedding — second photo (overlaps with wedding-1) |
+| `cta-wedding.jpg` | Home final CTA | Mood/detail wedding photo (dark overlay applied) |
+| `zoe-portrait.jpg` | About | Zoe's portrait photo |
+| `why-architecture.jpg` | About | Architectural / venue photo |
+| `why-staircase.jpg` | About | Second about page photo |
 
-**How to export from Squarespace:**
-1. Log into your Squarespace admin
-2. Go to each page in the editor
-3. Click each image → "Edit Image" → download the original
-4. Rename and place here
+**How to get images from Squarespace:**
+1. Log in to Squarespace admin
+2. Open each page in the editor → click the image → "Edit Image" → download the original
+3. Rename and place here
 
 **Fonts** (place in `../fonts/`):
+Download each by opening the URL from your Squarespace CSS in a new browser tab → right-click → Save As:
 - `RomieRegular.otf`
 - `RomieRegularItalic.otf`
 - `ArtCompanyMono-Light.otf`
 - `NeueHaasDisplayRoman.ttf`
 
-Export these from Squarespace: Design → Custom CSS → the `@font-face` src URLs in your CSS → open each URL in a new browser tab → right-click → Save As.
+The site renders correctly without them using Cormorant Garamond + Fragment Mono as fallbacks.
