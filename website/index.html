@@ -38,28 +38,73 @@
 
   <div class="page-wrap">
 
-    <!-- ── Sticky ZUZU hero ───────────────────────────────────────────────── -->
-    <!-- The wordmark pins in place while the wedding photo scrolls over it  -->
-    <div class="sticky-hero-wrap">
+    <!-- ─────────────────────────────────────────────────────────────────────
+         ZUZU SCROLL HERO
+         The wordmark stays sticky while 5 photos appear around the letters
+         as you scroll through the 380vh section. Photos fade in sequentially
+         via scroll event in main.js. Replace image src with Cloudinary URLs.
+    ───────────────────────────────────────────────────────────────────────── -->
+    <div class="sticky-hero-wrap" id="zuzu-hero">
 
+      <!-- Sticky ZUZU wordmark + taglines -->
       <div class="sticky-zuzu">
         <span class="wordmark">ZUZU</span>
         <span class="wordmark-sub">COLLECTIVE</span>
-        <p class="wordmark-tagline">Bespoke. Story-Driven. Entirely Yours.</p>
+        <p class="wordmark-tagline">Bespoke. Immersive. Story Driven.</p>
+        <p class="wordmark-tagline">Weddings &amp; Events.</p>
       </div>
 
-      <section class="hero">
-        <img src="images/hero-wedding.jpg" alt="A beautifully designed wedding" class="hero-bg">
-        <!-- Replace with a full-width, high-quality wedding photo -->
-        <div class="hero-overlay"></div>
-        <div class="hero-content">
-          <h1>I build worlds for<br>your wedding day.</h1>
-          <p class="hero-sub">Luxury wedding planning in San Diego and worldwide.</p>
-          <a href="contact.html" class="btn-outline">Inquire</a>
-        </div>
-      </section>
+      <!-- Photos positioned around the letterforms — appear on scroll -->
+      <div class="zuzu-photos" aria-hidden="true">
 
+        <!-- Photo 1: bottom-left — B&W ballroom crowd -->
+        <div class="zuzu-photo zuzu-photo--1" data-reveal="0.08">
+          <img src="images/zuzu-photo-1.jpg" alt="">
+          <!-- Replace: B&W ballroom crowd / reception scene -->
+        </div>
+
+        <!-- Photo 2: top-right — color candles/tablescape -->
+        <div class="zuzu-photo zuzu-photo--2" data-reveal="0.14">
+          <img src="images/zuzu-photo-2.jpg" alt="">
+          <!-- Replace: color candles and tablescape -->
+        </div>
+
+        <!-- Photo 3: center/bottom — B&W ballroom dance floor -->
+        <div class="zuzu-photo zuzu-photo--3" data-reveal="0.28">
+          <img src="images/zuzu-photo-3.jpg" alt="">
+          <!-- Replace: B&W ballroom dance floor, wide angle -->
+        </div>
+
+        <!-- Photo 4: bottom-right — candlelit reception -->
+        <div class="zuzu-photo zuzu-photo--4" data-reveal="0.38">
+          <img src="images/zuzu-photo-4.jpg" alt="">
+          <!-- Replace: candlelit reception / dinner scene -->
+        </div>
+
+        <!-- Photo 5: left-center — bridal portrait -->
+        <div class="zuzu-photo zuzu-photo--5" data-reveal="0.52">
+          <img src="images/zuzu-photo-5.jpg" alt="">
+          <!-- Replace: bridal portrait, softly lit -->
+        </div>
+
+      </div>
     </div>
+
+    <!-- ─────────────────────────────────────────────────────────────────────
+         DARK VIDEO STRIP
+         Full-width, full-height dark bokeh video. Replace the <img> with a
+         <video autoplay muted loop playsinline> once you have the video file
+         uploaded to Cloudinary. The video src goes in place of the img src.
+    ───────────────────────────────────────────────────────────────────────── -->
+    <section class="video-strip">
+      <img src="images/video-strip-bokeh.jpg" alt="" class="video-strip-bg">
+      <!-- ↑ Replace with: <video autoplay muted loop playsinline class="video-strip-bg"><source src="YOUR_CLOUDINARY_VIDEO_URL" type="video/mp4"></video> -->
+      <div class="video-strip-content">
+        <h1>I build worlds for<br>your wedding day.</h1>
+        <p class="video-strip-sub">Luxury wedding planning in San Diego and worldwide.</p>
+        <a href="contact.html" class="btn-outline">Inquire</a>
+      </div>
+    </section>
 
     <!-- ── Intro ───────────────────────────────────────────────────────────── -->
     <section class="intro">
@@ -77,13 +122,7 @@
             <feDisplacementMap in="SourceGraphic" in2="noise" scale="2.2" xChannelSelector="R" yChannelSelector="G"/>
           </filter>
         </defs>
-        <!-- Archimedean spiral: 2.5 turns, spacing 8px between half-turns -->
-        <path d="M 50 50
-          A 4 4 0 0 1 58 50
-          A 12 12 0 0 0 34 50
-          A 20 20 0 0 1 74 50
-          A 28 28 0 0 0 18 50
-          A 36 36 0 0 1 90 50"
+        <path d="M 50 50 A 4 4 0 0 1 58 50 A 12 12 0 0 0 34 50 A 20 20 0 0 1 74 50 A 28 28 0 0 0 18 50 A 36 36 0 0 1 90 50"
           stroke="var(--ink)" stroke-width="3.2" fill="none"
           stroke-linecap="round" stroke-linejoin="round"
           filter="url(#roughen)" opacity="0.88"/>
@@ -123,7 +162,6 @@
       <div class="portfolio-teaser-images">
         <img src="images/wedding-1.jpg" alt="Recent wedding by Zuzu Collective" class="pt-img pt-img--1">
         <img src="images/wedding-2.jpg" alt="Recent wedding by Zuzu Collective" class="pt-img pt-img--2">
-        <!-- Add your portfolio/wedding photos here -->
       </div>
       <div class="portfolio-teaser-text">
         <h2><em>Recent</em> Weddings</h2>
@@ -142,17 +180,6 @@
         </div>
         <div class="guide-cta-form">
           <p class="guide-form-note">Drop your email and we'll send it straight to you.</p>
-          <!--
-            CONNECT YOUR EMAIL TOOL HERE
-            ─────────────────────────────
-            Mailchimp:  replace action with your Mailchimp embed form URL
-            Flodesk:    use your Flodesk embed form URL
-            ConvertKit: use your ConvertKit form action URL
-
-            For now this submits to Formspree so you capture emails
-            in your inbox until you're ready to connect a proper list.
-            Sign up free at formspree.io and replace YOUR_FORM_ID.
-          -->
           <form class="guide-form" action="https://formspree.io/f/YOUR_FORM_ID" method="POST">
             <input type="hidden" name="_subject" value="New planning guide request">
             <div class="guide-field">
@@ -193,7 +220,6 @@
     <!-- ── Final CTA ──────────────────────────────────────────────────────── -->
     <section class="final-cta">
       <img src="images/cta-wedding.jpg" alt="" class="final-cta-bg" aria-hidden="true">
-      <!-- Replace with a mood/detail wedding photo -->
       <div class="final-cta-overlay"></div>
       <div class="final-cta-content">
         <h2>Ready to build<br>your world?</h2>
