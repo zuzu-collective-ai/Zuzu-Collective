@@ -245,6 +245,102 @@
   max-width: 400px;
 }
 
+/* ── Free planning guide CTA ─────────────────────────────────────────────── */
+.guide-cta {
+  background: var(--plum);
+  padding: 80px 80px;
+}
+
+.guide-cta-inner {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
+  align-items: center;
+  max-width: 1100px;
+}
+
+.guide-label {
+  font-family: var(--font-body);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--cream);
+  opacity: 0.55;
+  margin-bottom: 16px;
+}
+
+.guide-cta-text h2 {
+  font-family: var(--font-header);
+  font-size: clamp(40px, 5vw, 68px);
+  font-weight: 400;
+  letter-spacing: -0.03em;
+  line-height: 1.0;
+  color: var(--cream);
+  margin-bottom: 24px;
+}
+
+.guide-desc {
+  font-family: var(--font-body);
+  font-size: 12px;
+  line-height: 1.85;
+  color: var(--cream);
+  opacity: 0.85;
+  max-width: 380px;
+}
+
+.guide-form-note {
+  font-family: var(--font-body);
+  font-size: 11px;
+  color: var(--cream);
+  opacity: 0.6;
+  margin-bottom: 20px;
+}
+
+.guide-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 1px solid rgba(239, 237, 225, 0.35);
+}
+
+.guide-field input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(239, 237, 225, 0.35);
+  outline: none;
+  padding: 16px 20px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--cream);
+}
+.guide-field input::placeholder {
+  color: var(--cream);
+  opacity: 0.45;
+  font-size: 11px;
+}
+
+.guide-form button {
+  background: transparent;
+  border: none;
+  padding: 18px 20px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--cream);
+  text-align: left;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.guide-form button:hover { opacity: 0.65; }
+
+.guide-fine-print {
+  font-family: var(--font-body);
+  font-size: 10px;
+  color: var(--cream);
+  opacity: 0.35;
+  margin-top: 12px;
+}
+
 /* ── Testimonials ────────────────────────────────────────────────────────── */
 .testimonials {
   background: var(--plum);
@@ -340,6 +436,9 @@
 
   .portfolio-teaser { grid-template-columns: 1fr; padding: 60px 24px; gap: 40px; }
   .portfolio-teaser-images { height: 300px; margin-right: 0; }
+
+  .guide-cta { padding: 60px 24px; }
+  .guide-cta-inner { grid-template-columns: 1fr; gap: 40px; }
 
   .testimonials { padding: 60px 24px; }
   .testimonials-inner { grid-template-columns: 1fr; gap: 40px; }

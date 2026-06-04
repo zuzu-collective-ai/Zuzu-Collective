@@ -24,6 +24,9 @@ services:
       - type: rewrite
         source: /investment
         destination: /investment.html
+      - type: rewrite
+        source: /planning-guide
+        destination: /planning-guide.html
 
   # ── Portal app (Node + Postgres) ─────────────────────────────────────────
   - type: web
