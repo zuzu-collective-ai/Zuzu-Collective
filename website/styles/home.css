@@ -22,7 +22,7 @@
   font-family: var(--font-header);
   font-size: clamp(120px, 20vw, 260px);
   font-weight: 400;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.04em;
   line-height: 0.85;
   color: var(--ink);
   user-select: none;
@@ -124,14 +124,14 @@
 .spiral-divider {
   display: flex;
   justify-content: center;
-  padding: 20px 0 0;
+  padding: 40px 0 20px;
   background: var(--cream);
 }
 
 .spiral {
-  width: 72px;
-  height: 72px;
-  animation: rotate 20s linear infinite;
+  width: 180px;
+  height: 180px;
+  animation: rotate 22s linear infinite;
 }
 
 @keyframes rotate {

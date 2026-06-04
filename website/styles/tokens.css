@@ -1,5 +1,5 @@
 /* ── Fonts ──────────────────────────────────────────────────────────────── */
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=Fragment+Mono:ital@0;1&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400;1,500&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Fragment+Mono:ital@0;1&display=swap');
 
 @font-face {
   font-family: 'Romie';
@@ -38,8 +38,8 @@
   --ink:        #1a1810;
 
   /* font stacks — custom → Google fallback */
-  --font-header: 'Romie', 'Cormorant Garamond', Georgia, serif;
-  --font-italic: 'Romie', 'Cormorant Garamond', Georgia, serif;
+  --font-header: 'Romie', 'Playfair Display', 'Cormorant Garamond', Georgia, serif;
+  --font-italic: 'Romie', 'Playfair Display', 'Cormorant Garamond', Georgia, serif;
   --font-body:   'ArtMono', 'Fragment Mono', 'Courier New', monospace;
   --font-sans:   'NeueHaas', 'Helvetica Neue', Helvetica, Arial, sans-serif;
 
