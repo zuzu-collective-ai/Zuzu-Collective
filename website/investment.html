@@ -4,88 +4,128 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Investment — Zuzu Collective</title>
-  <meta name="description" content="Explore Zuzu Collective's planning packages. Bespoke wedding &amp; event planning services in San Diego and worldwide.">
+  <meta name="description" content="Explore Zuzu Collective's wedding planning packages. Month-of coordination, partial planning, and full-service weddings in San Diego and worldwide.">
   <link rel="canonical" href="https://www.zuzucollective.com/investment">
   <link rel="stylesheet" href="styles/tokens.css">
   <link rel="stylesheet" href="styles/base.css">
-  <link rel="stylesheet" href="styles/inner.css">
+  <link rel="stylesheet" href="styles/investment.css">
 </head>
 <body>
 
-  <!-- ── Left vertical sidenav ──────────────────────────────────────────── -->
+  <!-- ── Mobile nav toggle ──────────────────────────────────────────────── -->
+  <button class="nav-toggle" aria-label="Open menu" aria-expanded="false">
+    <span></span><span></span><span></span>
+  </button>
+
+  <!-- ── Left sidebar nav ───────────────────────────────────────────────── -->
   <nav class="sidenav" aria-label="Site sections">
+    <a href="index.html" class="sidenav-logo">Zuzu<br>Collective</a>
     <ul class="sidenav-list">
       <li class="sidenav-item"><a href="index.html">Home</a></li>
       <li class="sidenav-item"><a href="about.html">About</a></li>
       <li class="sidenav-item"><a href="portfolio.html">Portfolio</a></li>
       <li class="sidenav-item"><a href="investment.html">Investment</a></li>
       <li class="sidenav-item"><a href="journal.html">Journal</a></li>
-      <li class="sidenav-item"><a href="#testimonials">Testimonials</a></li>
+      <li class="sidenav-item"><a href="index.html#testimonials">Testimonials</a></li>
       <li class="sidenav-item"><a href="contact.html">Contact</a></li>
     </ul>
+    <a href="https://www.instagram.com/zuzucollective" target="_blank" rel="noopener noreferrer" class="sidenav-social">@zuzucollective</a>
   </nav>
 
   <div class="page-wrap">
 
-    <!-- ── Page header ────────────────────────────────────────────────────── -->
-    <div class="page-header">
-      <h1>Investment</h1>
-      <p>Every package is a starting point. Every event is tailored entirely to you. Pricing reflects the depth of our collaboration, the scope of your vision, and the world we'll build together.</p>
+    <!-- ── Intro ────────────────────────────────────────────────────────── -->
+    <section class="invest-intro">
+      <p class="invest-eyebrow">services &amp; pricing</p>
+      <h1>Which package<br>looks best to you?</h1>
+      <p class="invest-sub">Every wedding we plan is different — and every package is a starting point, not a box. Pricing reflects the depth of our collaboration and the world we'll build together.</p>
+    </section>
+
+    <!-- ── Package cards ────────────────────────────────────────────────── -->
+    <section class="invest-packages">
+
+      <article class="invest-card">
+        <div class="invest-card-img">
+          <img src="images/pkg-month-of.jpg" alt="Month-of coordination wedding">
+          <!-- Replace with a wedding detail photo — ceremony, first dance, etc. -->
+        </div>
+        <div class="invest-card-body">
+          <h3><em>Month-of Coordination</em></h3>
+          <p class="invest-price">Starting at $2,500</p>
+          <ul class="invest-list">
+            <li>Final venue walk-through</li>
+            <li>Vendor communication &amp; confirmation</li>
+            <li>Full wedding day management</li>
+            <li>Master timeline creation &amp; execution</li>
+            <li>Up to 10 hours of day-of coverage</li>
+            <li>Rehearsal coordination</li>
+          </ul>
+          <a href="contact.html" class="link-arrow">inquire →</a>
+        </div>
+      </article>
+
+      <article class="invest-card invest-card--featured">
+        <div class="invest-card-img">
+          <img src="images/pkg-partial.jpg" alt="Partial planning wedding">
+          <!-- Replace with a beautiful reception or floral detail photo -->
+        </div>
+        <div class="invest-card-body">
+          <h3><em>Partial Planning</em></h3>
+          <p class="invest-price">Starting at $5,000</p>
+          <ul class="invest-list">
+            <li>Design direction &amp; mood boarding</li>
+            <li>Vendor sourcing &amp; management</li>
+            <li>Budget guidance</li>
+            <li>Monthly check-in calls</li>
+            <li>Full day-of coordination</li>
+            <li>Unlimited email support</li>
+          </ul>
+          <a href="contact.html" class="link-arrow">inquire →</a>
+        </div>
+      </article>
+
+      <article class="invest-card">
+        <div class="invest-card-img">
+          <img src="images/pkg-full.jpg" alt="Full service wedding planning">
+          <!-- Replace with a sweeping ceremony or venue transformation photo -->
+        </div>
+        <div class="invest-card-body">
+          <h3><em>Full Service</em></h3>
+          <p class="invest-price">Starting at $10,000</p>
+          <ul class="invest-list">
+            <li>End-to-end wedding design &amp; concept</li>
+            <li>Full vendor sourcing &amp; management</li>
+            <li>Bespoke narrative &amp; aesthetic development</li>
+            <li>Budget &amp; timeline management</li>
+            <li>Unlimited communication throughout</li>
+            <li>Full day-of coordination</li>
+          </ul>
+          <a href="contact.html" class="link-arrow">inquire →</a>
+        </div>
+      </article>
+
+    </section>
+
+    <!-- ── Not sure note ─────────────────────────────────────────────────── -->
+    <div class="invest-note">
+      <p>Not sure which fits? That's what the Planning Intensive is for.</p>
     </div>
 
-    <!-- ── Tier cards ──────────────────────────────────────────────────────
-         Update these with your actual package names, prices, and inclusions.
-    ─────────────────────────────────────────────────────────────────────── -->
-    <div class="investment-grid">
-
-      <div class="investment-card">
-        <h3>Day-Of<br>Coordination</h3>
-        <p class="price">Starting at $X,XXX</p>
-        <ul>
-          <li>Final venue walk-through</li>
-          <li>Vendor communication &amp; confirmation</li>
-          <li>Full day-of management</li>
-          <li>Timeline creation &amp; execution</li>
-          <li>Up to X hours of coverage</li>
-        </ul>
-        <a href="contact.html" class="link-arrow">inquire →</a>
+    <!-- ── Planning Intensive ────────────────────────────────────────────── -->
+    <section class="invest-intensive">
+      <div class="invest-intensive-inner">
+        <div class="invest-intensive-text">
+          <p class="invest-eyebrow">à la carte</p>
+          <h2>Planning<br>Intensive</h2>
+          <p class="invest-intensive-price">$500</p>
+          <p class="invest-intensive-desc">A 90-minute deep-dive into your wedding — budget, vision, vendor priorities, and a clear plan forward. You'll leave with a roadmap, not just ideas. The fee is credited in full toward any package if you book with us.</p>
+        </div>
+        <div class="invest-intensive-cta">
+          <p class="invest-intensive-cta-note">Book a 90-minute planning call directly on our contact page.</p>
+          <a href="contact.html" class="btn-outline-plum">Book a call →</a>
+        </div>
       </div>
-
-      <div class="investment-card" style="background:var(--plum); color:var(--cream);">
-        <h3 style="color:var(--cream);">Partial<br>Planning</h3>
-        <p class="price" style="color:var(--cream);">Starting at $X,XXX</p>
-        <ul>
-          <li>Vendor sourcing &amp; management</li>
-          <li>Design direction &amp; mood boarding</li>
-          <li>Budget management</li>
-          <li>Monthly check-in calls</li>
-          <li>Full day-of coordination</li>
-        </ul>
-        <a href="contact.html" class="link-arrow" style="color:var(--cream);">inquire →</a>
-      </div>
-
-      <div class="investment-card">
-        <h3>Full<br>Planning</h3>
-        <p class="price">Starting at $X,XXX</p>
-        <ul>
-          <li>End-to-end event design</li>
-          <li>Full vendor sourcing &amp; management</li>
-          <li>Bespoke concept &amp; narrative development</li>
-          <li>Budget &amp; timeline management</li>
-          <li>Unlimited communication</li>
-          <li>Full day-of coordination</li>
-        </ul>
-        <a href="contact.html" class="link-arrow">inquire →</a>
-      </div>
-
-    </div>
-
-    <div style="padding:0 80px 80px; text-align:center;">
-      <p style="font-family:var(--font-body); font-size:11px; line-height:1.8; opacity:.7; max-width:600px; margin:0 auto 32px;">
-        Not sure which package fits? Reach out and we'll figure it out together. Most of our best events started with a conversation.
-      </p>
-      <a href="contact.html" class="btn-outline" style="border-color:var(--ink); color:var(--ink);">start the conversation</a>
-    </div>
+    </section>
 
     <!-- ── Footer ─────────────────────────────────────────────────────────── -->
     <footer class="footer">

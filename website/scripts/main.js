@@ -1,3 +1,22 @@
+// Mobile nav toggle
+const navToggle = document.querySelector('.nav-toggle');
+const sidenav = document.querySelector('.sidenav');
+if (navToggle && sidenav) {
+  navToggle.addEventListener('click', () => {
+    const open = sidenav.classList.toggle('open');
+    navToggle.classList.toggle('open', open);
+    navToggle.setAttribute('aria-expanded', open);
+  });
+  // Close nav when a link is clicked
+  sidenav.querySelectorAll('a').forEach(link => {
+    link.addEventListener('click', () => {
+      sidenav.classList.remove('open');
+      navToggle.classList.remove('open');
+      navToggle.setAttribute('aria-expanded', 'false');
+    });
+  });
+}
+
 // Carousel
 const track = document.querySelector('.carousel-track');
 if (track) {

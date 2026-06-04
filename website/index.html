@@ -16,8 +16,14 @@
 </head>
 <body>
 
-  <!-- ── Left vertical sidenav ──────────────────────────────────────────── -->
+  <!-- ── Mobile nav toggle ──────────────────────────────────────────────── -->
+  <button class="nav-toggle" aria-label="Open menu" aria-expanded="false">
+    <span></span><span></span><span></span>
+  </button>
+
+  <!-- ── Left sidebar nav ───────────────────────────────────────────────── -->
   <nav class="sidenav" aria-label="Site sections">
+    <a href="index.html" class="sidenav-logo">Zuzu<br>Collective</a>
     <ul class="sidenav-list">
       <li class="sidenav-item"><a href="index.html">Home</a></li>
       <li class="sidenav-item"><a href="about.html">About</a></li>
@@ -27,6 +33,7 @@
       <li class="sidenav-item"><a href="#testimonials">Testimonials</a></li>
       <li class="sidenav-item"><a href="contact.html">Contact</a></li>
     </ul>
+    <a href="https://www.instagram.com/zuzucollective" target="_blank" rel="noopener noreferrer" class="sidenav-social">@zuzucollective</a>
   </nav>
 
   <div class="page-wrap">
@@ -64,8 +71,8 @@
     <!-- ── Rotating spiral divider ─────────────────────────────────────────── -->
     <div class="spiral-divider" aria-hidden="true">
       <svg class="spiral" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-        <path d="M50,50 m0,-38 a38,38 0 1,1 -0.1,0 M50,50 m0,-28 a28,28 0 1,1 -0.1,0 M50,50 m0,-18 a18,18 0 1,1 -0.1,0 M50,50 m0,-9 a9,9 0 1,1 -0.1,0"
-          stroke="var(--ink)" stroke-width="0.8" fill="none" opacity="0.35"/>
+        <path d="M 50 50 A 2.5 2.5 0 0 1 55 50 A 7.5 7.5 0 0 0 40 50 A 12.5 12.5 0 0 1 65 50 A 17.5 17.5 0 0 0 30 50 A 22.5 22.5 0 0 1 75 50 A 27.5 27.5 0 0 0 20 50 A 32.5 32.5 0 0 1 85 50 A 37.5 37.5 0 0 0 10 50"
+          stroke="var(--ink)" stroke-width="1" fill="none" opacity="0.45" stroke-linecap="round"/>
       </svg>
     </div>
 
