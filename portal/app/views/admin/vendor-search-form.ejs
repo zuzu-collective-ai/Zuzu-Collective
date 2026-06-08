@@ -41,7 +41,8 @@
                    value="<%= query?.vendor_type || '' %>" placeholder="Florist">
             <datalist id="vendor-types">
               <% ['Photographer','Videographer','Florist','Caterer','Venue','DJ','Band','Hair & Makeup',
-                  'Officiant','Transportation','Cake & Desserts','Stationery','Photo Booth','Rentals'].forEach(t => { %>
+                  'Officiant','Transportation','Cake & Desserts','Stationery','Photo Booth','Rentals',
+                  'Local Restaurant','Welcome Party Venue','Rehearsal Dinner Venue','Day-After Brunch'].forEach(t => { %>
                 <option value="<%= t %>"></option>
               <% }) %>
             </datalist>
