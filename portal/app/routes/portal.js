@@ -135,14 +135,14 @@ router.get('/p/:slug/design', async (req, res, next) => {
 
     const [galleriesRes, tilesRes, materialsRes] = await Promise.all([
       pool.query(
-        'select * from inspiration_galleries where couple_id = $1 order by position asc',
+        'select * from inspiration_galleries where couple_id = $1 and enabled order by position asc',
         [coupleId],
       ),
       pool.query(
         `select t.*
            from inspiration_tiles t
            join inspiration_galleries g on g.id = t.gallery_id
-          where g.couple_id = $1
+          where g.couple_id = $1 and g.enabled
           order by t.position asc`,
         [coupleId],
       ),

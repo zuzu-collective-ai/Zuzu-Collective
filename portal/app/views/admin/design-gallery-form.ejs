@@ -45,22 +45,26 @@
         <label class="admin-field">
           <span class="admin-field-label">Description</span>
           <textarea name="description" rows="3"><%= gallery?.description || '' %></textarea>
-          <span class="admin-field-help">Editorial paragraph under the gallery title.</span>
+          <span class="admin-field-help">The one paragraph for this whole category — no per-photo caption needed.</span>
+        </label>
+
+        <label class="admin-field admin-field--inline admin-field--checkbox">
+          <input type="checkbox" name="enabled" value="true" <%= (gallery?.enabled !== false) ? 'checked' : '' %>>
+          <span class="admin-field-label">Show this category on the live portal</span>
         </label>
       </fieldset>
 
       <fieldset class="admin-fieldset">
-        <legend class="admin-legend">Tiles</legend>
+        <legend class="admin-legend">Photos</legend>
         <p class="admin-fieldset-note">
-          One row per visual reference. Mark exactly one tile as the <em>hero</em> to
-          give it the larger 2×2 layout in the grid. Paste a hosted image URL
-          (e.g. Cloudinary) to show a real photo on the design page.
+          Just add the inspo — no caption required. They're laid out automatically;
+          the first photo becomes the hero unless you flag a different one.
         </p>
 
         <div id="tile-rows" class="admin-tile-rows">
           <%
             const initialTiles = (tiles && tiles.length) ? tiles : [
-              { label: '', title: '', note: '', is_hero: false, position: 1 },
+              { is_hero: false, position: 1 },
             ];
           %>
           <% initialTiles.forEach((t, i) => { %>
@@ -69,14 +73,6 @@
               <label class="admin-field admin-field--inline admin-field--checkbox">
                 <input type="checkbox" name="tiles[<%= i %>][is_hero]" value="true" <%= t.is_hero ? 'checked' : '' %>>
                 <span class="admin-field-label">Hero</span>
-              </label>
-              <label class="admin-field admin-field--inline" style="max-width: 160px;">
-                <span class="admin-field-label">Label</span>
-                <input type="text" name="tiles[<%= i %>][label]" value="<%= t.label || '' %>" placeholder="Hero / Aisle / ...">
-              </label>
-              <label class="admin-field admin-field--inline" style="flex: 2;">
-                <span class="admin-field-label">Title</span>
-                <input type="text" name="tiles[<%= i %>][title]" value="<%= t.title || '' %>" placeholder="An olive-branch arch over the aisle.">
               </label>
               <div class="admin-field admin-field--inline" style="flex: 1.5;">
                 <span class="admin-field-label">Image URL</span>
@@ -100,16 +96,12 @@
                   <span style="font-size:0.7rem; color:var(--zz-finn-60);">drag to reposition</span>
                 </div>
               </div>
-              <label class="admin-field admin-field--inline" style="flex: 1;">
-                <span class="admin-field-label">Note</span>
-                <input type="text" name="tiles[<%= i %>][note]" value="<%= t.note || '' %>" placeholder="optional caption">
-              </label>
               <button type="button" class="admin-btn admin-btn--ghost admin-btn--small" data-remove>Remove</button>
             </div>
           <% }) %>
         </div>
 
-        <button type="button" id="add-tile" class="admin-btn admin-btn--ghost">+ Add tile</button>
+        <button type="button" id="add-tile" class="admin-btn admin-btn--ghost">+ Add photo</button>
       </fieldset>
 
       <div class="admin-form-actions">
@@ -150,14 +142,6 @@
               <input type="checkbox" name="tiles[${i}][is_hero]" value="true">
               <span class="admin-field-label">Hero</span>
             </label>
-            <label class="admin-field admin-field--inline" style="max-width: 160px;">
-              <span class="admin-field-label">Label</span>
-              <input type="text" name="tiles[${i}][label]" placeholder="">
-            </label>
-            <label class="admin-field admin-field--inline" style="flex: 2;">
-              <span class="admin-field-label">Title</span>
-              <input type="text" name="tiles[${i}][title]" placeholder="">
-            </label>
             <div class="admin-field admin-field--inline" style="flex: 1.5;">
               <span class="admin-field-label">Image URL</span>
               <input type="url" name="tiles[${i}][image_url]" placeholder="https://res.cloudinary.com/…" data-img-url>
@@ -178,10 +162,6 @@
                 <span style="font-size:0.7rem; color:var(--zz-finn-60);">drag to reposition</span>
               </div>
             </div>
-            <label class="admin-field admin-field--inline" style="flex: 1;">
-              <span class="admin-field-label">Note</span>
-              <input type="text" name="tiles[${i}][note]" placeholder="optional caption">
-            </label>
             <button type="button" class="admin-btn admin-btn--ghost admin-btn--small" data-remove>Remove</button>
           </div>
         `;
@@ -207,28 +187,10 @@
         const urlInput  = row.querySelector('input[type="url"]');
         const statusEl  = row.querySelector('[data-cld-status]');
         const btn       = row.querySelector('[data-cld-btn]');
-        const titleInput = row.querySelector('input[name*="[title]"]');
-        const labelInput = row.querySelector('input[name*="[label]"]');
-        const noteInput  = row.querySelector('input[name*="[note]"]');
         if (btn) btn.disabled = true;
         try {
           await window.zzCloudinary.upload(file, urlInput, statusEl);
-          // Auto-describe via Claude
-          if (statusEl) statusEl.textContent = 'Describing…';
-          const fd = new FormData();
-          fd.append('file', file);
-          const r = await fetch(`/admin/couples/<%= couple.id %>/design/galleries/describe-tile`, {
-            method: 'POST', body: fd,
-          });
-          if (r.ok) {
-            const d = await r.json();
-            if (d.label && labelInput && !labelInput.value) labelInput.value = d.label;
-            if (d.title && titleInput && !titleInput.value) titleInput.value = d.title;
-            if (d.note  && noteInput  && !noteInput.value)  noteInput.value  = d.note;
-            if (statusEl) { statusEl.textContent = '✓ Uploaded & described'; setTimeout(() => { statusEl.textContent = ''; }, 3000); }
-          } else {
-            if (statusEl) { statusEl.textContent = '✓ Uploaded'; setTimeout(() => { statusEl.textContent = ''; }, 3000); }
-          }
+          if (statusEl) { statusEl.textContent = '✓ Uploaded'; setTimeout(() => { statusEl.textContent = ''; }, 3000); }
         } catch (_) {}
         if (btn) btn.disabled = false;
         e.target.value = '';
