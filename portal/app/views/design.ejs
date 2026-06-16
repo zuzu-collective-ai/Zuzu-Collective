@@ -104,8 +104,22 @@
 
       <% if (tiles.length > 0) { %>
         <div class="inspiration-grid">
-          <% tiles.forEach(tile => { %>
-            <div class="inspo-tile<%= tile.is_hero ? ' is-tall is-wide' : '' %><%= tile.image_url ? ' inspo-tile--photo' : '' %>"
+          <%
+            // Auto-arrange: the hero tile gets the 2×2 spot; every fifth
+            // tile after it gets a 1×2 "wide" slot for rhythm. Purely
+            // index-based so Zoe never has to size a tile by hand.
+            let nonHeroIndex = 0;
+          %>
+          <% tiles.forEach(tile => {
+               let sizeClass = '';
+               if (tile.is_hero) {
+                 sizeClass = ' is-tall is-wide';
+               } else {
+                 if (nonHeroIndex % 5 === 4) sizeClass = ' is-wide';
+                 nonHeroIndex++;
+               }
+          %>
+            <div class="inspo-tile<%= sizeClass %><%= tile.image_url ? ' inspo-tile--photo' : '' %>"
                  <% if (tile.image_url) { %>style="background-image: url('<%= tile.image_url %>'); background-position: <%= tile.bg_position_x ?? 50 %>% <%= tile.bg_position_y ?? 50 %>%;"<% } %>>
               <% if (tile.image_url) { %><div class="inspo-tile-overlay"></div><% } %>
               <% if (tile.note) { %><div class="inspo-tile-note"><%= tile.note %></div><% } %>

@@ -3124,7 +3124,7 @@ function parseTilesFromBody(body) {
     .map(Number)
     .filter(n => !Number.isNaN(n))
     .sort((a, b) => a - b);
-  return indices
+  const tiles = indices
     .map(i => raw[i])
     .filter(t => t && (t.title?.trim() || t.image_url?.trim()))
     .map((t, idx) => ({
@@ -3138,6 +3138,16 @@ function parseTilesFromBody(body) {
       bg_position_y: Math.max(0, Math.min(100, parseInt(t.bg_position_y, 10) || 50)),
       position: idx + 1,
     }));
+
+  // No tile manually flagged hero — auto-promote the first photo so the
+  // grid still gets a focal point without making Zoe pick one. Galleries
+  // that already have a hero set keep it untouched.
+  if (!tiles.some(t => t.is_hero)) {
+    const first = tiles.find(t => t.image_url);
+    if (first) first.is_hero = true;
+  }
+
+  return tiles;
 }
 
 // Design landing — shows both sub-sections (galleries + materials) so
@@ -3147,7 +3157,7 @@ router.get('/couples/:id/design', async (req, res, next) => {
     const couple = await findCoupleById(req.params.id);
     if (!couple) return res.status(404).send('Couple not found.');
 
-    const [{ rows: galleries }, { rows: materials }] = await Promise.all([
+    const [{ rows: galleries }, { rows: materials }, { rows: categoryTemplates }] = await Promise.all([
       pool.query(
         `select g.*,
                 coalesce((select count(*) from inspiration_tiles t where t.gallery_id = g.id), 0)::int  as tile_count,
@@ -3161,14 +3171,65 @@ router.get('/couples/:id/design', async (req, res, next) => {
         'select * from design_materials where couple_id = $1 order by position asc',
         [couple.id],
       ),
+      pool.query('select * from design_category_templates order by sort_order asc'),
     ]);
+
+    const galleryByCategoryKey = new Map(
+      galleries.filter(g => g.category_key).map(g => [g.category_key, g]),
+    );
+    const categories = categoryTemplates.map(t => ({
+      ...t,
+      gallery: galleryByCategoryKey.get(t.key) || null,
+    }));
 
     res.render('admin/design-overview', {
       couple,
       galleries,
       materials,
+      categories,
       flash: consumeFlash(req),
     });
+  } catch (err) { next(err); }
+});
+
+// Standard category toggle — creates the gallery on first enable, then
+// just flips `enabled` on subsequent toggles. Disabling never deletes
+// the gallery or its tiles, so re-enabling restores everything as-is.
+router.post('/couples/:id/design/categories/:key/toggle', async (req, res, next) => {
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+
+    const { rows: templateRows } = await pool.query(
+      'select * from design_category_templates where key = $1',
+      [req.params.key],
+    );
+    const template = templateRows[0];
+    if (!template) return res.status(404).send('Category not found.');
+
+    const { rows: existingRows } = await pool.query(
+      'select * from inspiration_galleries where couple_id = $1 and category_key = $2',
+      [couple.id, template.key],
+    );
+
+    if (existingRows[0]) {
+      await pool.query(
+        'update inspiration_galleries set enabled = not enabled, updated_at = now() where id = $1',
+        [existingRows[0].id],
+      );
+    } else {
+      const { rows: posRows } = await pool.query(
+        'select coalesce(max(position), 0) + 1 as next_pos from inspiration_galleries where couple_id = $1',
+        [couple.id],
+      );
+      await pool.query(
+        `insert into inspiration_galleries (couple_id, category_key, eyebrow, title, position, enabled)
+         values ($1, $2, $3, $4, $5, true)`,
+        [couple.id, template.key, template.eyebrow, template.label, posRows[0].next_pos],
+      );
+    }
+
+    res.redirect(`/admin/couples/${couple.id}/design`);
   } catch (err) { next(err); }
 });
 
@@ -3248,6 +3309,7 @@ router.post('/couples/:id/design/galleries', async (req, res, next) => {
       title: req.body.title?.trim() || '',
       description: nullIfEmpty(req.body.description),
       position: parseInt(req.body.position, 10) || 0,
+      enabled: req.body.enabled === 'true',
     };
     const tiles = parseTilesFromBody(req.body);
 
@@ -3265,9 +3327,9 @@ router.post('/couples/:id/design/galleries', async (req, res, next) => {
 
     await client.query('begin');
     const { rows } = await client.query(
-      `insert into inspiration_galleries (couple_id, eyebrow, title, description, position)
-       values ($1, $2, $3, $4, $5) returning id`,
-      [couple.id, galleryData.eyebrow, galleryData.title, galleryData.description, galleryData.position],
+      `insert into inspiration_galleries (couple_id, eyebrow, title, description, position, enabled)
+       values ($1, $2, $3, $4, $5, $6) returning id`,
+      [couple.id, galleryData.eyebrow, galleryData.title, galleryData.description, galleryData.position, galleryData.enabled],
     );
     const galleryId = rows[0].id;
     for (const t of tiles) {
@@ -3300,6 +3362,7 @@ router.post('/couples/:id/design/galleries/:gid', async (req, res, next) => {
       title: req.body.title?.trim() || '',
       description: nullIfEmpty(req.body.description),
       position: parseInt(req.body.position, 10) || 0,
+      enabled: req.body.enabled === 'true',
     };
     const tiles = parseTilesFromBody(req.body);
 
@@ -3310,9 +3373,9 @@ router.post('/couples/:id/design/galleries/:gid', async (req, res, next) => {
     await client.query('begin');
     const { rowCount } = await client.query(
       `update inspiration_galleries set
-         eyebrow = $1, title = $2, description = $3, position = $4, updated_at = now()
-       where id = $5 and couple_id = $6`,
-      [galleryData.eyebrow, galleryData.title, galleryData.description, galleryData.position, req.params.gid, couple.id],
+         eyebrow = $1, title = $2, description = $3, position = $4, enabled = $5, updated_at = now()
+       where id = $6 and couple_id = $7`,
+      [galleryData.eyebrow, galleryData.title, galleryData.description, galleryData.position, galleryData.enabled, req.params.gid, couple.id],
     );
     if (rowCount === 0) {
       await client.query('rollback');

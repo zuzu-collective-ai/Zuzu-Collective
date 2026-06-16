@@ -104,14 +104,6 @@ alter table couples add column if not exists palette_color_5 text;
 alter table couples add column if not exists palette_color_5_name text;
 alter table couples add column if not exists couple_phone text;
 
-alter table vendors add column if not exists contract_url text;
-alter table vendors add column if not exists contract_status text not null default 'not_started';
-alter table vendors add column if not exists website_url text;
-alter table vendors add column if not exists instagram_url text;
-
-alter table budget_line_items add column if not exists due_date date;
-alter table budget_line_items add column if not exists payment_sms_sent_at timestamptz;
-
 create index if not exists couples_slug_idx on couples(slug);
 
 -- ── Vendors ──────────────────────────────────────────────────────────────
@@ -145,6 +137,11 @@ create table if not exists vendors (
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now()
 );
+
+alter table vendors add column if not exists contract_url text;
+alter table vendors add column if not exists contract_status text not null default 'not_started';
+alter table vendors add column if not exists website_url text;
+alter table vendors add column if not exists instagram_url text;
 
 create index if not exists vendors_couple_id_idx on vendors(couple_id);
 create index if not exists vendors_couple_position_idx on vendors(couple_id, position);
@@ -282,6 +279,9 @@ create table if not exists budget_line_items (
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now()
 );
+
+alter table budget_line_items add column if not exists due_date date;
+alter table budget_line_items add column if not exists payment_sms_sent_at timestamptz;
 
 create index if not exists budget_line_items_category_id_idx on budget_line_items(category_id);
 
@@ -485,6 +485,15 @@ create table if not exists inspiration_galleries (
 
 create index if not exists inspiration_galleries_couple_id_idx on inspiration_galleries(couple_id);
 
+-- `category_key` ties a gallery back to a standard template (see
+-- design_category_templates below) so the admin can offer one-click
+-- enable/disable per couple. Null for free-form, custom galleries that
+-- don't map to a standard category. `enabled` lets Zoe hide a standard
+-- category (e.g. no florals) without deleting its row or photos —
+-- existing galleries default to enabled so nothing already live changes.
+alter table inspiration_galleries add column if not exists category_key text;
+alter table inspiration_galleries add column if not exists enabled boolean not null default true;
+
 -- ── Inspiration tiles ────────────────────────────────────────────────────
 --
 -- One tile per visual reference under a gallery. `note` is the caption
@@ -511,8 +520,6 @@ alter table inspiration_tiles add column if not exists image_url text;
 alter table inspiration_tiles add column if not exists bg_position_x integer default 50;
 alter table inspiration_tiles add column if not exists bg_position_y integer default 50;
 
-alter table design_materials add column if not exists image_url text;
-
 create index if not exists inspiration_tiles_gallery_id_idx on inspiration_tiles(gallery_id);
 
 -- ── Design materials ─────────────────────────────────────────────────────
@@ -537,6 +544,37 @@ create table if not exists design_materials (
   created_at      timestamptz not null default now(),
   updated_at      timestamptz not null default now()
 );
+
+-- ── Design category templates ───────────────────────────────────────────
+--
+-- Global (not per-couple) — the standard set of inspiration categories
+-- every wedding deck starts from. The admin Design tab offers one-click
+-- enable/disable per couple against this list (see inspiration_galleries
+-- .category_key / .enabled above); Zoe can still add free-form galleries
+-- that aren't tied to a template.
+
+create table if not exists design_category_templates (
+  id          uuid primary key default gen_random_uuid(),
+  key         text unique not null,
+  label       text not null,
+  eyebrow     text,
+  sort_order  integer not null default 0,
+  created_at  timestamptz not null default now()
+);
+
+insert into design_category_templates (key, label, eyebrow, sort_order)
+select v.key, v.label, v.eyebrow, v.sort_order
+from (values
+  ('textures_finishes', 'Textures & finishes', 'Textures & Finishes', 0),
+  ('ceremony',          'Ceremony',             'Ceremony',            1),
+  ('cocktail_hour',     'Cocktail hour',        'Cocktail Hour',       2),
+  ('reception',         'Reception',            'Reception',           3),
+  ('stationery',        'Stationery',           'Stationery',          4),
+  ('florals',           'Florals',              'Florals',             5)
+) as v(key, label, eyebrow, sort_order)
+where not exists (select 1 from design_category_templates where design_category_templates.key = v.key);
+
+alter table design_materials add column if not exists image_url text;
 
 create index if not exists design_materials_couple_id_idx on design_materials(couple_id);
 
