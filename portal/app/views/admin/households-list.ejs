@@ -29,6 +29,27 @@
 
     <%- include('partials/flash', { flash }) %>
 
+    <% if (headcount.total > 0) { %>
+      <div style="display:flex; gap:1.5rem; padding:0.75rem 0 1.25rem; border-bottom:1px solid var(--zz-finn-20); margin-bottom:1.25rem;">
+        <div>
+          <span style="font-family:var(--zz-mono); font-size:1.35rem; font-weight:600; color:var(--zz-finn);"><%= headcount.accepted %></span>
+          <span style="font-size:0.75rem; color:var(--zz-finn-60); margin-left:0.35rem;">attending</span>
+        </div>
+        <div>
+          <span style="font-family:var(--zz-mono); font-size:1.35rem; font-weight:600; color:var(--zz-finn);"><%= headcount.awaiting %></span>
+          <span style="font-size:0.75rem; color:var(--zz-finn-60); margin-left:0.35rem;">awaiting reply</span>
+        </div>
+        <div>
+          <span style="font-family:var(--zz-mono); font-size:1.35rem; font-weight:600; color:var(--zz-finn);"><%= headcount.declined %></span>
+          <span style="font-size:0.75rem; color:var(--zz-finn-60); margin-left:0.35rem;">not attending</span>
+        </div>
+        <div style="margin-left:auto;">
+          <span style="font-family:var(--zz-mono); font-size:1.35rem; color:var(--zz-finn-60);"><%= headcount.total %></span>
+          <span style="font-size:0.75rem; color:var(--zz-finn-60); margin-left:0.35rem;">total guests</span>
+        </div>
+      </div>
+    <% } %>
+
     <% if (households.length === 0) { %>
       <p class="admin-empty">
         No households yet. <a href="/admin/couples/<%= couple.id %>/guests/new">Add the first one</a>.
