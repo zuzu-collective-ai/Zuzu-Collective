@@ -1212,9 +1212,26 @@ router.get('/couples/:id/guests', async (req, res, next) => {
         order by h.position asc`,
       [couple.id],
     );
+
+    // Headcount totals — count individual guests, not households
+    const { rows: headcountRows } = await pool.query(
+      `select h.status, count(g.id)::int as guest_count
+         from households h
+         left join guests g on g.household_id = h.id
+        where h.couple_id = $1
+        group by h.status`,
+      [couple.id],
+    );
+    const headcount = { accepted: 0, awaiting: 0, declined: 0, total: 0 };
+    for (const row of headcountRows) {
+      if (row.status in headcount) headcount[row.status] = row.guest_count;
+      headcount.total += row.guest_count;
+    }
+
     res.render('admin/households-list', {
       couple,
       households,
+      headcount,
       flash: consumeFlash(req),
     });
   } catch (err) { next(err); }

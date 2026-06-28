@@ -791,10 +791,14 @@ export async function importGuestList({ buffer, mimeType }) {
     max_tokens: 8192,
     output_config: { format: { type: 'json_schema', schema: SCHEMA } },
     system: `You are extracting a wedding guest list into structured data.
-Group guests into households (families/couples who share an address or travel together).
-display_name for households: use the family name ("Smith Family") or couple name ("John & Jane Smith").
-side: 'bride' if clearly bride's side, 'groom' if groom's side, 'bridal_party' if in the wedding party, 'both' if unclear.
-status: map RSVP status to 'accepted' (Attending/Yes/Confirmed), 'declined' (Not Attending/No/Declined), or 'awaiting' (Awaiting Reply/No Response/unknown). Default to 'awaiting' if no RSVP info is visible.
+
+CRITICAL — every named person must appear as an individual guest record inside a household. Never create a household with an empty guests array.
+
+Grouping into households: people with the same last name who appear consecutively in the list belong to the same household. A solo name with a unique last name is their own one-person household. Couples listed together ("John & Jane Smith") are one household with two guests.
+
+display_name for households: "The Smiths" or "John & Jane Smith" for couples/families; the person's own name for solo guests.
+side: 'bride' if clearly bride's side, 'groom' if clearly groom's side, 'bridal_party' if in the wedding party, 'both' if unclear.
+status: use the RSVP column to set 'accepted' (Attending/Yes/Confirmed), 'declined' (Not Attending/No/Declined), or 'awaiting' (Awaiting Reply/No Response/blank). If multiple people in the same household have different statuses, use the majority; if split, use 'awaiting'.
 guest display_name: full name ("Jane Smith").
 guest_type: 'adult' for adults, 'child' for children/minors, 'plus_one' for unnamed plus-ones.`,
     messages: [{ role: 'user', content: userContent }],
