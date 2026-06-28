@@ -748,6 +748,7 @@ export async function importGuestList({ buffer, mimeType }) {
           properties: {
             display_name: { type: 'string' },
             side: { type: 'string', enum: ['bride','groom','both','bridal_party'] },
+            status: { type: 'string', enum: ['accepted','declined','awaiting'] },
             guests: {
               type: 'array',
               items: {
@@ -761,7 +762,7 @@ export async function importGuestList({ buffer, mimeType }) {
               },
             },
           },
-          required: ['display_name','side','guests'],
+          required: ['display_name','side','status','guests'],
           additionalProperties: false,
         },
       },
@@ -793,6 +794,7 @@ export async function importGuestList({ buffer, mimeType }) {
 Group guests into households (families/couples who share an address or travel together).
 display_name for households: use the family name ("Smith Family") or couple name ("John & Jane Smith").
 side: 'bride' if clearly bride's side, 'groom' if groom's side, 'bridal_party' if in the wedding party, 'both' if unclear.
+status: map RSVP status to 'accepted' (Attending/Yes/Confirmed), 'declined' (Not Attending/No/Declined), or 'awaiting' (Awaiting Reply/No Response/unknown). Default to 'awaiting' if no RSVP info is visible.
 guest display_name: full name ("Jane Smith").
 guest_type: 'adult' for adults, 'child' for children/minors, 'plus_one' for unnamed plus-ones.`,
     messages: [{ role: 'user', content: userContent }],
