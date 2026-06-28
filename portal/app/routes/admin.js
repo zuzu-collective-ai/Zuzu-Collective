@@ -1170,11 +1170,12 @@ router.post('/couples/:id/guests/import', upload.single('file'), async (req, res
           );
           if (existing.length > 0) continue;
         }
+        const rsvpStatus = ['accepted','declined','awaiting'].includes(h.status) ? h.status : 'awaiting';
         const { rows: [hh] } = await client.query(
           `insert into households (couple_id, display_name, side, status, position)
-           values ($1, $2, $3, 'awaiting', (select coalesce(max(position),0)+1 from households where couple_id=$1))
+           values ($1, $2, $3, $4, (select coalesce(max(position),0)+1 from households where couple_id=$1))
            returning id`,
-          [couple.id, h.display_name, side],
+          [couple.id, h.display_name, side, rsvpStatus],
         );
         householdCount++;
         for (let i = 0; i < (h.guests || []).length; i++) {
