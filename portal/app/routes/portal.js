@@ -513,7 +513,7 @@ router.get('/p/:slug/timeline', async (req, res, next) => {
   try {
     const coupleId = res.locals.couple.id;
 
-    const [phasesRes, eventsRes] = await Promise.all([
+    const [phasesRes, eventsRes, vendorsRes] = await Promise.all([
       pool.query(
         'select * from timeline_phases where couple_id = $1 order by position asc, phase_number asc',
         [coupleId],
@@ -526,10 +526,20 @@ router.get('/p/:slug/timeline', async (req, res, next) => {
           order by e.position asc`,
         [coupleId],
       ),
+      pool.query(
+        `select vendor_type, display_name, contact_name, phone, email, website_url
+           from vendors
+          where couple_id = $1
+            and status = 'booked'
+            and (contact_name is not null or phone is not null or email is not null)
+          order by position asc`,
+        [coupleId],
+      ),
     ]);
 
     const phases = phasesRes.rows;
     const events = eventsRes.rows;
+    const dayOfVendors = vendorsRes.rows;
 
     const eventsByPhase = new Map();
     for (const e of events) {
@@ -542,6 +552,7 @@ router.get('/p/:slug/timeline', async (req, res, next) => {
       currentPage: 'timeline',
       phases,
       eventsByPhase,
+      dayOfVendors,
       summary: {
         eventCount: events.length,
         phaseCount: phases.length,
