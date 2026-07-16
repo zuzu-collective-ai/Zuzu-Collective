@@ -93,11 +93,12 @@
         <% } %>
 
         <div id="layout-upload-row" style="display:flex; gap:0.75rem; align-items:center;<%= space?.layout_image_url ? ' display:none;' : '' %>">
-          <input type="file" id="layout-file-input" accept=".jpg,.jpeg,.png,.webp,.pdf" style="flex:1;">
+          <input type="file" id="layout-file-input" accept=".jpg,.jpeg,.png,.webp" style="flex:1;">
           <button type="button" id="layout-upload-btn" class="admin-btn admin-btn--ghost">Upload</button>
         </div>
         <p id="layout-upload-status" class="admin-field-help" style="margin-top:0.4rem;"></p>
       </fieldset>
+  <script src="/zz-upload.js"></script>
 
       <fieldset class="admin-fieldset">
         <legend class="admin-legend">Zones</legend>
@@ -313,20 +314,14 @@
         uploadBtn.addEventListener('click', async () => {
           if (!fileInput.files[0]) { statusEl.textContent = 'Choose a file first.'; return; }
           uploadBtn.disabled = true;
-          statusEl.textContent = 'Uploading…';
-          const fd = new FormData();
-          fd.append('file', fileInput.files[0]);
           try {
-            const res = await fetch('<%= `/admin/couples/${couple.id}/floor-plan/upload-layout` %>', { method: 'POST', body: fd });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Upload failed.');
-            urlInput.value = data.url;
-            previewImg.src = data.url;
+            const url = await window.zzCloudinary.upload(fileInput.files[0], urlInput, statusEl);
+            previewImg.src = url;
             preview.style.display = '';
             uploadRow.style.display = 'none';
             statusEl.textContent = '';
-          } catch (err) {
-            statusEl.textContent = err.message;
+          } catch (_) {
+            // zzCloudinary.upload already wrote the error to statusEl
           } finally {
             uploadBtn.disabled = false;
           }
