@@ -92,11 +92,13 @@
           </div>
         <% } %>
 
-        <div id="layout-upload-row" style="display:flex; gap:0.75rem; align-items:center;<%= space?.layout_image_url ? ' display:none;' : '' %>">
-          <input type="file" id="layout-file-input" accept=".jpg,.jpeg,.png,.webp" style="flex:1;">
-          <button type="button" id="layout-upload-btn" class="admin-btn admin-btn--ghost">Upload</button>
+        <div id="layout-upload-row" style="<%= space?.layout_image_url ? 'display:none;' : '' %>">
+          <label class="admin-btn admin-btn--ghost" style="cursor:pointer; display:inline-block;">
+            Choose image
+            <input type="file" id="layout-file-input" accept=".jpg,.jpeg,.png,.webp" style="display:none;">
+          </label>
+          <span id="layout-upload-status" class="admin-field-help" style="margin-left:0.75rem;"></span>
         </div>
-        <p id="layout-upload-status" class="admin-field-help" style="margin-top:0.4rem;"></p>
       </fieldset>
   <script src="/zz-upload.js"></script>
 
@@ -299,23 +301,23 @@
         </div>
       `);
 
-      // Layout image upload
+      // Layout image upload — auto-uploads when a file is chosen
       (function () {
-        const urlInput    = document.getElementById('layout-image-url');
-        const fileInput   = document.getElementById('layout-file-input');
-        const uploadBtn   = document.getElementById('layout-upload-btn');
-        const uploadRow   = document.getElementById('layout-upload-row');
-        const preview     = document.getElementById('layout-preview');
-        const previewImg  = preview?.querySelector('img');
-        const removeBtn   = document.getElementById('remove-layout-image');
-        const statusEl    = document.getElementById('layout-upload-status');
-        if (!uploadBtn) return;
+        const urlInput  = document.getElementById('layout-image-url');
+        const fileInput = document.getElementById('layout-file-input');
+        const uploadRow = document.getElementById('layout-upload-row');
+        const preview   = document.getElementById('layout-preview');
+        const previewImg = preview?.querySelector('img');
+        const removeBtn = document.getElementById('remove-layout-image');
+        const statusEl  = document.getElementById('layout-upload-status');
+        if (!fileInput) return;
 
-        uploadBtn.addEventListener('click', async () => {
-          if (!fileInput.files[0]) { statusEl.textContent = 'Choose a file first.'; return; }
-          uploadBtn.disabled = true;
+        fileInput.addEventListener('change', async () => {
+          const file = fileInput.files[0];
+          if (!file) return;
+          fileInput.disabled = true;
           try {
-            const url = await window.zzCloudinary.upload(fileInput.files[0], urlInput, statusEl);
+            const url = await window.zzCloudinary.upload(file, urlInput, statusEl);
             previewImg.src = url;
             preview.style.display = '';
             uploadRow.style.display = 'none';
@@ -323,7 +325,8 @@
           } catch (_) {
             // zzCloudinary.upload already wrote the error to statusEl
           } finally {
-            uploadBtn.disabled = false;
+            fileInput.disabled = false;
+            fileInput.value = '';
           }
         });
 
