@@ -294,3 +294,65 @@
   .event-time::before { margin-right: var(--space-xs); }
   .event-meta { gap: var(--space-sm); }
 }
+
+/* ── Day-of vendor contacts ─────────────────────────────────────────── */
+
+.vendor-contacts {
+  border-top: 1px solid var(--zz-finn-20);
+  padding-top: var(--space-xl);
+}
+
+.vendor-contact-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--space-md);
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: 0 var(--space-md);
+}
+
+.vendor-contact-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: var(--space-md);
+  border: 1px solid var(--zz-finn-20);
+  border-radius: 2px;
+}
+
+.vendor-contact-type {
+  font-family: var(--zz-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--zz-finn-60);
+  margin-bottom: 0.25rem;
+}
+
+.vendor-contact-name {
+  font-family: var(--zz-display);
+  font-style: italic;
+  font-size: 1.05rem;
+  line-height: 1.2;
+  color: var(--zz-finn);
+}
+
+.vendor-contact-person {
+  font-size: 0.8rem;
+  color: var(--zz-finn);
+  margin-top: 0.15rem;
+}
+
+.vendor-contact-detail {
+  font-size: 0.8rem;
+  color: var(--zz-finn-60);
+  text-decoration: none;
+}
+.vendor-contact-detail:hover { color: var(--zz-finn); }
+
+@media (max-width: 640px) {
+  .vendor-contact-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 400px) {
+  .vendor-contact-grid { grid-template-columns: 1fr; }
+}

@@ -123,6 +123,34 @@
   </section>
 
 
+  <!-- ── Day-of vendor contacts ────────────────────────────────────────── -->
+  <% if (dayOfVendors && dayOfVendors.length > 0) { %>
+    <section class="section vendor-contacts">
+      <div class="section-head">
+        <span class="label">Day-of contacts</span>
+        <h2 class="section-title">Your team on the day.</h2>
+      </div>
+
+      <div class="vendor-contact-grid">
+        <% dayOfVendors.forEach(v => { %>
+          <div class="vendor-contact-card">
+            <div class="vendor-contact-type"><%= v.vendor_type %></div>
+            <div class="vendor-contact-name"><%= v.display_name || '' %></div>
+            <% if (v.contact_name) { %>
+              <div class="vendor-contact-person"><%= v.contact_name %></div>
+            <% } %>
+            <% if (v.phone) { %>
+              <a href="tel:<%= v.phone.replace(/\D/g,'') %>" class="vendor-contact-detail"><%= v.phone %></a>
+            <% } %>
+            <% if (v.email) { %>
+              <a href="mailto:<%= v.email %>" class="vendor-contact-detail"><%= v.email %></a>
+            <% } %>
+          </div>
+        <% }) %>
+      </div>
+    </section>
+  <% } %>
+
   <%- include('partials/footer', { couple }) %>
 
   <style>
