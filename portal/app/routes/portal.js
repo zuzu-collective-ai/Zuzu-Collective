@@ -513,7 +513,7 @@ router.get('/p/:slug/timeline', async (req, res, next) => {
   try {
     const coupleId = res.locals.couple.id;
 
-    const [phasesRes, eventsRes, vendorsRes] = await Promise.all([
+    const [phasesRes, eventsRes] = await Promise.all([
       pool.query(
         'select * from timeline_phases where couple_id = $1 order by position asc, phase_number asc',
         [coupleId],
@@ -526,20 +526,28 @@ router.get('/p/:slug/timeline', async (req, res, next) => {
           order by e.position asc`,
         [coupleId],
       ),
-      pool.query(
-        `select vendor_type, display_name, contact_name, phone, email, website_url
+    ]);
+
+    const phases = phasesRes.rows;
+    const events = eventsRes.rows;
+
+    // Vendor contacts are best-effort — if the query fails for any reason
+    // (e.g. column not yet present on an older DB) the page still loads.
+    let dayOfVendors = [];
+    try {
+      const vendorsRes = await pool.query(
+        `select vendor_type, display_name, contact_name, phone, email
            from vendors
           where couple_id = $1
             and status = 'booked'
             and (contact_name is not null or phone is not null or email is not null)
           order by position asc`,
         [coupleId],
-      ),
-    ]);
-
-    const phases = phasesRes.rows;
-    const events = eventsRes.rows;
-    const dayOfVendors = vendorsRes.rows;
+      );
+      dayOfVendors = vendorsRes.rows;
+    } catch (e) {
+      console.warn('[timeline] vendor contact query failed, skipping:', e.message);
+    }
 
     const eventsByPhase = new Map();
     for (const e of events) {
