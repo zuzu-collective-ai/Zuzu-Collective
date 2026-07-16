@@ -894,7 +894,7 @@ router.get('/t/:slug/timeline', async (req, res, next) => {
     const events = eventsRes.rows;
     const eventsByPhase = new Map();
     for (const e of events) { const list = eventsByPhase.get(e.phase_id) || []; list.push(e); eventsByPhase.set(e.phase_id, list); }
-    res.render('timeline', { currentPage: 'timeline', phases, eventsByPhase, summary: { eventCount: events.length, phaseCount: phases.length } });
+    res.render('timeline', { currentPage: 'timeline', phases, eventsByPhase, dayOfVendors: [], summary: { eventCount: events.length, phaseCount: phases.length } });
   } catch (err) { next(err); }
 });
 
