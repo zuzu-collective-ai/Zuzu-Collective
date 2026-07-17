@@ -104,7 +104,7 @@
 
   <script>
     (function () {
-      const slug = '<%= couple.slug %>';
+      const portalPfx = (typeof portalBase !== 'undefined' && portalBase) ? portalBase : `/p/<%= couple.slug %>`;
 
       // Find the single stat number that shows completed task count.
       // It's the second .stat-number on the page (index 1).
@@ -127,7 +127,7 @@
         const prevChecked = !cb.checked; // browser already toggled it
 
         try {
-          const r = await fetch(`/p/${slug}/checklist/tasks/${taskId}/toggle`, {
+          const r = await fetch(`${portalPfx}/checklist/tasks/${taskId}/toggle`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
           });
