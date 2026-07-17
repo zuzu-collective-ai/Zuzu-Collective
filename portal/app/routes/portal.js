@@ -865,10 +865,10 @@ router.get('/v/:slug/floor-plan', async (req, res, next) => {
 });
 
 // ── Day-of portal (/t/:slug) ─────────────────────────────────────────────
-// Shared link for vendors and day-of staff. Shows landing, timeline,
-// and floor plan — no budget, guest list, checklist, or design.
+// Shared link for the couple on the wedding day. Shows home, vendors,
+// checklist, timeline, and floor plan — no budget, guest list, or design.
 
-const DAY_OF_PAGES = ['home', 'timeline', 'floor-plan'];
+const DAY_OF_PAGES = ['home', 'vendors', 'checklist', 'timeline', 'floor-plan'];
 
 router.use('/t/:slug', loadCouple, logPageView, (req, res, next) => {
   res.locals.portalBase = `/t/${req.params.slug}`;
@@ -880,6 +880,73 @@ router.get('/t/:slug', async (_req, res, next) => {
   try {
     const teamMembers = await getTeamMembers();
     res.render('landing', { currentPage: 'home', teamMembers });
+  } catch (err) { next(err); }
+});
+
+router.get('/t/:slug/vendors', async (req, res, next) => {
+  try {
+    const { rows: vendors } = await pool.query(
+      'select * from vendors where couple_id = $1 and status != $2 order by position asc, vendor_type asc',
+      [res.locals.couple.id, 'na'],
+    );
+    const { counts, sections } = buildVendorGroups(vendors);
+    res.render('vendors', { currentPage: 'vendors', vendors, sections, counts });
+  } catch (err) { next(err); }
+});
+
+router.get('/t/:slug/checklist', async (req, res, next) => {
+  try {
+    const coupleId = res.locals.couple.id;
+    const [msRes, tasksRes] = await Promise.all([
+      pool.query('select * from checklist_milestones where couple_id = $1 order by position asc', [coupleId]),
+      pool.query(`select t.* from checklist_tasks t join checklist_milestones m on m.id = t.milestone_id where m.couple_id = $1 order by t.position asc`, [coupleId]),
+    ]);
+    const milestones = msRes.rows;
+    const tasks = tasksRes.rows;
+    const tasksByMilestone = new Map();
+    for (const t of tasks) {
+      const list = tasksByMilestone.get(t.milestone_id) || [];
+      list.push(t);
+      tasksByMilestone.set(t.milestone_id, list);
+    }
+    const today = new Date(); today.setUTCHours(0, 0, 0, 0);
+    const wd = new Date(res.locals.couple.wedding_date); wd.setUTCHours(0, 0, 0, 0);
+    const daysToWedding = Math.max(0, Math.round((wd - today) / 86400000));
+    function parseMsDate(dl) {
+      const m = dl.match(/(\d+)\s+months?\s+out/i);
+      if (m) { const d = new Date(wd); d.setUTCMonth(d.getUTCMonth() - parseInt(m[1], 10)); d.setUTCDate(1); return d; }
+      if (/day.?of/i.test(dl)) return new Date(wd);
+      return null;
+    }
+    let activeIdx = 0;
+    for (let i = 0; i < milestones.length; i++) { const td = parseMsDate(milestones[i].date_label); if (td && td <= today) activeIdx = i; }
+    while (activeIdx < milestones.length - 1) { const ts = tasksByMilestone.get(milestones[activeIdx].id) || []; if (ts.length > 0 && ts.every(t => t.is_done)) activeIdx++; else break; }
+    const milestoneState = new Map();
+    for (let i = 0; i < milestones.length; i++) {
+      const m = milestones[i]; const ts = tasksByMilestone.get(m.id) || [];
+      const total = ts.length; const done = ts.filter(t => t.is_done).length;
+      milestoneState.set(m.id, { total, done, inFlight: total - done, state: i < activeIdx ? 'done' : i === activeIdx ? 'active' : 'upcoming' });
+    }
+    const tasksTotal = tasks.length; const tasksDone = tasks.filter(t => t.is_done).length;
+    res.render('checklist', { currentPage: 'checklist', milestones, tasksByMilestone, milestoneState, summary: { milestoneCount: milestones.length, tasksTotal, tasksDone, pctDone: tasksTotal > 0 ? Math.round((tasksDone / tasksTotal) * 100) : 0, daysToWedding } });
+  } catch (err) { next(err); }
+});
+
+router.post('/t/:slug/checklist/tasks/:tid/toggle', async (req, res, next) => {
+  try {
+    const coupleId = res.locals.couple.id;
+    const { rows } = await pool.query(
+      `update checklist_tasks t
+          set is_done = not t.is_done, updated_at = now()
+         from checklist_milestones m
+        where t.id = $1
+          and t.milestone_id = m.id
+          and m.couple_id = $2
+        returning t.is_done`,
+      [req.params.tid, coupleId],
+    );
+    if (rows.length === 0) return res.status(404).json({ error: 'Not found.' });
+    res.json({ is_done: rows[0].is_done });
   } catch (err) { next(err); }
 });
 
