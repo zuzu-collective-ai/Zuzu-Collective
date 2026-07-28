@@ -17,6 +17,7 @@
       <div style="display: flex; gap: 0.5rem;">
         <a href="/admin/couples/<%= couple.id %>/vendors/search" class="admin-btn admin-btn--ghost">✦ Find vendors</a>
         <a href="/admin/couples/<%= couple.id %>/vendors/outreach" class="admin-btn admin-btn--ghost">✦ AI outreach</a>
+        <button type="button" id="pdf-import-btn" class="admin-btn admin-btn--ghost">↑ Import from PDF</button>
         <a href="/admin/couples/<%= couple.id %>/vendors/new" class="admin-btn admin-btn--primary">+ Add vendor</a>
       </div>
     </header>
@@ -58,6 +59,208 @@
       </ul>
     <% } %>
   </main>
+
+  <!-- ── PDF import modal ──────────────────────────────────────────────── -->
+  <div id="pdf-modal-backdrop" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:100; overflow-y:auto;">
+    <div id="pdf-modal" style="background:#fff; max-width:860px; margin:3rem auto; border-radius:6px; padding:2rem; position:relative;">
+
+      <button type="button" id="pdf-modal-close"
+              style="position:absolute; top:1rem; right:1rem; background:none; border:none; font-size:1.25rem; cursor:pointer; color:#666;">✕</button>
+
+      <h2 style="margin:0 0 1rem; font-size:1.1rem;">Import vendors from PDF</h2>
+
+      <!-- Step 1: file picker -->
+      <div id="pdf-step-pick">
+        <p style="color:#555; font-size:0.875rem; margin:0 0 1rem;">
+          Upload a vendor sheet PDF and Claude will extract all vendors automatically.
+          You can review and edit everything before saving.
+        </p>
+        <label class="admin-btn admin-btn--ghost" style="cursor:pointer; display:inline-block;">
+          Choose PDF
+          <input type="file" id="pdf-file-input" accept="application/pdf" style="display:none;">
+        </label>
+        <span id="pdf-pick-status" style="margin-left:0.75rem; font-size:0.85rem; color:#666;"></span>
+      </div>
+
+      <!-- Step 2: loading -->
+      <div id="pdf-step-loading" style="display:none; padding:2rem 0; text-align:center; color:#666; font-size:0.9rem;">
+        Extracting vendors… this takes a few seconds.
+      </div>
+
+      <!-- Step 3: preview + save form -->
+      <div id="pdf-step-preview" style="display:none;">
+        <p id="pdf-preview-count" style="font-size:0.875rem; color:#555; margin:0 0 1rem;"></p>
+
+        <form id="pdf-save-form" method="post" action="/admin/couples/<%= couple.id %>/vendors/bulk-save">
+          <div style="overflow-x:auto;">
+            <table style="width:100%; border-collapse:collapse; font-size:0.8rem;">
+              <thead>
+                <tr style="border-bottom:2px solid #eee; text-align:left;">
+                  <th style="padding:0.4rem 0.5rem; white-space:nowrap;">Vendor type</th>
+                  <th style="padding:0.4rem 0.5rem; white-space:nowrap;">Business name</th>
+                  <th style="padding:0.4rem 0.5rem; white-space:nowrap;">Contact</th>
+                  <th style="padding:0.4rem 0.5rem; white-space:nowrap;">Phone</th>
+                  <th style="padding:0.4rem 0.5rem; white-space:nowrap;">Email</th>
+                  <th style="padding:0.4rem 0.5rem;">Note / extra contacts</th>
+                  <th style="padding:0.4rem 0.5rem;"></th>
+                </tr>
+              </thead>
+              <tbody id="pdf-vendor-rows"></tbody>
+            </table>
+          </div>
+
+          <div style="margin-top:1.5rem; display:flex; gap:0.75rem; align-items:center;">
+            <button type="submit" id="pdf-save-btn" class="admin-btn admin-btn--primary">Import vendors</button>
+            <button type="button" id="pdf-modal-cancel" class="admin-btn admin-btn--ghost">Cancel</button>
+            <span id="pdf-save-error" style="color:#c00; font-size:0.85rem;"></span>
+          </div>
+        </form>
+      </div>
+
+      <!-- Step 4: error -->
+      <div id="pdf-step-error" style="display:none; color:#c00; font-size:0.875rem; padding:1rem 0;"></div>
+    </div>
+  </div>
+
+  <script>
+  (function () {
+    const coupleId = '<%= couple.id %>';
+
+    const backdrop   = document.getElementById('pdf-modal-backdrop');
+    const openBtn    = document.getElementById('pdf-import-btn');
+    const closeBtn   = document.getElementById('pdf-modal-close');
+    const cancelBtn  = document.getElementById('pdf-modal-cancel');
+    const fileInput  = document.getElementById('pdf-file-input');
+    const pickStatus = document.getElementById('pdf-pick-status');
+
+    const stepPick    = document.getElementById('pdf-step-pick');
+    const stepLoading = document.getElementById('pdf-step-loading');
+    const stepPreview = document.getElementById('pdf-step-preview');
+    const stepError   = document.getElementById('pdf-step-error');
+
+    const previewCount = document.getElementById('pdf-preview-count');
+    const vendorRows   = document.getElementById('pdf-vendor-rows');
+    const saveBtn      = document.getElementById('pdf-save-btn');
+    const saveError    = document.getElementById('pdf-save-error');
+
+    function show(step) {
+      [stepPick, stepLoading, stepPreview, stepError].forEach(el => el.style.display = 'none');
+      step.style.display = '';
+    }
+
+    function openModal() {
+      backdrop.style.display = '';
+      show(stepPick);
+      pickStatus.textContent = '';
+      fileInput.value = '';
+      vendorRows.innerHTML = '';
+    }
+    function closeModal() {
+      backdrop.style.display = 'none';
+    }
+
+    openBtn.addEventListener('click', openModal);
+    closeBtn.addEventListener('click', closeModal);
+    cancelBtn.addEventListener('click', closeModal);
+    backdrop.addEventListener('click', e => { if (e.target === backdrop) closeModal(); });
+
+    function makeInput(name, value, placeholder) {
+      const el = document.createElement('input');
+      el.type = 'text';
+      el.name = name;
+      el.value = value || '';
+      if (placeholder) el.placeholder = placeholder;
+      el.style.cssText = 'width:100%; box-sizing:border-box; padding:0.25rem 0.4rem; border:1px solid #ddd; border-radius:3px; font-size:0.8rem;';
+      return el;
+    }
+
+    function buildRows(vendors) {
+      vendorRows.innerHTML = '';
+      vendors.forEach((v, i) => {
+        const tr = document.createElement('tr');
+        tr.style.borderBottom = '1px solid #f0f0f0';
+
+        const fields = [
+          { key: 'vendor_type',  placeholder: 'e.g. Florist' },
+          { key: 'display_name', placeholder: 'Business name' },
+          { key: 'contact_name', placeholder: 'Contact person' },
+          { key: 'phone',        placeholder: '' },
+          { key: 'email',        placeholder: '' },
+          { key: 'note',         placeholder: '' },
+        ];
+
+        fields.forEach(({ key, placeholder }) => {
+          const td = document.createElement('td');
+          td.style.padding = '0.3rem 0.4rem';
+          td.appendChild(makeInput(`vendors[${i}][${key}]`, v[key], placeholder));
+          tr.appendChild(td);
+        });
+
+        // hidden fields
+        ['address','website_url','instagram_url','status','contract_status','position'].forEach(key => {
+          const hidden = document.createElement('input');
+          hidden.type = 'hidden';
+          hidden.name = `vendors[${i}][${key}]`;
+          hidden.value = key === 'status' ? 'booked' : key === 'contract_status' ? 'not_started' : (v[key] || '');
+          tr.appendChild(hidden);
+        });
+
+        // remove row button
+        const tdRemove = document.createElement('td');
+        tdRemove.style.padding = '0.3rem 0.4rem';
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.textContent = '✕';
+        removeBtn.style.cssText = 'background:none; border:none; color:#999; cursor:pointer; font-size:0.85rem;';
+        removeBtn.addEventListener('click', () => {
+          tr.remove();
+          const remaining = vendorRows.querySelectorAll('tr').length;
+          previewCount.textContent = `${remaining} vendor${remaining === 1 ? '' : 's'} extracted — edit any field before saving.`;
+          saveBtn.textContent = `Import ${remaining} vendor${remaining === 1 ? '' : 's'}`;
+        });
+        tdRemove.appendChild(removeBtn);
+        tr.appendChild(tdRemove);
+
+        vendorRows.appendChild(tr);
+      });
+    }
+
+    fileInput.addEventListener('change', async () => {
+      const file = fileInput.files[0];
+      if (!file) return;
+      if (file.type !== 'application/pdf') {
+        pickStatus.textContent = 'Please choose a PDF file.';
+        fileInput.value = '';
+        return;
+      }
+      show(stepLoading);
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        const r = await fetch(`/admin/couples/${coupleId}/vendors/bulk-import`, {
+          method: 'POST',
+          body: formData,
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || 'Extraction failed.');
+
+        const vendors = data.vendors || [];
+        if (vendors.length === 0) throw new Error('No vendors found in this PDF.');
+
+        buildRows(vendors);
+        previewCount.textContent = `${vendors.length} vendor${vendors.length === 1 ? '' : 's'} extracted — edit any field before saving.`;
+        saveBtn.textContent = `Import ${vendors.length} vendor${vendors.length === 1 ? '' : 's'}`;
+        saveError.textContent = '';
+        show(stepPreview);
+      } catch (err) {
+        stepError.textContent = err.message || 'Something went wrong. Try again.';
+        show(stepError);
+      }
+    });
+  })();
+  </script>
 
 </body>
 </html>
