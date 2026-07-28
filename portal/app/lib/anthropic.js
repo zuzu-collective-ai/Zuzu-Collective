@@ -658,9 +658,14 @@ export async function extractVendorsBulk({ buffer }) {
   const response = await client().messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 4096,
-    output_config: { format: { type: 'json_schema', schema: VENDORS_BULK_SCHEMA } },
+    tools: [{
+      name: 'save_vendors',
+      description: 'Save the list of vendors extracted from the document.',
+      input_schema: VENDORS_BULK_SCHEMA,
+    }],
+    tool_choice: { type: 'tool', name: 'save_vendors' },
     system: `You are a data-extraction assistant for a wedding planning company.
-Extract ALL vendors from the document and return them as a JSON array.
+Extract ALL vendors from the document.
 Create one entry per vendor role — if the same business covers multiple roles (e.g. Venue + Catering), create a separate entry for each role.
 If a vendor has multiple contacts, put the secondary contact(s) in the note field formatted as "Also: Name - Title, phone, email".
 Fields:
@@ -683,10 +688,9 @@ Use empty string "" for any field you cannot find.`,
     }],
   });
 
-  const textBlock = response.content.find(b => b.type === 'text');
-  if (!textBlock) throw new Error('No text in Claude response');
-  const parsed = JSON.parse(textBlock.text);
-  return Array.isArray(parsed.vendors) ? parsed.vendors : [];
+  const toolUse = response.content.find(b => b.type === 'tool_use' && b.name === 'save_vendors');
+  if (!toolUse) throw new Error('No vendor data returned from Claude');
+  return Array.isArray(toolUse.input?.vendors) ? toolUse.input.vendors : [];
 }
 
 const TILE_DESCRIBE_SCHEMA = {
