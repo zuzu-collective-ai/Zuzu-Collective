@@ -626,6 +626,69 @@ Use empty string "" for any field you cannot find.`,
   return JSON.parse(textBlock.text);
 }
 
+// ── Bulk vendor import from PDF ───────────────────────────────────────────
+// Accepts a PDF buffer, extracts ALL vendors as an array.
+
+const VENDORS_BULK_SCHEMA = {
+  type: 'object',
+  properties: {
+    vendors: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          vendor_type:  { type: 'string' },
+          display_name: { type: 'string' },
+          contact_name: { type: 'string' },
+          email:        { type: 'string' },
+          phone:        { type: 'string' },
+          address:      { type: 'string' },
+          note:         { type: 'string' },
+        },
+        required: ['vendor_type','display_name','contact_name','email','phone','address','note'],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ['vendors'],
+  additionalProperties: false,
+};
+
+export async function extractVendorsBulk({ buffer }) {
+  const response = await client().messages.create({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 4096,
+    output_config: { format: { type: 'json_schema', schema: VENDORS_BULK_SCHEMA } },
+    system: `You are a data-extraction assistant for a wedding planning company.
+Extract ALL vendors from the document and return them as a JSON array.
+Create one entry per vendor role — if the same business covers multiple roles (e.g. Venue + Catering), create a separate entry for each role.
+If a vendor has multiple contacts, put the secondary contact(s) in the note field formatted as "Also: Name - Title, phone, email".
+Fields:
+  vendor_type: the role category as written (e.g. "Ceremony Venue", "Reception Venue", "Photographer", "Florals", "DJ/Photobooth/Lighting", etc.)
+  display_name: business/company name
+  contact_name: primary contact person's full name
+  email, phone: as written in the document
+  address: physical address if present, otherwise empty string
+  note: secondary contacts or any other detail worth preserving
+Use empty string "" for any field you cannot find.`,
+    messages: [{
+      role: 'user',
+      content: [
+        {
+          type: 'document',
+          source: { type: 'base64', media_type: 'application/pdf', data: buffer.toString('base64') },
+        },
+        { type: 'text', text: 'Extract all vendors from this document.' },
+      ],
+    }],
+  });
+
+  const textBlock = response.content.find(b => b.type === 'text');
+  if (!textBlock) throw new Error('No text in Claude response');
+  const parsed = JSON.parse(textBlock.text);
+  return Array.isArray(parsed.vendors) ? parsed.vendors : [];
+}
+
 const TILE_DESCRIBE_SCHEMA = {
   type: 'object',
   properties: {

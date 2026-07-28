@@ -12,7 +12,7 @@ import multer from 'multer';
 import { createHash } from 'node:crypto';
 import { pool } from '../db/pool.js';
 import { requireAdmin, passwordsMatch } from '../middleware/auth.js';
-import { generateAllocation, generatePalette, generateChecklist, generateVendorOutreach, extractVendorInfo, describeTileImage, generateTimeline, importGuestList, generateVendorSearchQueries, parseVendorSearchResults, isConfigured as anthropicConfigured, STANDARD_CATEGORIES } from '../lib/anthropic.js';
+import { generateAllocation, generatePalette, generateChecklist, generateVendorOutreach, extractVendorInfo, extractVendorsBulk, describeTileImage, generateTimeline, importGuestList, generateVendorSearchQueries, parseVendorSearchResults, isConfigured as anthropicConfigured, STANDARD_CATEGORIES } from '../lib/anthropic.js';
 import { serperConfigured, serperSearch } from '../lib/serper.js';
 
 const upload = multer({
@@ -449,6 +449,58 @@ router.post('/couples/:id/vendors', async (req, res, next) => {
       values,
     );
     setFlash(req, 'success', `Added ${data.display_name || data.vendor_type}.`);
+    res.redirect(`/admin/couples/${couple.id}/vendors`);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ── AI bulk vendor import from PDF ────────────────────────────────────
+// POST a PDF → Claude extracts all vendors → returns JSON array for preview.
+router.post('/couples/:id/vendors/bulk-import', upload.single('file'), async (req, res) => {
+  if (!anthropicConfigured()) {
+    return res.status(503).json({ error: 'ANTHROPIC_API_KEY is not set.' });
+  }
+  if (!req.file || req.file.mimetype !== 'application/pdf') {
+    return res.status(400).json({ error: 'Please upload a PDF file.' });
+  }
+  try {
+    const vendors = await extractVendorsBulk({ buffer: req.file.buffer });
+    res.json({ vendors });
+  } catch (err) {
+    console.error('[vendor-bulk-import]', err);
+    res.status(500).json({ error: 'Extraction failed. Try again.' });
+  }
+});
+
+// ── Bulk save extracted vendors ────────────────────────────────────────
+// Accepts form-encoded vendor array (vendors[i][field]), inserts all.
+router.post('/couples/:id/vendors/bulk-save', async (req, res, next) => {
+  try {
+    const couple = await findCoupleById(req.params.id);
+    if (!couple) return res.status(404).send('Couple not found.');
+
+    const raw = req.body.vendors;
+    const list = Array.isArray(raw) ? raw : raw ? [raw] : [];
+    if (list.length === 0) {
+      return res.redirect(`/admin/couples/${couple.id}/vendors`);
+    }
+
+    let saved = 0;
+    for (const v of list) {
+      if (!v.vendor_type) continue;
+      const data = pickVendorFields({ ...v, status: v.status || 'booked' });
+      const cols = ['couple_id', ...VENDOR_FIELDS];
+      const values = [couple.id, ...VENDOR_FIELDS.map(f => data[f])];
+      const placeholders = cols.map((_, i) => `$${i + 1}`).join(', ');
+      await pool.query(
+        `insert into vendors (${cols.join(', ')}) values (${placeholders})`,
+        values,
+      );
+      saved++;
+    }
+
+    setFlash(req, 'success', `Imported ${saved} vendor${saved === 1 ? '' : 's'}.`);
     res.redirect(`/admin/couples/${couple.id}/vendors`);
   } catch (err) {
     next(err);
