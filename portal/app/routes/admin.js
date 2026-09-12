@@ -93,6 +93,7 @@ const COUPLE_FIELDS = [
   'hero_bg_position_y',
   'hero_text_color',
   'couple_phone',
+  'budget_spreadsheet_url',
 ];
 
 // Currency parsing — admin enters dollars (e.g. "120000", "$120,000",

@@ -323,30 +323,15 @@ function assemble(categoryMap, payments, rentals, warnings) {
     paymentsByCategory.get(catTitle).push(p);
   }
 
-  // Group rentals by phase → synthetic category
+  // Roll up all rentals into a single "Rentals" category (estimate only, no line breakdown)
   const rentalCategories = [];
-  const rentalsByPhase = new Map();
-  for (const r of rentals) {
-    const phase = r.phase || 'GENERAL';
-    if (!rentalsByPhase.has(phase)) rentalsByPhase.set(phase, []);
-    rentalsByPhase.get(phase).push(r);
-  }
-  for (const [phase, items] of rentalsByPhase) {
-    const phaseLabel = phase === 'GENERAL' ? 'Rentals' : `Rentals — ${toTitleCase(phase)}`;
-    const firstCompany = items.find(i => i.rental_company)?.rental_company || '';
+  if (rentals.length > 0) {
+    const rentalTotal = rentals.reduce((sum, r) => sum + r.total_cents, 0);
     rentalCategories.push({
-      title: phaseLabel,
-      vendor: firstCompany,
-      estimated_cents: 0,
-      lines: items.map((item, idx) => ({
-        name: item.item + (item.qty ? ` (×${item.qty})` : ''),
-        vendor_label: item.rental_company || null,
-        amount_cents: item.total_cents,
-        paid_cents: 0,
-        status_kind: 'upcoming',
-        due_date: null,
-        position: idx + 1,
-      })),
+      title: 'Rentals',
+      vendor: '',
+      estimated_cents: rentalTotal,
+      lines: [],
     });
   }
 

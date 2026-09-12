@@ -132,6 +132,14 @@
         Budget last updated <%= new Date(lastImported).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' }) %>
       </p>
     <% } %>
+    <% if (spreadsheetUrl) { %>
+      <p style="margin-top:0.75rem;">
+        <a href="<%= spreadsheetUrl %>" target="_blank" rel="noopener"
+           style="font-family:var(--zz-mono);font-size:0.65rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--zz-finn-60);text-decoration:none;border-bottom:1px solid currentColor;">
+          View full budget spreadsheet ↗
+        </a>
+      </p>
+    <% } %>
   </section>
 
   <!-- ── Summary: five figures ────────────────────────────────────────────── -->
