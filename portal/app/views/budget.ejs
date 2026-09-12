@@ -119,14 +119,14 @@
   <% } %>
 
   <!-- ── Categories ──────────────────────────────────────────────────────── -->
-  <% categories.forEach(cat => {
+  <% categories.forEach((cat, catIdx) => {
        const stats = categoryStats.get(cat.id) || { estimated: 0, contracted: 0, actual: 0, remaining: 0, pct: 0 };
        const lines = linesByCategory.get(cat.id) || [];
   %>
     <section class="section category">
       <div class="category-header">
         <div class="category-meta">
-          <span class="label">Category <%= String(cat.category_number).padStart(2, '0') %></span>
+          <span class="label">Category <%= String(catIdx + 1).padStart(2, '0') %></span>
           <h2 class="category-title">
             <%= cat.title %><% if (cat.title_emphasis) { %> <em><%= cat.title_emphasis %></em><% } %>
           </h2>
