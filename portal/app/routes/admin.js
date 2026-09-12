@@ -29,14 +29,17 @@ const budgetUpload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 20 * 1024 * 1024 }, // 20 MB — workbooks can be large
   fileFilter: (_req, file, cb) => {
-    const allowed = [
+    const allowedMimes = [
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       'application/vnd.ms-excel',
       'text/csv',
       'text/plain',
       'application/pdf',
+      'application/octet-stream', // macOS / some browsers report xlsx this way
     ];
-    cb(null, allowed.includes(file.mimetype));
+    const allowedExts = ['.xlsx', '.xls', '.csv', '.pdf'];
+    const ext = (file.originalname || '').toLowerCase().slice(file.originalname.lastIndexOf('.'));
+    cb(null, allowedMimes.includes(file.mimetype) || allowedExts.includes(ext));
   },
 });
 
@@ -1795,10 +1798,24 @@ router.post('/couples/:id/budget/import', budgetUpload.single('file'), async (re
   try {
     const couple = await findCoupleById(req.params.id);
     if (!couple) return res.status(404).send('Couple not found.');
-    if (!req.file) return res.redirect(`/admin/couples/${req.params.id}/budget`);
+    if (!req.file) {
+      setFlash(req, 'error', 'No file received. Save your workbook as .xlsx and try again.');
+      return res.redirect(`/admin/couples/${req.params.id}/budget`);
+    }
 
     let parsed;
-    const mime = req.file.mimetype;
+    // Normalise MIME — browsers (especially macOS) sometimes report xlsx as octet-stream.
+    const origName = (req.file.originalname || '').toLowerCase();
+    let mime = req.file.mimetype;
+    if (mime === 'application/octet-stream') {
+      if (origName.endsWith('.xlsx') || origName.endsWith('.xls')) {
+        mime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      } else if (origName.endsWith('.csv')) {
+        mime = 'text/csv';
+      } else if (origName.endsWith('.pdf')) {
+        mime = 'application/pdf';
+      }
+    }
 
     if (mime === 'application/pdf') {
       if (!anthropicConfigured()) {
