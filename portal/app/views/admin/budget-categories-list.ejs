@@ -16,19 +16,9 @@
       </div>
       <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
         <a href="/admin/couples/<%= couple.id %>/budget/allocate" class="admin-btn admin-btn--ghost">✦ AI allocator</a>
-        <label class="admin-btn admin-btn--ghost" style="cursor:pointer;" title="Upload .xlsx, .csv, or .pdf from your Zuzu budget workbook">
-          ↑ Import workbook
-          <input type="file" id="budget-import-file" accept=".xlsx,.csv,.pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv,application/pdf"
-                 style="display:none;">
-        </label>
         <a href="/admin/couples/<%= couple.id %>/budget/new" class="admin-btn admin-btn--primary">+ Add category</a>
       </div>
     </header>
-
-    <div id="budget-import-status" style="display:none; background:#fff8f0; border:1px solid #f0a020; padding:.75rem 1rem; margin-bottom:1rem; font-size:0.85rem; color:#7a4a00;"></div>
-    <form id="budget-import-form" action="/admin/couples/<%= couple.id %>/budget/import" method="post" enctype="multipart/form-data" style="display:none;">
-      <input type="file" name="file" id="budget-import-hidden">
-    </form>
 
     <%- include('partials/couple-tabs', { couple, currentTab: 'budget' }) %>
 
@@ -108,38 +98,6 @@
     <% } %>
   </main>
 
-  <script>
-    (function () {
-      const filePicker = document.getElementById('budget-import-file');
-      const hiddenInput = document.getElementById('budget-import-hidden');
-      const form = document.getElementById('budget-import-form');
-      const status = document.getElementById('budget-import-status');
-
-      if (filePicker && form) {
-        filePicker.addEventListener('change', () => {
-          const file = filePicker.files[0];
-          if (!file) return;
-
-          // Copy file to hidden input via DataTransfer
-          try {
-            const dt = new DataTransfer();
-            dt.items.add(file);
-            hiddenInput.files = dt.files;
-          } catch (_) {
-            // Safari fallback — just submit with the original input
-          }
-
-          status.style.display = 'block';
-          const isPdf = file.type === 'application/pdf';
-          status.textContent = isPdf
-            ? `Uploading ${file.name} for Claude extraction — this may take 20–30 seconds…`
-            : `Uploading ${file.name}…`;
-
-          form.submit();
-        });
-      }
-    })();
-  </script>
 
 </body>
 </html>

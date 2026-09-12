@@ -12,8 +12,7 @@ import multer from 'multer';
 import { createHash } from 'node:crypto';
 import { pool } from '../db/pool.js';
 import { requireAdmin, passwordsMatch } from '../middleware/auth.js';
-import { generateAllocation, generatePalette, generateChecklist, generateVendorOutreach, extractVendorInfo, extractVendorsBulk, describeTileImage, generateTimeline, importGuestList, generateVendorSearchQueries, parseVendorSearchResults, extractBudgetFromPdf, isConfigured as anthropicConfigured, STANDARD_CATEGORIES } from '../lib/anthropic.js';
-import { parseBudgetFile, summarizeParsed } from '../lib/budget-parser.js';
+import { generateAllocation, generatePalette, generateChecklist, generateVendorOutreach, extractVendorInfo, extractVendorsBulk, describeTileImage, generateTimeline, importGuestList, generateVendorSearchQueries, parseVendorSearchResults, isConfigured as anthropicConfigured, STANDARD_CATEGORIES } from '../lib/anthropic.js';
 import { serperConfigured, serperSearch } from '../lib/serper.js';
 
 const upload = multer({
@@ -22,24 +21,6 @@ const upload = multer({
   fileFilter: (_req, file, cb) => {
     const ok = file.mimetype.startsWith('image/') || ['text/plain', 'application/pdf'].includes(file.mimetype);
     cb(null, ok);
-  },
-});
-
-const budgetUpload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 20 * 1024 * 1024 }, // 20 MB — workbooks can be large
-  fileFilter: (_req, file, cb) => {
-    const allowedMimes = [
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'application/vnd.ms-excel',
-      'text/csv',
-      'text/plain',
-      'application/pdf',
-      'application/octet-stream', // macOS / some browsers report xlsx this way
-    ];
-    const allowedExts = ['.xlsx', '.xls', '.csv', '.pdf'];
-    const ext = (file.originalname || '').toLowerCase().slice(file.originalname.lastIndexOf('.'));
-    cb(null, allowedMimes.includes(file.mimetype) || allowedExts.includes(ext));
   },
 });
 
@@ -1790,181 +1771,7 @@ router.post('/couples/:id/budget/:cid/delete', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-// ── Budget import (workbook → DB) ────────────────────────────────────────
-//
-// POST /couples/:id/budget/import  — upload file, parse, show preview
-// POST /couples/:id/budget/import/confirm — write parsed data to DB
 
-router.post('/couples/:id/budget/import', budgetUpload.single('file'), async (req, res, next) => {
-  try {
-    const couple = await findCoupleById(req.params.id);
-    if (!couple) return res.status(404).send('Couple not found.');
-    if (!req.file) {
-      setFlash(req, 'error', 'No file received. Save your workbook as .xlsx and try again.');
-      return res.redirect(`/admin/couples/${req.params.id}/budget`);
-    }
-
-    let parsed;
-    // Normalise MIME — browsers (especially macOS) sometimes report xlsx as octet-stream.
-    const origName = (req.file.originalname || '').toLowerCase();
-    let mime = req.file.mimetype;
-    if (mime === 'application/octet-stream') {
-      if (origName.endsWith('.xlsx') || origName.endsWith('.xls')) {
-        mime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-      } else if (origName.endsWith('.csv')) {
-        mime = 'text/csv';
-      } else if (origName.endsWith('.pdf')) {
-        mime = 'application/pdf';
-      }
-    }
-
-    if (mime === 'application/pdf') {
-      if (!anthropicConfigured()) {
-        setFlash(req, 'error', 'Claude API key not configured — PDF import is unavailable. Upload .xlsx instead.');
-        return res.redirect(`/admin/couples/${req.params.id}/budget`);
-      }
-      parsed = await extractBudgetFromPdf({ buffer: req.file.buffer });
-    } else {
-      try {
-        parsed = parseBudgetFile(req.file.buffer, mime);
-      } catch (err) {
-        setFlash(req, 'error', err.message);
-        return res.redirect(`/admin/couples/${req.params.id}/budget`);
-      }
-    }
-
-    if (!parsed.categories || parsed.categories.length === 0) {
-      setFlash(req, 'error', 'No budget data found in the file. Check that the Budget Detail tab exists and has qualifying rows.');
-      return res.redirect(`/admin/couples/${req.params.id}/budget`);
-    }
-
-    // Load current data for diff
-    const { rows: currentCats } = await pool.query(
-      `select c.title, c.vendor,
-              coalesce(sum(l.amount_cents), 0)::int as contracted_cents,
-              coalesce(sum(l.paid_cents),   0)::int as paid_cents
-         from budget_categories c
-         left join budget_line_items l on l.category_id = c.id
-        where c.couple_id = $1
-        group by c.id, c.title, c.vendor
-        order by c.position asc`,
-      [couple.id],
-    );
-
-    // Build diff: compare new categories against current by title
-    const currentByTitle = new Map(currentCats.map(c => [c.title.toLowerCase(), c]));
-    const diff = parsed.categories.map(nc => {
-      const existing = currentByTitle.get(nc.title.toLowerCase());
-      const newContracted = nc.lines.reduce((s, l) => s + l.amount_cents, 0);
-      const newPaid = nc.lines.reduce((s, l) => s + l.paid_cents, 0);
-      if (!existing) return { title: nc.title, vendor: nc.vendor, change: 'new', newContracted, newPaid };
-      const contractedChanged = existing.contracted_cents !== newContracted;
-      const paidChanged = existing.paid_cents !== newPaid;
-      const changed = contractedChanged || paidChanged;
-      return {
-        title: nc.title,
-        vendor: nc.vendor,
-        change: changed ? 'changed' : 'same',
-        oldContracted: existing.contracted_cents,
-        newContracted,
-        oldPaid: existing.paid_cents,
-        newPaid,
-        contractedChanged,
-        paidChanged,
-      };
-    });
-    // Removed categories
-    const newTitles = new Set(parsed.categories.map(c => c.title.toLowerCase()));
-    for (const c of currentCats) {
-      if (!newTitles.has(c.title.toLowerCase())) {
-        diff.push({ title: c.title, change: 'removed', oldContracted: c.contracted_cents, oldPaid: c.paid_cents });
-      }
-    }
-
-    // Store in session for the confirm step
-    req.session.budgetImport = {
-      coupleId: couple.id,
-      parsed,
-      isPdf: mime === 'application/pdf',
-    };
-
-    const summary = summarizeParsed(parsed);
-
-    res.render('admin/budget-import-preview', {
-      couple,
-      parsed,
-      summary,
-      diff,
-      isPdf: mime === 'application/pdf',
-      flash: null,
-    });
-  } catch (err) { next(err); }
-});
-
-router.post('/couples/:id/budget/import/confirm', async (req, res, next) => {
-  const stored = req.session?.budgetImport;
-  if (!stored || stored.coupleId !== req.params.id) {
-    setFlash(req, 'error', 'Import session expired. Please upload the file again.');
-    return res.redirect(`/admin/couples/${req.params.id}/budget`);
-  }
-
-  const { parsed } = stored;
-  delete req.session.budgetImport;
-
-  const client = await pool.connect();
-  try {
-    await client.query('begin');
-
-    // Replace all budget data for this couple
-    await client.query('delete from budget_categories where couple_id = $1', [req.params.id]);
-
-    let catNum = 1;
-    for (const cat of parsed.categories) {
-      const { rows: catRows } = await client.query(
-        `insert into budget_categories
-           (couple_id, category_number, title, vendor, estimated_cents, position)
-         values ($1, $2, $3, $4, $5, $6)
-         returning id`,
-        [req.params.id, catNum++, cat.title, cat.vendor || null,
-         cat.estimated_cents || 0, cat.position || catNum],
-      );
-      const catId = catRows[0].id;
-
-      for (const l of cat.lines) {
-        await client.query(
-          `insert into budget_line_items
-             (category_id, name, vendor_label, amount_cents, paid_cents,
-              status_kind, due_date, position)
-           values ($1, $2, $3, $4, $5, $6, $7, $8)`,
-          [catId, l.name, l.vendor_label || null, l.amount_cents || 0,
-           l.paid_cents || 0,
-           ['paid','deposited','upcoming'].includes(l.status_kind) ? l.status_kind : 'upcoming',
-           l.due_date || null, l.position || 1],
-        );
-      }
-    }
-
-    // Record import timestamp
-    await client.query(
-      'update couples set budget_last_imported_at = now() where id = $1',
-      [req.params.id],
-    );
-
-    await client.query('commit');
-
-    const summary = summarizeParsed(parsed);
-    setFlash(req, 'success',
-      `Budget imported: ${summary.categoryCount} categories, ${summary.lineItemCount} line items. ` +
-      (summary.rentalLineCount > 0 ? `${summary.rentalLineCount} rental items. ` : ''),
-    );
-    res.redirect(`/admin/couples/${req.params.id}/budget`);
-  } catch (err) {
-    await client.query('rollback').catch(() => {});
-    next(err);
-  } finally {
-    client.release();
-  }
-});
 
 // ── Payments tab ──────────────────────────────────────────────────────
 // Shows all budget line items for a couple in one editable list,
