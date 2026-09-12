@@ -127,6 +127,11 @@
     <p class="page-subtitle">
       What's booked, what's been paid, and what's still owed.
     </p>
+    <% if (lastImported) { %>
+      <p style="font-family:var(--zz-mono);font-size:0.6rem;letter-spacing:0.18em;text-transform:uppercase;color:var(--zz-finn-60);margin-top:0.5rem;">
+        Budget last updated <%= new Date(lastImported).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' }) %>
+      </p>
+    <% } %>
   </section>
 
   <!-- ── Summary: five figures ────────────────────────────────────────────── -->
@@ -186,10 +191,8 @@
             %>
               <tr class="<%= v.isPaidInFull ? 'row-paid-full' : '' %>">
                 <td>
-                  <span class="vendor-name"><%= v.title %></span>
-                  <% if (v.title_emphasis) { %>
-                    <span class="vendor-sub"><%= v.title_emphasis %></span>
-                  <% } %>
+                  <span class="vendor-name"><%= v.vendor || v.title %></span>
+                  <span class="vendor-sub"><%= v.title %></span>
                 </td>
                 <td class="col-right amount-td"><%= fmtCurrency(v.contracted) %></td>
                 <td class="col-right amount-td amount-td--muted"><%= fmtCurrency(v.actual) %></td>
@@ -243,8 +246,8 @@
               <tr>
                 <td>
                   <span class="vendor-name"><%= v.title %></span>
-                  <% if (v.title_emphasis) { %>
-                    <span class="vendor-sub"><%= v.title_emphasis %></span>
+                  <% if (v.vendor && v.vendor !== v.title) { %>
+                    <span class="vendor-sub"><%= v.vendor %></span>
                   <% } %>
                 </td>
                 <td class="col-right amount-td amount-td--muted"><%= fmtCurrency(v.estimated) %></td>
