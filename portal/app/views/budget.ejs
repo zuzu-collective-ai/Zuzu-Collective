@@ -5,6 +5,106 @@
 
   <%- include('partials/topbar', { couple, currentPage }) %>
 
+  <style>
+    /* Five-column summary grid */
+    @media (min-width: 640px) {
+      .summary-stats { grid-template-columns: repeat(5, 1fr); }
+    }
+
+    /* Booked / not-booked tables */
+    .budget-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: var(--space-md);
+    }
+    .budget-table th {
+      font-family: var(--zz-mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--zz-finn-60);
+      padding: 0 var(--space-sm) var(--space-sm);
+      text-align: left;
+      border-bottom: 1px solid var(--zz-finn-20);
+    }
+    .budget-table th.col-right,
+    .budget-table td.col-right { text-align: right; }
+    .budget-table td {
+      padding: var(--space-sm) var(--space-sm);
+      border-bottom: 1px solid var(--zz-finn-20);
+      vertical-align: top;
+    }
+    .budget-table tr:last-child td { border-bottom: 0; }
+    .budget-table tr.row-paid-full td { opacity: 0.45; }
+
+    .vendor-name {
+      font-family: var(--zz-display);
+      font-size: 1.05rem;
+      font-style: italic;
+      color: var(--zz-finn);
+      display: block;
+    }
+    .vendor-sub {
+      display: block;
+      font-family: var(--zz-display);
+      font-size: 0.875rem;
+      color: var(--zz-finn-60);
+      margin-top: 1px;
+    }
+    .amount-td {
+      font-family: var(--zz-display);
+      font-style: italic;
+      font-size: 1.05rem;
+      color: var(--zz-finn);
+      white-space: nowrap;
+    }
+    .amount-td--owed { color: var(--zz-tobacco); }
+    .amount-td--muted { color: var(--zz-finn-60); }
+
+    .next-due {
+      font-family: var(--zz-display);
+      font-size: 0.9rem;
+      color: var(--zz-ink);
+      display: block;
+    }
+    .next-due--overdue { color: #c0392b; font-weight: 500; }
+    .next-due--soon    { color: var(--zz-tobacco); }
+
+    .paid-full-label {
+      font-family: var(--zz-mono);
+      font-size: 0.6rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--zz-finn);
+    }
+
+    .budget-section-note {
+      font-family: var(--zz-display);
+      font-style: italic;
+      font-size: 0.9rem;
+      color: var(--zz-finn-60);
+      max-width: var(--content-max);
+      margin: var(--space-sm) auto var(--space-md);
+      padding-inline: var(--space-md);
+    }
+
+    /* Stack table on small screens */
+    @media (max-width: 639px) {
+      .budget-table thead { display: none; }
+      .budget-table tr {
+        display: block;
+        padding: var(--space-sm) 0;
+        border-bottom: 1px solid var(--zz-finn-20);
+      }
+      .budget-table td {
+        display: block;
+        padding: 2px var(--space-sm);
+        border-bottom: 0;
+        text-align: left !important;
+      }
+    }
+  </style>
+
   <%
     function fmtCurrency(cents) {
       const dollars = (cents || 0) / 100;
@@ -13,6 +113,11 @@
         : { minimumFractionDigits: 2, maximumFractionDigits: 2 };
       return '$' + dollars.toLocaleString('en-US', opts);
     }
+    function fmtDate(d) {
+      return new Date(d).toLocaleDateString('en-US', {
+        month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC',
+      });
+    }
   %>
 
   <!-- ── Page header ─────────────────────────────────────────────────────── -->
@@ -20,159 +125,136 @@
     <span class="label page-eyebrow"><%= couple.display_name %></span>
     <h1 class="page-title">Budget</h1>
     <p class="page-subtitle">
-      Where the investment goes. Tracks contracted totals, what's been paid,
-      and the balance still due to each vendor.
+      What's booked, what's been paid, and what's still owed.
     </p>
   </section>
 
-  <!-- ── Summary stats ───────────────────────────────────────────────────── -->
+  <!-- ── Summary: five figures ────────────────────────────────────────────── -->
   <section class="section summary">
     <div class="summary-stats">
       <div class="stat">
         <div class="stat-label">Total budget</div>
         <div class="stat-number"><%= fmtCurrency(summary.totalBudget) %></div>
-        <div class="stat-note">Across <%= summary.categoryCount %> categor<%= summary.categoryCount === 1 ? 'y' : 'ies' %></div>
       </div>
       <div class="stat">
-        <div class="stat-label">Contracted</div>
-        <div class="stat-number stat-number--accent"><%= fmtCurrency(summary.totalContracted) %></div>
-        <div class="stat-note"><%= summary.pctOfTotal %>% of budget committed</div>
+        <div class="stat-label">Total planned spend</div>
+        <div class="stat-number stat-number--accent"><%= fmtCurrency(summary.totalPlannedSpend) %></div>
+        <div class="stat-note">Booked + estimated</div>
       </div>
       <div class="stat">
-        <div class="stat-label">Paid so far</div>
-        <div class="stat-number"><%= fmtCurrency(summary.totalSpent) %></div>
+        <div class="stat-label">Paid to date</div>
+        <div class="stat-number"><%= fmtCurrency(summary.totalPaid) %></div>
       </div>
       <div class="stat">
-        <div class="stat-label">Balance due</div>
+        <div class="stat-label">Still owed</div>
         <div class="stat-number"><%= fmtCurrency(summary.totalOwed) %></div>
-        <div class="stat-note">Remaining to vendors</div>
+        <div class="stat-note">To booked vendors</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Remaining budget</div>
+        <div class="stat-number"><%= fmtCurrency(summary.remainingBudget) %></div>
+        <div class="stat-note">After planned spend</div>
       </div>
     </div>
   </section>
 
-  <!-- ── Payment tracker ───────────────────────────────────────────────── -->
-  <% if (scheduledPayments.length > 0) { %>
-    <section class="section payment-schedule">
-      <div class="section-head">
-        <span class="label">Payment schedule</span>
-        <h2 class="section-title"><em>Where the investment stands.</em></h2>
-      </div>
-
-      <%
-        const paidTotal       = summary.totalSpent;
-        const investmentTotal = summary.totalContracted || summary.totalBudget;
-        const pctPaid         = investmentTotal > 0 ? Math.min(100, Math.round((paidTotal / investmentTotal) * 100)) : 0;
-        const balanceTotal    = Math.max(0, investmentTotal - paidTotal);
-      %>
-      <div class="investment-tracker">
-        <div class="investment-bar-wrap">
-          <div class="investment-bar">
-            <span class="investment-bar-fill" style="width:<%= pctPaid %>%;"></span>
-          </div>
-          <span class="investment-bar-pct"><%= pctPaid %>% paid</span>
-        </div>
-        <div class="investment-cols">
-          <div class="investment-col">
-            <span class="investment-col-label">Total Investment</span>
-            <span class="investment-col-amount"><%= fmtCurrency(investmentTotal) %></span>
-          </div>
-          <div class="investment-col">
-            <span class="investment-col-label">Paid to Date</span>
-            <span class="investment-col-amount investment-col-amount--paid"><%= fmtCurrency(paidTotal) %></span>
-          </div>
-          <div class="investment-col">
-            <span class="investment-col-label">Balance Remaining</span>
-            <span class="investment-col-amount investment-col-amount--balance"><%= fmtCurrency(balanceTotal) %></span>
-          </div>
-        </div>
-      </div>
-
-      <ul class="payment-list">
-        <% scheduledPayments.forEach(p => {
-          const due    = new Date(p.due_date);
-          const fmtDue = due.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
-          const balance = Math.max(0, (p.amount_cents || 0) - (p.paid_cents || 0));
-          const badge = p.statusBadge;
-          const BADGE_LABELS = { paid: 'Paid', overdue: 'Overdue', soon: 'Due Soon', upcoming: 'Upcoming' };
-          const itemClass = badge === 'overdue' ? 'payment-item--overdue' : badge === 'soon' ? 'payment-item--soon' : '';
-        %>
-          <li class="payment-item<%= itemClass ? ` ${itemClass}` : '' %>">
-            <div class="payment-date">
-              <span class="payment-date-main"><%= fmtDue %></span>
-              <% if (!p.isPaid && p.daysUntil < 0) { %>
-                <span class="payment-urgency">Overdue by <%= Math.abs(p.daysUntil) %> day<%= Math.abs(p.daysUntil) === 1 ? '' : 's' %></span>
-              <% } else if (!p.isPaid && p.daysUntil <= 14) { %>
-                <span class="payment-urgency"><%= p.daysUntil === 0 ? 'Due today' : `${p.daysUntil} day${p.daysUntil === 1 ? '' : 's'} away` %></span>
-              <% } %>
-            </div>
-            <div class="payment-desc">
-              <em><%= p.name %></em>
-              <% if (p.categoryTitle) { %><span class="payment-category"><%= p.categoryTitle %></span><% } %>
-              <% if (p.vendor_label) { %><span class="payment-vendor"><%= p.vendor_label %></span><% } %>
-            </div>
-            <div class="payment-amount"><%= fmtCurrency(p.isPaid ? p.paid_cents : balance) %></div>
-            <div class="payment-badge payment-badge--<%= badge %>"><%= BADGE_LABELS[badge] %></div>
-          </li>
-        <% }) %>
-      </ul>
-    </section>
-  <% } %>
-
-  <!-- ── Categories ──────────────────────────────────────────────────────── -->
-  <% categories.forEach(cat => {
-       const stats = categoryStats.get(cat.id) || { estimated: 0, contracted: 0, actual: 0, remaining: 0, pct: 0 };
-       const lines = linesByCategory.get(cat.id) || [];
-  %>
+  <!-- ── Booked ──────────────────────────────────────────────────────────── -->
+  <% if (booked.length > 0) { %>
     <section class="section category">
-      <div class="category-header">
-        <div class="category-meta">
-          <span class="label">Category <%= String(cat.category_number).padStart(2, '0') %></span>
-          <h2 class="category-title">
-            <%= cat.title %><% if (cat.title_emphasis) { %> <em><%= cat.title_emphasis %></em><% } %>
-          </h2>
-        </div>
-        <div class="category-amount">
-          <div class="amount-row">
-            <div class="amount-cell"><span class="amount-label">Estimated</span><span class="amount-value"><%= fmtCurrency(stats.estimated) %></span></div>
-            <div class="amount-cell"><span class="amount-label">Contracted</span><span class="amount-value"><%= fmtCurrency(stats.contracted) %></span></div>
-            <div class="amount-cell"><span class="amount-label">Paid</span><span class="amount-value"><%= fmtCurrency(stats.actual) %></span></div>
-            <div class="amount-cell"><span class="amount-label">Balance due</span><span class="amount-value"><%= fmtCurrency(stats.remaining) %></span></div>
-          </div>
-          <div class="progress-bar"><span style="width: <%= stats.pct %>%;"></span></div>
-        </div>
+      <div class="section-head" style="max-width: var(--content-max); margin-inline: auto; padding-inline: var(--space-md);">
+        <span class="label">Booked</span>
+        <h2 class="section-title"><em>Signed contracts.</em></h2>
       </div>
 
-      <% if (lines.length > 0) { %>
-        <ul class="line-items">
-          <% lines.forEach(line => {
-               const statusClass = `status-${(line.status_kind || 'upcoming').replace(/[^a-z]/g, '')}`;
-               const balance = Math.max(0, (line.amount_cents || 0) - (line.paid_cents || 0));
-          %>
-            <li>
-              <div class="line-name"><em><%= line.name %></em></div>
-              <div class="line-vendor"><%= line.vendor_label || '' %></div>
-              <div class="line-amount"><%= fmtCurrency(line.amount_cents) %></div>
-              <div class="line-paid"><%= fmtCurrency(line.paid_cents) %> paid</div>
-              <div class="line-balance<%= balance > 0 ? ' line-balance--due' : '' %>"><%= balance > 0 ? fmtCurrency(balance) + ' due' : '✓ Paid' %></div>
-              <div class="line-status <%= statusClass %>"><%= line.status_label || '' %></div>
-            </li>
-          <% }) %>
-        </ul>
-      <% } %>
-    </section>
-  <% }) %>
-
-  <!-- ── Footnote ────────────────────────────────────────────────────────── -->
-  <% if (summary.totalBudget > 0) { %>
-    <section class="section budget-footnote">
-      <p>
-        <em>Total budget: <%= fmtCurrency(summary.totalBudget) %>.</em>
-        Contracted amounts reflect signed vendor totals; balance due updates
-        as deposits and final payments are recorded.
-      </p>
+      <div style="max-width: var(--content-max); margin-inline: auto; padding-inline: var(--space-md); overflow-x: auto;">
+        <table class="budget-table">
+          <thead>
+            <tr>
+              <th>Vendor</th>
+              <th class="col-right">Contract total</th>
+              <th class="col-right">Paid</th>
+              <th class="col-right">Still owed</th>
+              <th>Next payment due</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% booked.forEach(v => {
+                 const nextDue = v.nextDue;
+                 const nextBalance = nextDue
+                   ? Math.max(0, (nextDue.amount_cents || 0) - (nextDue.paid_cents || 0))
+                   : 0;
+            %>
+              <tr class="<%= v.isPaidInFull ? 'row-paid-full' : '' %>">
+                <td>
+                  <span class="vendor-name"><%= v.title %></span>
+                  <% if (v.title_emphasis) { %>
+                    <span class="vendor-sub"><%= v.title_emphasis %></span>
+                  <% } %>
+                </td>
+                <td class="col-right amount-td"><%= fmtCurrency(v.contracted) %></td>
+                <td class="col-right amount-td amount-td--muted"><%= fmtCurrency(v.actual) %></td>
+                <td class="col-right amount-td<%= v.remaining > 0 ? ' amount-td--owed' : '' %>">
+                  <%= v.remaining > 0 ? fmtCurrency(v.remaining) : '—' %>
+                </td>
+                <td>
+                  <% if (v.isPaidInFull) { %>
+                    <span class="paid-full-label">Paid in full</span>
+                  <% } else if (nextDue) { %>
+                    <span class="next-due<%= nextDue._urgency ? ` next-due--${nextDue._urgency}` : '' %>">
+                      <%= fmtCurrency(nextBalance) %> · <%= fmtDate(nextDue.due_date) %>
+                      <% if (nextDue._urgency === 'overdue') { %>
+                        — overdue by <%= Math.abs(nextDue._daysUntil) %> day<%= Math.abs(nextDue._daysUntil) === 1 ? '' : 's' %>
+                      <% } else if (nextDue._urgency === 'soon') { %>
+                        — <%= nextDue._daysUntil === 0 ? 'due today' : `${nextDue._daysUntil} day${nextDue._daysUntil === 1 ? '' : 's'} away` %>
+                      <% } %>
+                    </span>
+                  <% } %>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
     </section>
   <% } %>
 
+  <!-- ── Not booked yet ─────────────────────────────────────────────────── -->
+  <% if (notBooked.length > 0) { %>
+    <section class="section category">
+      <div class="section-head" style="max-width: var(--content-max); margin-inline: auto; padding-inline: var(--space-md);">
+        <span class="label">Not booked yet</span>
+        <h2 class="section-title"><em>Still being sourced.</em></h2>
+      </div>
+
+      <p class="budget-section-note">
+        These are estimates, not quotes. Actual vendor pricing may differ.
+      </p>
+
+      <div style="max-width: var(--content-max); margin-inline: auto; padding-inline: var(--space-md); overflow-x: auto;">
+        <table class="budget-table">
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th class="col-right">Estimated</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% notBooked.forEach(v => { %>
+              <tr>
+                <td>
+                  <span class="vendor-name"><%= v.title %></span>
+                  <% if (v.title_emphasis) { %>
+                    <span class="vendor-sub"><%= v.title_emphasis %></span>
+                  <% } %>
+                </td>
+                <td class="col-right amount-td amount-td--muted"><%= fmtCurrency(v.estimated) %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  <% } %>
 
   <%- include('partials/footer', { couple }) %>
 

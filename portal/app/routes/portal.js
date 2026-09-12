@@ -370,72 +370,66 @@ router.get('/p/:slug/budget', async (req, res, next) => {
       linesByCategory.set(l.category_id, list);
     }
 
-    // Derive each category's stats from its line items.
-    // - contracted: total amount_cents (what you've committed to vendors)
-    // - actual:     total paid_cents (what you've actually paid so far)
-    // - remaining:  contracted − actual (what you still owe vendors)
-    // Categories with no lines fall back to 0.
-    const categoryStats = new Map();
-    for (const c of categories) {
-      const catLines = linesByCategory.get(c.id) || [];
-      const contracted = catLines.reduce((s, l) => s + (l.amount_cents || 0), 0);
-      const actual = catLines.reduce((s, l) => s + (l.paid_cents || 0), 0);
-      const estimated = c.estimated_cents || 0;
-      const remaining = Math.max(0, contracted - actual);
-      const pct = contracted > 0
-        ? Math.min(100, Math.round((actual / contracted) * 1000) / 10)
-        : 0;
-      categoryStats.set(c.id, { estimated, contracted, actual, remaining, pct });
-    }
-
-    // Page-level summary stats.
-    const totalBudget = res.locals.couple.budget_total_cents || 0;
-    const totalContracted = Array.from(categoryStats.values())
-      .reduce((s, x) => s + x.contracted, 0);
-    const totalSpent = Array.from(categoryStats.values())
-      .reduce((s, x) => s + x.actual, 0);
-    const totalOwed = Math.max(0, totalContracted - totalSpent);
-    const pctOfTotal = totalBudget > 0
-      ? Math.round((totalContracted / totalBudget) * 100)
-      : 0;
-    const openCategories = Array.from(categoryStats.values())
-      .filter(x => x.contracted > 0 && x.actual < x.contracted).length;
-
-    // Payment schedule — all line items with a due_date, sorted ascending.
-    // Includes paid ones so clients see their full payment history.
+    // Split categories into booked (signed contract → has amount_cents) and
+    // not-yet-booked (estimated only). Per-category stats are derived from
+    // line items at render time; nothing is stored or carried forward.
     const today = new Date();
     today.setUTCHours(0, 0, 0, 0);
-    const scheduledPayments = lines
-      .filter(l => l.due_date)
-      .map(l => {
-        const cat = categories.find(c => c.id === l.category_id);
-        const due = new Date(l.due_date);
-        due.setUTCHours(0, 0, 0, 0);
-        const daysUntil = Math.round((due - today) / 86400000);
-        const isPaid    = l.status_kind === 'paid' || (l.paid_cents || 0) >= (l.amount_cents || 0);
-        const statusBadge = isPaid ? 'paid'
-          : daysUntil < 0   ? 'overdue'
-          : daysUntil <= 14 ? 'soon'
-          : 'upcoming';
-        return { ...l, categoryTitle: cat?.title || '', daysUntil, isPaid, statusBadge };
-      })
-      .sort((a, b) => new Date(a.due_date) - new Date(b.due_date));
+
+    const booked    = [];
+    const notBooked = [];
+
+    for (const cat of categories) {
+      const catLines   = linesByCategory.get(cat.id) || [];
+      const contracted = catLines.reduce((s, l) => s + (l.amount_cents || 0), 0);
+      const actual     = catLines.reduce((s, l) => s + (l.paid_cents   || 0), 0);
+      const estimated  = cat.estimated_cents || 0;
+      const remaining  = Math.max(0, contracted - actual);
+
+      if (contracted > 0) {
+        // Next unpaid installment that has a due date, soonest first.
+        const nextDue = catLines
+          .filter(l => l.due_date
+            && l.status_kind !== 'paid'
+            && (l.paid_cents || 0) < (l.amount_cents || 0))
+          .sort((a, b) => new Date(a.due_date) - new Date(b.due_date))[0] || null;
+
+        if (nextDue) {
+          const dueMs    = new Date(nextDue.due_date);
+          dueMs.setUTCHours(0, 0, 0, 0);
+          const daysUntil        = Math.round((dueMs - today) / 86400000);
+          nextDue._daysUntil     = daysUntil;
+          nextDue._urgency       = daysUntil < 0 ? 'overdue' : daysUntil <= 14 ? 'soon' : '';
+        }
+
+        booked.push({ ...cat, contracted, actual, remaining, isPaidInFull: remaining === 0, nextDue });
+      } else if (estimated > 0) {
+        notBooked.push({ ...cat, estimated });
+      }
+    }
+
+    // Sort booked: unpaid soonest-due first; paid-in-full at the bottom.
+    booked.sort((a, b) => {
+      if (a.isPaidInFull !== b.isPaidInFull) return a.isPaidInFull ? 1 : -1;
+      const da = a.nextDue ? new Date(a.nextDue.due_date).getTime() : Infinity;
+      const db = b.nextDue ? new Date(b.nextDue.due_date).getTime() : Infinity;
+      return da - db;
+    });
+
+    // Five summary figures only.
+    const totalBudget       = res.locals.couple.budget_total_cents || 0;
+    const totalContracted   = booked.reduce((s, c) => s + c.contracted, 0);
+    const totalEstimated    = notBooked.reduce((s, c) => s + c.estimated, 0);
+    const totalPlannedSpend = totalContracted + totalEstimated;
+    const totalPaid         = booked.reduce((s, c) => s + c.actual, 0);
+    const totalOwed         = booked.reduce((s, c) => s + c.remaining, 0);
+    const remainingBudget   = Math.max(0, totalBudget - totalPlannedSpend);
 
     res.render('budget', {
       currentPage: 'budget',
-      categories,
-      linesByCategory,
-      categoryStats,
-      scheduledPayments,
-      summary: {
-        totalBudget,
-        totalContracted,
-        totalSpent,
-        totalOwed,
-        pctOfTotal,
-        openCategories,
-        categoryCount: categories.length,
-      },
+      booked,
+      notBooked,
+      summary: { totalBudget, totalPlannedSpend, totalPaid, totalOwed, remainingBudget },
     });
   } catch (err) {
     next(err);
