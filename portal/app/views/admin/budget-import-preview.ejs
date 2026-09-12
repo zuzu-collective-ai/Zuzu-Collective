@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include('partials/head', { title: `${couple.display_name} — Budget Import Preview` }) %>
+<body class="admin-body">
+
+  <%- include('partials/sidebar', { currentSection: 'couples' }) %>
+
+  <main class="admin-main">
+    <header class="admin-header">
+      <div>
+        <a href="/admin/couples/<%= couple.id %>/budget" class="admin-back">← <%= couple.display_name %> · budget</a>
+        <h1 class="admin-title">Budget import preview</h1>
+        <p class="admin-subtitle">Review before saving — nothing has been written yet.</p>
+      </div>
+    </header>
+
+    <%- include('partials/couple-tabs', { couple, currentTab: 'budget' }) %>
+
+    <%
+      function fmtC(cents) {
+        const d = (cents || 0) / 100;
+        return '$' + d.toLocaleString('en-US', Number.isInteger(d) ? { maximumFractionDigits: 0 } : { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      }
+    %>
+
+    <!-- ── Summary ──────────────────────────────────────────────────────── -->
+    <section style="background:var(--zz-sage-10,#f7f6f2); border:1px solid var(--zz-finn-20); padding:1.5rem; margin-bottom:2rem; border-radius:2px;">
+      <h2 class="admin-legend" style="margin:0 0 1rem;">What was found</h2>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:1rem;">
+        <div>
+          <div style="font-size:0.7rem;letter-spacing:.15em;text-transform:uppercase;color:var(--zz-finn-60);margin-bottom:.25rem;">Categories</div>
+          <div style="font-size:1.5rem;font-family:var(--zz-display);font-style:italic;color:var(--zz-finn);"><%= summary.categoryCount %></div>
+        </div>
+        <div>
+          <div style="font-size:0.7rem;letter-spacing:.15em;text-transform:uppercase;color:var(--zz-finn-60);margin-bottom:.25rem;">Line items</div>
+          <div style="font-size:1.5rem;font-family:var(--zz-display);font-style:italic;color:var(--zz-finn);"><%= summary.lineItemCount %></div>
+        </div>
+        <% if (summary.rentalLineCount > 0) { %>
+        <div>
+          <div style="font-size:0.7rem;letter-spacing:.15em;text-transform:uppercase;color:var(--zz-finn-60);margin-bottom:.25rem;">Rental items</div>
+          <div style="font-size:1.5rem;font-family:var(--zz-display);font-style:italic;color:var(--zz-finn);"><%= summary.rentalLineCount %></div>
+        </div>
+        <% } %>
+        <div>
+          <div style="font-size:0.7rem;letter-spacing:.15em;text-transform:uppercase;color:var(--zz-finn-60);margin-bottom:.25rem;">Total planned</div>
+          <div style="font-size:1.5rem;font-family:var(--zz-display);font-style:italic;color:var(--zz-finn);"><%= fmtC(summary.plannedCents) %></div>
+        </div>
+        <div>
+          <div style="font-size:0.7rem;letter-spacing:.15em;text-transform:uppercase;color:var(--zz-finn-60);margin-bottom:.25rem;">Paid to date</div>
+          <div style="font-size:1.5rem;font-family:var(--zz-display);font-style:italic;color:var(--zz-finn);"><%= fmtC(summary.paidCents) %></div>
+        </div>
+        <div>
+          <div style="font-size:0.7rem;letter-spacing:.15em;text-transform:uppercase;color:var(--zz-finn-60);margin-bottom:.25rem;">Still owed</div>
+          <div style="font-size:1.5rem;font-family:var(--zz-display);font-style:italic;color:var(--zz-finn);"><%= fmtC(summary.owedCents) %></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Warnings ─────────────────────────────────────────────────────── -->
+    <% if (parsed.warnings && parsed.warnings.length > 0) { %>
+    <section style="background:#fff8f0; border:1px solid #f0a020; padding:1.25rem 1.5rem; margin-bottom:2rem; border-radius:2px;">
+      <h2 class="admin-legend" style="margin:0 0 0.75rem; color:#b06000;">
+        <%= isPdf ? '⚠ Uncertain extractions — review before saving' : '⚠ Warnings' %>
+      </h2>
+      <ul style="margin:0; padding-left:1.25rem; font-size:0.85rem; color:#7a4a00; line-height:1.6;">
+        <% parsed.warnings.forEach(w => { %>
+          <li><%= w %></li>
+        <% }) %>
+      </ul>
+    </section>
+    <% } %>
+
+    <!-- ── Diff ──────────────────────────────────────────────────────────── -->
+    <% const changed = diff.filter(d => d.change !== 'same'); %>
+    <% if (changed.length > 0) { %>
+    <section style="margin-bottom:2rem;">
+      <h2 class="admin-legend">Changes vs current data</h2>
+      <table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
+        <thead>
+          <tr>
+            <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--zz-finn-20);font-family:var(--zz-mono);font-size:0.65rem;letter-spacing:.15em;text-transform:uppercase;color:var(--zz-finn-60);">Category</th>
+            <th style="text-align:right;padding:6px 8px;border-bottom:1px solid var(--zz-finn-20);font-family:var(--zz-mono);font-size:0.65rem;letter-spacing:.15em;text-transform:uppercase;color:var(--zz-finn-60);">Was contracted</th>
+            <th style="text-align:right;padding:6px 8px;border-bottom:1px solid var(--zz-finn-20);font-family:var(--zz-mono);font-size:0.65rem;letter-spacing:.15em;text-transform:uppercase;color:var(--zz-finn-60);">Now contracted</th>
+            <th style="text-align:right;padding:6px 8px;border-bottom:1px solid var(--zz-finn-20);font-family:var(--zz-mono);font-size:0.65rem;letter-spacing:.15em;text-transform:uppercase;color:var(--zz-finn-60);">Was paid</th>
+            <th style="text-align:right;padding:6px 8px;border-bottom:1px solid var(--zz-finn-20);font-family:var(--zz-mono);font-size:0.65rem;letter-spacing:.15em;text-transform:uppercase;color:var(--zz-finn-60);">Now paid</th>
+            <th style="padding:6px 8px;border-bottom:1px solid var(--zz-finn-20);font-family:var(--zz-mono);font-size:0.65rem;letter-spacing:.15em;text-transform:uppercase;color:var(--zz-finn-60);">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% changed.forEach(d => { %>
+            <% const isNew     = d.change === 'new'; %>
+            <% const isRemoved = d.change === 'removed'; %>
+            <% const isChanged = d.change === 'changed'; %>
+            <tr style="<%= isNew ? 'background:#f0fff0;' : isRemoved ? 'background:#fff0f0;' : '' %>">
+              <td style="padding:7px 8px;border-bottom:1px solid var(--zz-finn-20);">
+                <strong><%= d.title %></strong>
+                <% if (d.vendor) { %><span style="color:var(--zz-finn-60);font-size:0.8rem;"> · <%= d.vendor %></span><% } %>
+              </td>
+              <td style="text-align:right;padding:7px 8px;border-bottom:1px solid var(--zz-finn-20);color:var(--zz-finn-60);">
+                <%= isNew ? '—' : fmtC(d.oldContracted) %>
+              </td>
+              <td style="text-align:right;padding:7px 8px;border-bottom:1px solid var(--zz-finn-20);<%= isRemoved ? 'color:var(--zz-finn-60);' : d.contractedChanged ? 'color:var(--zz-tobacco);font-weight:600;' : '' %>">
+                <%= isRemoved ? '—' : fmtC(d.newContracted) %>
+              </td>
+              <td style="text-align:right;padding:7px 8px;border-bottom:1px solid var(--zz-finn-20);color:var(--zz-finn-60);">
+                <%= isNew ? '—' : fmtC(d.oldPaid) %>
+              </td>
+              <td style="text-align:right;padding:7px 8px;border-bottom:1px solid var(--zz-finn-20);<%= isRemoved ? 'color:var(--zz-finn-60);' : d.paidChanged ? 'color:var(--zz-tobacco);font-weight:600;' : '' %>">
+                <%= isRemoved ? '—' : fmtC(d.newPaid) %>
+              </td>
+              <td style="padding:7px 8px;border-bottom:1px solid var(--zz-finn-20);">
+                <span style="font-family:var(--zz-mono);font-size:0.6rem;letter-spacing:.12em;text-transform:uppercase;padding:2px 6px;border:1px solid currentColor;<%= isNew ? 'color:green;' : isRemoved ? 'color:#c0392b;' : 'color:var(--zz-tobacco);' %>">
+                  <%= isNew ? 'New' : isRemoved ? 'Will remove' : 'Changed' %>
+                </span>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </section>
+    <% } else { %>
+    <p style="color:var(--zz-finn-60);font-family:var(--zz-display);font-style:italic;margin-bottom:2rem;">
+      No changes to existing categories — all contract amounts and paid amounts match.
+    </p>
+    <% } %>
+
+    <!-- ── All categories preview ────────────────────────────────────────── -->
+    <details style="margin-bottom:2rem;">
+      <summary style="cursor:pointer;font-family:var(--zz-mono);font-size:0.7rem;letter-spacing:.15em;text-transform:uppercase;color:var(--zz-finn-60);padding:.5rem 0;">
+        Full import preview (<%= parsed.categories.length %> categories)
+      </summary>
+      <% parsed.categories.forEach(cat => { %>
+        <div style="margin:.75rem 0; border:1px solid var(--zz-finn-20); border-radius:2px; overflow:hidden;">
+          <div style="background:var(--zz-sage-10,#f7f6f2);padding:.6rem 1rem;display:flex;justify-content:space-between;align-items:center;">
+            <div>
+              <strong style="font-family:var(--zz-display);font-style:italic;color:var(--zz-finn);"><%= cat.title %></strong>
+              <% if (cat.vendor) { %><span style="color:var(--zz-finn-60);font-size:0.85rem;"> · <%= cat.vendor %></span><% } %>
+            </div>
+            <% const catContracted = cat.lines.reduce((s,l) => s + l.amount_cents, 0); %>
+            <% const catPaid = cat.lines.reduce((s,l) => s + l.paid_cents, 0); %>
+            <div style="font-family:var(--zz-mono);font-size:0.7rem;color:var(--zz-finn-60);">
+              <%= cat.lines.length %> item<%= cat.lines.length === 1 ? '' : 's' %>
+              <% if (catContracted > 0) { %> · <%= fmtC(catContracted) %> contracted<% } %>
+              <% if (cat.estimated_cents > 0) { %> · est <%= fmtC(cat.estimated_cents) %><% } %>
+              <% if (catPaid > 0) { %> · <%= fmtC(catPaid) %> paid<% } %>
+            </div>
+          </div>
+          <% if (cat.lines.length > 0) { %>
+          <table style="width:100%;border-collapse:collapse;font-size:0.82rem;">
+            <% cat.lines.forEach(l => { %>
+              <tr>
+                <td style="padding:5px 1rem;border-bottom:1px solid var(--zz-finn-20);"><%= l.name %><% if (l.vendor_label) { %> <span style="color:var(--zz-finn-60);"> · <%= l.vendor_label %></span><% } %></td>
+                <td style="text-align:right;padding:5px 1rem;border-bottom:1px solid var(--zz-finn-20);"><%= fmtC(l.amount_cents) %></td>
+                <td style="text-align:right;padding:5px 1rem;border-bottom:1px solid var(--zz-finn-20);color:var(--zz-finn-60);"><%= fmtC(l.paid_cents) %> paid</td>
+                <td style="padding:5px 1rem;border-bottom:1px solid var(--zz-finn-20);color:var(--zz-finn-60);">
+                  <%= l.status_kind %>
+                  <% if (l.due_date) { %> · <%= l.due_date %><% } %>
+                </td>
+              </tr>
+            <% }) %>
+          </table>
+          <% } %>
+        </div>
+      <% }) %>
+    </details>
+
+    <!-- ── Confirm / Cancel ─────────────────────────────────────────────── -->
+    <div style="display:flex;gap:1rem;align-items:center;padding-top:1rem;border-top:1px solid var(--zz-finn-20);">
+      <form action="/admin/couples/<%= couple.id %>/budget/import/confirm" method="post">
+        <button type="submit" class="admin-btn admin-btn--primary">
+          ✓ Save import — replace all budget data
+        </button>
+      </form>
+      <a href="/admin/couples/<%= couple.id %>/budget" class="admin-btn admin-btn--ghost">Cancel</a>
+      <p style="margin:0;font-size:0.8rem;color:var(--zz-finn-60);">
+        This replaces <em>all</em> existing budget categories and line items for <%= couple.display_name %>.
+      </p>
+    </div>
+
+  </main>
+
+</body>
+</html>

@@ -956,3 +956,86 @@ export async function parseVendorSearchResults({ results, vendorType, styleDescr
   if (!textBlock) throw new Error('No text in Claude response');
   return JSON.parse(textBlock.text);
 }
+
+// ── Budget PDF extraction ──────────────────────────────────────────────────
+
+const BUDGET_EXTRACT_SCHEMA = {
+  type: 'object',
+  properties: {
+    categories: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          title:           { type: 'string' },
+          vendor:          { type: 'string' },
+          estimated_cents: { type: 'integer' },
+          lines: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                name:         { type: 'string' },
+                vendor_label: { type: 'string' },
+                amount_cents: { type: 'integer' },
+                paid_cents:   { type: 'integer' },
+                status_kind:  { type: 'string', enum: ['paid', 'deposited', 'upcoming'] },
+                due_date:     { type: 'string' },
+              },
+              required: ['name', 'vendor_label', 'amount_cents', 'paid_cents', 'status_kind', 'due_date'],
+              additionalProperties: false,
+            },
+          },
+        },
+        required: ['title', 'vendor', 'estimated_cents', 'lines'],
+        additionalProperties: false,
+      },
+    },
+    warnings: {
+      type: 'array',
+      description: 'Any values you were uncertain about — flag each one with a brief note.',
+      items: { type: 'string' },
+    },
+  },
+  required: ['categories', 'warnings'],
+  additionalProperties: false,
+};
+
+export async function extractBudgetFromPdf({ buffer }) {
+  const response = await client().messages.create({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 8192,
+    tools: [{
+      name: 'save_budget',
+      description: 'Save the structured budget extracted from the document.',
+      input_schema: BUDGET_EXTRACT_SCHEMA,
+    }],
+    tool_choice: { type: 'tool', name: 'save_budget' },
+    system: `You are a data-extraction assistant for a wedding planning company.
+Extract budget data from this PDF export of a budget workbook.
+
+Rules:
+- Budget Detail tab: headers in row 6, data from row 7. Stop at "TOTALS" row.
+  Import only rows where "In $100K Budget?" is Yes.
+  Skip rows where "Line Item" is empty or ends with "subtotal".
+  Group rows by Category — one entry per unique Category.
+  For each category: vendor = first non-empty Vendor in that group.
+  Contracted → amount_cents (in cents). Effective Paid → paid_cents (use the "Paid (type to override)" value if present, otherwise the "Paid" column). Never recompute Balance Due.
+- Payments tab: headers row 6, rows 7–34. Match each payment to its category via "Budget Line Item" → Budget Detail "Line Item" → Category. Use due_date from the "Due Date" column. Status "Paid" → status_kind "paid"; otherwise "upcoming".
+- Rentals tab: treat as separate categories named "Rentals — {Phase}". Use Total column for amount_cents. Never recompute.
+- Amount values are in dollars — convert to integer cents (multiply by 100 and round).
+- Due dates as ISO YYYY-MM-DD strings, or empty string if none.
+- Flag any value you are uncertain about in the warnings array.`,
+    messages: [{ role: 'user', content: [
+      { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: buffer.toString('base64') } },
+      { type: 'text', text: 'Extract all budget data from this document.' },
+    ]}],
+  });
+
+  const toolUse = response.content.find(b => b.type === 'tool_use' && b.name === 'save_budget');
+  if (!toolUse) throw new Error('No budget data returned from Claude');
+  return {
+    categories: toolUse.input.categories || [],
+    warnings:   toolUse.input.warnings   || [],
+  };
+}

@@ -103,6 +103,7 @@ alter table couples add column if not exists hero_bg_position_y integer default 
 alter table couples add column if not exists palette_color_5 text;
 alter table couples add column if not exists palette_color_5_name text;
 alter table couples add column if not exists couple_phone text;
+alter table couples add column if not exists budget_last_imported_at timestamptz;
 
 create index if not exists couples_slug_idx on couples(slug);
 
@@ -243,11 +244,14 @@ create table if not exists budget_categories (
   title_emphasis  text,                         -- "(food & bar)" — italic on render
 
   estimated_cents integer not null default 0,
+  vendor          text,
 
   position        integer not null default 0,
   created_at      timestamptz not null default now(),
   updated_at      timestamptz not null default now()
 );
+
+alter table budget_categories add column if not exists vendor text;
 
 create index if not exists budget_categories_couple_id_idx on budget_categories(couple_id);
 create unique index if not exists budget_categories_couple_number_uq on budget_categories(couple_id, category_number);

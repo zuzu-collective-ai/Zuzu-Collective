@@ -430,6 +430,7 @@ router.get('/p/:slug/budget', async (req, res, next) => {
       booked,
       notBooked,
       summary: { totalBudget, totalPlannedSpend, totalPaid, totalOwed, remainingBudget },
+      lastImported: res.locals.couple.budget_last_imported_at || null,
     });
   } catch (err) {
     next(err);
