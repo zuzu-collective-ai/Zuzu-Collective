@@ -35,6 +35,11 @@
       const STATUS_LABELS = { paid: 'Paid', deposited: 'Deposited', upcoming: 'Upcoming' };
     %>
 
+    <%
+      // Determine initial booked state: booked if category has any line items with amount > 0
+      const isBooked = lines && lines.some(l => (l.amount_cents || 0) > 0);
+    %>
+
     <form action="<%= formAction %>" method="post" class="admin-form">
       <fieldset class="admin-fieldset">
         <legend class="admin-legend">Category</legend>
@@ -62,31 +67,40 @@
           </label>
         </div>
 
-        <div class="admin-row" style="display: grid; grid-template-columns: 1fr 110px; gap: 1rem;">
-          <label class="admin-field">
+        <div class="admin-row" style="display:flex; gap:1.5rem; align-items:center; margin-bottom:.5rem;">
+          <span class="admin-field-label" style="margin:0;">Status</span>
+          <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;">
+            <input type="radio" name="_booked_toggle" value="0" <%= !isBooked ? 'checked' : '' %>> Not booked yet
+          </label>
+          <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;">
+            <input type="radio" name="_booked_toggle" value="1" <%= isBooked ? 'checked' : '' %>> Booked
+          </label>
+        </div>
+
+        <div id="section-unbooked" style="<%= isBooked ? 'display:none;' : '' %>">
+          <label class="admin-field" style="max-width:300px;">
             <span class="admin-field-label">Estimated total (USD)</span>
             <input type="text" name="estimated_cents" inputmode="decimal"
                    value="<%= dollarsValue(category?.estimated_cents) %>" placeholder="35000">
-            <span class="admin-field-help">
-              The category's target. The "Actual" number on the public page is computed
-              automatically as the sum of the line items' paid amounts below.
-            </span>
-          </label>
-
-          <label class="admin-field">
-            <span class="admin-field-label">Position</span>
-            <input type="number" name="position" min="0" value="<%= category?.position ?? 0 %>">
+            <span class="admin-field-help">Best estimate — shown on the client portal until booked.</span>
           </label>
         </div>
+
+        <div id="section-booked" style="<%= !isBooked ? 'display:none;' : '' %>">
+          <!-- placeholder — payments are entered below -->
+        </div>
+
+        <label class="admin-field" style="max-width:110px; margin-top:.5rem;">
+          <span class="admin-field-label">Position</span>
+          <input type="number" name="position" min="0" value="<%= category?.position ?? 0 %>">
+        </label>
       </fieldset>
 
-      <fieldset class="admin-fieldset">
-        <legend class="admin-legend">Line items</legend>
+      <fieldset class="admin-fieldset" id="payments-fieldset" style="<%= !isBooked ? 'display:none;' : '' %>">
+        <legend class="admin-legend">Payments</legend>
         <p class="admin-fieldset-note">
-          One row per spend line. <em>Amount</em> is what the line costs; <em>Paid</em> is
-          what's been paid so far. Status drives the colored pill on the public page;
-          the label is the free-text caption inside it ("$10,000 deposit", "Paid in full",
-          "Quote requested", etc.).
+          One row per payment installment. <em>Amount</em> is what's owed for that installment;
+          <em>Paid</em> is what's been paid so far. Add a due date to show it in the payment schedule.
         </p>
 
         <div id="line-rows" class="admin-line-rows">
@@ -135,7 +149,7 @@
           <% }) %>
         </div>
 
-        <button type="button" id="add-line" class="admin-btn admin-btn--ghost">+ Add line item</button>
+        <button type="button" id="add-line" class="admin-btn admin-btn--ghost">+ Add payment</button>
       </fieldset>
 
       <div class="admin-form-actions">
@@ -160,6 +174,26 @@
 
   <script>
     (function () {
+      // ── Booked toggle ─────────────────────────────────────────────────────
+      const toggles = document.querySelectorAll('input[name="_booked_toggle"]');
+      const sectionUnbooked  = document.getElementById('section-unbooked');
+      const sectionBooked    = document.getElementById('section-booked');
+      const paymentsFieldset = document.getElementById('payments-fieldset');
+
+      function applyToggle(booked) {
+        sectionUnbooked.style.display  = booked ? 'none' : '';
+        sectionBooked.style.display    = booked ? '' : 'none';
+        paymentsFieldset.style.display = booked ? '' : 'none';
+        // Clear estimated when switching to booked so it doesn't pollute the portal
+        if (booked) {
+          const estInput = sectionUnbooked.querySelector('input[name="estimated_cents"]');
+          if (estInput) estInput.value = '';
+        }
+      }
+
+      toggles.forEach(r => r.addEventListener('change', () => applyToggle(r.value === '1')));
+
+      // ── Line item add / remove ────────────────────────────────────────────
       const container = document.getElementById('line-rows');
       const addBtn = document.getElementById('add-line');
       if (!container || !addBtn) return;
