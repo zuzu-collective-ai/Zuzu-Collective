@@ -80,14 +80,31 @@ function cellVal(row, idx) {
   return row[idx] ?? '';
 }
 
+// Scan rows to find the first row containing all of the given keywords.
+// Returns { headerIdx, dataStartIdx } or throws if not found.
+function findHeaderRow(rows, requiredKeywords, tabName) {
+  for (let i = 0; i < Math.min(rows.length, 20); i++) {
+    const cells = rows[i].map(c => String(c ?? '').trim().toLowerCase());
+    if (requiredKeywords.every(kw => cells.some(c => c.includes(kw.toLowerCase())))) {
+      return { headerIdx: i, dataStartIdx: i + 1 };
+    }
+  }
+  throw new Error(
+    `${tabName}: could not find header row containing ${requiredKeywords.map(k => `"${k}"`).join(', ')} in the first 20 rows.`,
+  );
+}
+
 // ── Budget Detail tab ──────────────────────────────────────────────────────
 
 function parseBudgetDetail(sheet, warnings) {
   const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', cellDates: true, raw: false });
 
-  // Headers in row 6 (index 5)
-  if (rows.length < 6) throw new Error('Budget Detail tab: not enough rows (expected headers in row 6).');
-  const headerRow = rows[5];
+  const { headerIdx, dataStartIdx } = findHeaderRow(
+    rows,
+    ['Category', 'Line Item', 'Contracted'],
+    'Budget Detail',
+  );
+  const headerRow = rows[headerIdx];
   const col = makeColFinder(headerRow);
 
   const iCategory    = col('Category',              true);
@@ -101,7 +118,7 @@ function parseBudgetDetail(sheet, warnings) {
 
   const categoryMap = new Map(); // title → { vendor, rows[], estimatedCents, contractedCents }
 
-  for (let i = 6; i < rows.length; i++) {
+  for (let i = dataStartIdx; i < rows.length; i++) {
     const row = rows[i];
     const categoryVal = String(cellVal(row, iCategory)).trim();
 
@@ -150,12 +167,19 @@ function parseBudgetDetail(sheet, warnings) {
 function parsePayments(sheet, warnings) {
   const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', cellDates: true, raw: false });
 
-  if (rows.length < 6) {
+  if (rows.length < 2) {
     warnings.push('Payments tab: not enough rows; skipping.');
     return [];
   }
 
-  const headerRow = rows[5];
+  let headerIdx, dataStartIdx;
+  try {
+    ({ headerIdx, dataStartIdx } = findHeaderRow(rows, ['Budget Line Item', 'Amount'], 'Payments'));
+  } catch (_) {
+    warnings.push('Payments tab: could not find header row — payment schedule skipped.');
+    return [];
+  }
+  const headerRow = rows[headerIdx];
   const col = makeColFinder(headerRow);
 
   const iBudgetLineItem = col('Budget Line Item', true);
@@ -171,9 +195,9 @@ function parsePayments(sheet, warnings) {
 
   const payments = [];
 
-  // Data rows 7–34 (index 6–33) but stop early if Budget Line Item is empty
-  const end = Math.min(rows.length, 34);
-  for (let i = 6; i < end; i++) {
+  // Stop after 100 rows or when Budget Line Item is empty 5 times in a row
+  const end = Math.min(rows.length, dataStartIdx + 100);
+  for (let i = dataStartIdx; i < end; i++) {
     const row = rows[i];
     const budgetLineItem = String(cellVal(row, iBudgetLineItem)).trim();
     if (!budgetLineItem) continue;
@@ -211,12 +235,19 @@ const RENTAL_PHASES = new Set([
 function parseRentals(sheet, warnings) {
   const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', cellDates: true, raw: false });
 
-  if (rows.length < 6) {
+  if (rows.length < 2) {
     warnings.push('Rentals tab: not enough rows; skipping.');
     return [];
   }
 
-  const headerRow = rows[5];
+  let headerIdx, dataStartIdx;
+  try {
+    ({ headerIdx, dataStartIdx } = findHeaderRow(rows, ['Item', 'Total'], 'Rentals'));
+  } catch (_) {
+    warnings.push('Rentals tab: could not find header row — rentals skipped.');
+    return [];
+  }
+  const headerRow = rows[headerIdx];
   const col = makeColFinder(headerRow);
 
   const iItem          = col('Item',           true);
