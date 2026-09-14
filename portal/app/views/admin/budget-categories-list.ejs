@@ -16,6 +16,12 @@
       </div>
       <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
         <a href="/admin/couples/<%= couple.id %>/budget/allocate" class="admin-btn admin-btn--ghost">✦ AI allocator</a>
+        <% if (couple.budget_spreadsheet_url) { %>
+          <form method="post" action="/admin/couples/<%= couple.id %>/budget/sync-sheet"
+                onsubmit="return confirm('This will replace all current budget data for <%= couple.display_name %> with the numbers from their Google Sheet. Continue?');">
+            <button type="submit" class="admin-btn admin-btn--ghost">↓ Sync from Sheet</button>
+          </form>
+        <% } %>
         <a href="/admin/couples/<%= couple.id %>/budget/new" class="admin-btn admin-btn--primary">+ Add category</a>
       </div>
     </header>

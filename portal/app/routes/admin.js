@@ -14,6 +14,7 @@ import { pool } from '../db/pool.js';
 import { requireAdmin, passwordsMatch } from '../middleware/auth.js';
 import { generateAllocation, generatePalette, generateChecklist, generateVendorOutreach, extractVendorInfo, extractVendorsBulk, describeTileImage, generateTimeline, importGuestList, generateVendorSearchQueries, parseVendorSearchResults, isConfigured as anthropicConfigured, STANDARD_CATEGORIES } from '../lib/anthropic.js';
 import { serperConfigured, serperSearch } from '../lib/serper.js';
+import { importBudgetFromSheet } from '../lib/sheet-importer.js';
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -1525,6 +1526,70 @@ function parseLinesFromBody(body) {
       };
     });
 }
+
+// Sync budget from Google Sheet stored in budget_spreadsheet_url.
+router.post('/couples/:id/budget/sync-sheet', requireAdmin, async (req, res, next) => {
+  const coupleId = req.params.id;
+  try {
+    const couple = await findCoupleById(coupleId);
+    if (!couple) return res.status(404).send('Couple not found.');
+
+    if (!couple.budget_spreadsheet_url) {
+      setFlash(req, 'error', 'No spreadsheet URL set for this couple. Add one on the Basics tab first.');
+      return res.redirect(`/admin/couples/${coupleId}/budget`);
+    }
+
+    const categories = await importBudgetFromSheet(couple.budget_spreadsheet_url);
+
+    // Clear existing data then reimport atomically.
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      const { rows: existing } = await client.query(
+        'SELECT id FROM budget_categories WHERE couple_id = $1', [couple.id]
+      );
+      if (existing.length > 0) {
+        const ids = existing.map(r => r.id);
+        await client.query('DELETE FROM budget_line_items WHERE category_id = ANY($1::int[])', [ids]);
+        await client.query('DELETE FROM budget_categories WHERE couple_id = $1', [couple.id]);
+      }
+
+      for (const cat of categories) {
+        const { rows: [{ id: catId }] } = await client.query(
+          `INSERT INTO budget_categories
+             (couple_id, category_number, title, contracted_cents, estimated_cents, position, created_at, updated_at)
+           VALUES ($1, $2, $3, $4, $5, $6, now(), now()) RETURNING id`,
+          [couple.id, cat.category_number, cat.title, cat.contracted_cents, cat.estimated_cents, cat.position]
+        );
+        for (let i = 0; i < cat.lines.length; i++) {
+          const l = cat.lines[i];
+          await client.query(
+            `INSERT INTO budget_line_items
+               (category_id, couple_id, name, amount_cents, paid_cents, status_kind, due_date, position, created_at, updated_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, now(), now())`,
+            [catId, couple.id, l.name, l.amount_cents, l.paid_cents, l.status_kind, l.due_date, i + 1]
+          );
+        }
+      }
+
+      await client.query(
+        `UPDATE couples SET budget_last_imported_at = now() WHERE id = $1`, [couple.id]
+      );
+      await client.query('COMMIT');
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+
+    setFlash(req, 'success', `Budget synced from Google Sheet — ${categories.length} categories imported.`);
+    res.redirect(`/admin/couples/${coupleId}/budget`);
+  } catch (err) {
+    setFlash(req, 'error', `Sheet sync failed: ${err.message}`);
+    res.redirect(`/admin/couples/${coupleId}/budget`);
+  }
+});
 
 // List categories — the budget tab's index page for a couple.
 router.get('/couples/:id/budget', async (req, res, next) => {
