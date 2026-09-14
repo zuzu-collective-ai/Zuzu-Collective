@@ -59,13 +59,28 @@ function parseDate(s) {
 }
 
 // Returns { rowIdx, offset } where offset is the column index where col0Value was found.
-// The sheet template has a blank column A, so headers start at column B (offset 1).
+// The sheet template has a blank column A, so headers typically start at column B.
+// Searches all columns and trims whitespace for robustness.
 function findHeaderRow(rows, col0Value, col1Value) {
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
-    for (let off = 0; off < Math.min(row.length, 3); off++) {
-      if (row[off] === col0Value && (!col1Value || row[off + 1] === col1Value)) {
-        return { rowIdx: i, offset: off };
+    for (let off = 0; off < row.length; off++) {
+      const cell = String(row[off] ?? '').trim();
+      if (cell === col0Value) {
+        if (!col1Value) return { rowIdx: i, offset: off };
+        const next = String(row[off + 1] ?? '').trim();
+        if (next === col1Value) return { rowIdx: i, offset: off };
+      }
+    }
+  }
+  // Second pass: try without requiring col1Value to match (more permissive)
+  if (col1Value) {
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      for (let off = 0; off < row.length; off++) {
+        if (String(row[off] ?? '').trim() === col0Value) {
+          return { rowIdx: i, offset: off };
+        }
       }
     }
   }
@@ -77,7 +92,10 @@ function findHeaderRow(rows, col0Value, col1Value) {
 function parseOverviewCategories(rows) {
   // Header row looks like: [blank] Category | Target | Planned | ... | Contracted | Paid | Balance Due | ...
   const { rowIdx: headerIdx, offset } = findHeaderRow(rows, 'Category', 'Target');
-  if (headerIdx === -1) throw new Error('Cannot find the "BY CATEGORY" table in the Overview sheet. Make sure the tab is named "Overview".');
+  if (headerIdx === -1) {
+    const sample = rows.slice(0, 5).map(r => r.slice(0, 4).join(' | ')).join('\n');
+    throw new Error(`Cannot find the "BY CATEGORY" table in the Overview sheet.\nFirst rows received:\n${sample || '(empty)'}`);
+  }
 
   const h = rows[headerIdx];
   const col = {
