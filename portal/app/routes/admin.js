@@ -1508,18 +1508,22 @@ function parseLinesFromBody(body) {
     .sort((a, b) => a - b);
   return indices
     .map(i => raw[i])
-    .filter(l => l && (l.name?.trim() || dollarsToCents(l.amount_cents) || dollarsToCents(l.paid_cents)))
-    .map((l, idx) => ({
-      id: l.id || null,
-      name: l.name?.trim() || 'Payment',
-      vendor_label: l.vendor_label?.trim() || null,
-      amount_cents: dollarsToCents(l.amount_cents),
-      paid_cents: dollarsToCents(l.paid_cents),
-      status_kind: BUDGET_STATUS_KINDS.includes(l.status_kind) ? l.status_kind : 'upcoming',
-      status_label: l.status_label?.trim() || null,
-      due_date: l.due_date?.trim() || null,
-      position: idx + 1,
-    }));
+    .filter(l => l && (l.name?.trim() || dollarsToCents(l.amount_cents)))
+    .map((l, idx) => {
+      const amount = dollarsToCents(l.amount_cents);
+      const isPaid = l.paid === '1' || l.status_kind === 'paid';
+      return {
+        id: l.id || null,
+        name: l.name?.trim() || 'Payment',
+        vendor_label: l.vendor_label?.trim() || null,
+        amount_cents: amount,
+        paid_cents: isPaid ? amount : 0,
+        status_kind: isPaid ? 'paid' : 'upcoming',
+        status_label: null,
+        due_date: l.due_date?.trim() || null,
+        position: idx + 1,
+      };
+    });
 }
 
 // List categories — the budget tab's index page for a couple.
@@ -1635,6 +1639,7 @@ router.post('/couples/:id/budget', async (req, res, next) => {
       title: req.body.title?.trim() || '',
       title_emphasis: req.body.title_emphasis?.trim() || null,
       estimated_cents: dollarsToCents(req.body.estimated_cents),
+      contracted_cents: dollarsToCents(req.body.contracted_cents),
       position: parseInt(req.body.position, 10) || 0,
     };
     const lines = parseLinesFromBody(req.body);
@@ -1655,11 +1660,12 @@ router.post('/couples/:id/budget', async (req, res, next) => {
     await client.query('begin');
     const { rows } = await client.query(
       `insert into budget_categories
-         (couple_id, category_number, title, title_emphasis, estimated_cents, position)
-       values ($1, $2, $3, $4, $5, $6)
+         (couple_id, category_number, title, title_emphasis, estimated_cents, contracted_cents, position)
+       values ($1, $2, $3, $4, $5, $6, $7)
        returning id`,
       [couple.id, categoryData.category_number, categoryData.title,
-       categoryData.title_emphasis, categoryData.estimated_cents, categoryData.position],
+       categoryData.title_emphasis, categoryData.estimated_cents,
+       categoryData.contracted_cents, categoryData.position],
     );
     const categoryId = rows[0].id;
 
@@ -1675,7 +1681,7 @@ router.post('/couples/:id/budget', async (req, res, next) => {
     }
     await client.query('commit');
 
-    setFlash(req, 'success', `Added ${categoryData.title} (${lines.length} line item${lines.length === 1 ? '' : 's'}).`);
+    setFlash(req, 'success', `Added ${categoryData.title}.`);
     res.redirect(`/admin/couples/${couple.id}/budget`);
   } catch (err) {
     await client.query('rollback').catch(() => {});
@@ -1710,6 +1716,7 @@ router.post('/couples/:id/budget/:cid', async (req, res, next) => {
       title: req.body.title?.trim() || '',
       title_emphasis: req.body.title_emphasis?.trim() || null,
       estimated_cents: dollarsToCents(req.body.estimated_cents),
+      contracted_cents: dollarsToCents(req.body.contracted_cents),
       position: parseInt(req.body.position, 10) || 0,
     };
     const lines = parseLinesFromBody(req.body);
@@ -1722,10 +1729,11 @@ router.post('/couples/:id/budget/:cid', async (req, res, next) => {
     const { rowCount } = await client.query(
       `update budget_categories set
          category_number = $1, title = $2, title_emphasis = $3,
-         estimated_cents = $4, position = $5, updated_at = now()
-       where id = $6 and couple_id = $7`,
+         estimated_cents = $4, contracted_cents = $5, position = $6, updated_at = now()
+       where id = $7 and couple_id = $8`,
       [categoryData.category_number, categoryData.title, categoryData.title_emphasis,
-       categoryData.estimated_cents, categoryData.position, req.params.cid, couple.id],
+       categoryData.estimated_cents, categoryData.contracted_cents,
+       categoryData.position, req.params.cid, couple.id],
     );
     if (rowCount === 0) {
       await client.query('rollback');

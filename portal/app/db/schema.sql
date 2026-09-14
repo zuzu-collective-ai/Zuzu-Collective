@@ -105,6 +105,7 @@ alter table couples add column if not exists palette_color_5_name text;
 alter table couples add column if not exists couple_phone text;
 alter table couples add column if not exists budget_last_imported_at timestamptz;
 alter table couples add column if not exists budget_spreadsheet_url text;
+alter table budget_categories add column if not exists contracted_cents integer not null default 0;
 
 create index if not exists couples_slug_idx on couples(slug);
 
