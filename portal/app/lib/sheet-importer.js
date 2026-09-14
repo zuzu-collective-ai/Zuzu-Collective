@@ -58,24 +58,30 @@ function parseDate(s) {
   return local.toISOString().slice(0, 10);
 }
 
+// Returns { rowIdx, offset } where offset is the column index where col0Value was found.
+// The sheet template has a blank column A, so headers start at column B (offset 1).
 function findHeaderRow(rows, col0Value, col1Value) {
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
-    if (row[0] === col0Value && (!col1Value || row[1] === col1Value)) return i;
+    for (let off = 0; off < Math.min(row.length, 3); off++) {
+      if (row[off] === col0Value && (!col1Value || row[off + 1] === col1Value)) {
+        return { rowIdx: i, offset: off };
+      }
+    }
   }
-  return -1;
+  return { rowIdx: -1, offset: 0 };
 }
 
 // Parse the BY CATEGORY summary table from the Overview tab.
 // Returns [{ title, contracted_cents, estimated_cents }]
 function parseOverviewCategories(rows) {
-  // Header row looks like: Category | Target | Planned | Under/(Over)Target | Contracted | Paid | Balance Due | ...
-  const headerIdx = findHeaderRow(rows, 'Category', 'Target');
+  // Header row looks like: [blank] Category | Target | Planned | ... | Contracted | Paid | Balance Due | ...
+  const { rowIdx: headerIdx, offset } = findHeaderRow(rows, 'Category', 'Target');
   if (headerIdx === -1) throw new Error('Cannot find the "BY CATEGORY" table in the Overview sheet. Make sure the tab is named "Overview".');
 
   const h = rows[headerIdx];
   const col = {
-    category:   0,
+    category:   offset,
     planned:    h.indexOf('Planned'),
     contracted: h.indexOf('Contracted'),
   };
@@ -84,7 +90,7 @@ function parseOverviewCategories(rows) {
 
   for (let i = headerIdx + 1; i < rows.length; i++) {
     const row  = rows[i];
-    const name = row[0] || '';
+    const name = row[col.category] || '';
     if (!name || name.toLowerCase() === 'total') break;
 
     const contracted = parseCents(row[col.contracted]);
@@ -106,13 +112,13 @@ function parseOverviewCategories(rows) {
 // Parse the payment schedule from the Payments tab.
 // Returns only the vendor payment rows (not the hair & makeup breakdown at the bottom).
 function parsePayments(rows) {
-  // Header: Budget Line Item | Due Date | Vendor | Payment | Amount | Status | ...
-  const headerIdx = findHeaderRow(rows, 'Budget Line Item', 'Due Date');
+  // Header: [blank] Budget Line Item | Due Date | Vendor | Payment | Amount | Status | ...
+  const { rowIdx: headerIdx, offset } = findHeaderRow(rows, 'Budget Line Item', 'Due Date');
   if (headerIdx === -1) throw new Error('Cannot find the payment schedule in the Payments sheet. Make sure the tab is named "Payments".');
 
   const h   = rows[headerIdx];
   const col = {
-    lineItem: 0,
+    lineItem: offset,
     dueDate:  h.indexOf('Due Date'),
     vendor:   h.indexOf('Vendor'),
     payment:  h.indexOf('Payment'),
@@ -124,7 +130,7 @@ function parsePayments(rows) {
 
   for (let i = headerIdx + 1; i < rows.length; i++) {
     const row      = rows[i];
-    const lineItem = row[0] || '';
+    const lineItem = row[col.lineItem] || '';
     const amount   = parseCents(row[col.amount]);
 
     // Stop at the summary footer
@@ -159,16 +165,16 @@ async function buildLineItemCategoryMap(sheetId) {
     return new Map(); // If Budget Detail tab is missing, fall back to vendor matching
   }
 
-  const headerIdx = findHeaderRow(rows, 'Category', 'Line Item');
+  const { rowIdx: headerIdx, offset } = findHeaderRow(rows, 'Category', 'Line Item');
   if (headerIdx === -1) return new Map();
 
   const h   = rows[headerIdx];
-  const col = { lineItem: h.indexOf('Line Item') };
+  const col = { category: offset, lineItem: h.indexOf('Line Item') };
 
   const map = new Map(); // lineItemName → categoryTitle
   for (let i = headerIdx + 1; i < rows.length; i++) {
     const row      = rows[i];
-    const catName  = row[0] || '';
+    const catName  = row[col.category] || '';
     const lineItem = row[col.lineItem] || '';
     if (lineItem.toLowerCase().includes('subtotal') || lineItem.toLowerCase().includes('counted toward')) break;
     if (catName && lineItem && !lineItem.toLowerCase().includes('subtotal')) {
