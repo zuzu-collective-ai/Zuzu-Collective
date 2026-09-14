@@ -3,8 +3,12 @@
 // Uses the Google Visualization (gviz) API — no API key required as long as
 // the sheet is shared as "Anyone with the link can view".
 //
-// Expects the sheet to have two tabs named "Budget Detail" and "Payments"
-// matching the standard Zuzu budget template.
+// Reads two tabs from the standard Zuzu budget template:
+//   "Overview"  — the BY CATEGORY summary table (one row per category)
+//   "Payments"  — the payment schedule (deposits, finals, etc.)
+//
+// Intentionally NOT reading Budget Detail — we only want category-level
+// totals and the payment schedule, not every individual line item.
 
 const GVIZ_BASE = 'https://docs.google.com/spreadsheets/d';
 
@@ -17,11 +21,13 @@ function extractSheetId(url) {
 async function fetchSheetRows(sheetId, sheetName) {
   const url = `${GVIZ_BASE}/${sheetId}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetName)}`;
   const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
-  if (!res.ok) throw new Error(`Could not fetch sheet "${sheetName}" (HTTP ${res.status}). Make sure the sheet is shared as "Anyone with the link can view".`);
+  if (!res.ok) {
+    throw new Error(`Could not read the sheet (HTTP ${res.status}). Make sure it is shared as "Anyone with the link can view".`);
+  }
 
   const text = await res.text();
   const match = text.match(/setResponse\(([\s\S]+?)\)\s*;?\s*$/);
-  if (!match) throw new Error(`Unexpected response from Google for sheet "${sheetName}".`);
+  if (!match) throw new Error('Unexpected response from Google Sheets.');
 
   const payload = JSON.parse(match[1]);
   if (payload.status !== 'ok') {
@@ -29,11 +35,9 @@ async function fetchSheetRows(sheetId, sheetName) {
     throw new Error(`Google Sheets error for "${sheetName}": ${msg}`);
   }
 
-  // Convert gviz table to a simple 2D string array.
   return (payload.table?.rows || []).map(row =>
     (row.c || []).map(cell => {
       if (!cell) return '';
-      // Prefer the formatted string value (f); fall back to raw value (v).
       const val = cell.f ?? cell.v;
       return val === null || val === undefined ? '' : String(val);
     })
@@ -50,78 +54,67 @@ function parseDate(s) {
   if (!s || s === '-') return null;
   const d = new Date(s);
   if (isNaN(d.getTime())) return null;
-  // Shift by timezone offset so "Aug 28, 2027" doesn't become Aug 27 in UTC
   const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
   return local.toISOString().slice(0, 10);
 }
 
-function findHeaderRow(rows, col0Value) {
+function findHeaderRow(rows, col0Value, col1Value) {
   for (let i = 0; i < rows.length; i++) {
-    if (rows[i][0] === col0Value) return i;
+    const row = rows[i];
+    if (row[0] === col0Value && (!col1Value || row[1] === col1Value)) return i;
   }
   return -1;
 }
 
-function parseBudgetDetail(rows) {
-  const headerIdx = findHeaderRow(rows, 'Category');
-  if (headerIdx === -1) throw new Error('Cannot find the "Category" header row in the Budget Detail sheet. Make sure the tab is named "Budget Detail".');
+// Parse the BY CATEGORY summary table from the Overview tab.
+// Returns [{ title, contracted_cents, estimated_cents }]
+function parseOverviewCategories(rows) {
+  // Header row looks like: Category | Target | Planned | Under/(Over)Target | Contracted | Paid | Balance Due | ...
+  const headerIdx = findHeaderRow(rows, 'Category', 'Target');
+  if (headerIdx === -1) throw new Error('Cannot find the "BY CATEGORY" table in the Overview sheet. Make sure the tab is named "Overview".');
 
   const h = rows[headerIdx];
   const col = {
-    category:  0,
-    lineItem:  h.indexOf('Line Item'),
-    status:    h.indexOf('Status'),
-    estimate:  h.indexOf('Estimate'),
+    category:   0,
+    planned:    h.indexOf('Planned'),
     contracted: h.indexOf('Contracted'),
-    inBudget:  h.indexOf('In $100K Budget?'),
   };
 
-  const catMap  = new Map(); // title → { contracted_cents, estimated_cents, lineItemNames[] }
-  const catOrder = [];
+  const categories = [];
 
   for (let i = headerIdx + 1; i < rows.length; i++) {
-    const row = rows[i];
-    const catName  = row[0] || '';
-    const lineItem = row[col.lineItem] || '';
+    const row  = rows[i];
+    const name = row[0] || '';
+    if (!name || name.toLowerCase() === 'total') break;
 
-    // Stop at the totals block
-    if (lineItem.toLowerCase().includes('counted toward') ||
-        lineItem.toLowerCase().includes('tracked outside')) break;
-    // Skip subtotal rows
-    if (lineItem.toLowerCase().includes('subtotal')) continue;
-    // Skip rows without both a category and a line item
-    if (!catName || !lineItem) continue;
-    // Skip items outside the main budget
-    if (col.inBudget >= 0 && row[col.inBudget] !== 'Yes') continue;
-
-    if (!catMap.has(catName)) {
-      catMap.set(catName, { contracted_cents: 0, estimated_cents: 0, lineItemNames: [] });
-      catOrder.push(catName);
-    }
-
-    const cat = catMap.get(catName);
     const contracted = parseCents(row[col.contracted]);
-    const estimate   = parseCents(row[col.estimate]);
+    const planned    = parseCents(row[col.planned]);
 
-    if (contracted > 0) {
-      cat.contracted_cents += contracted;
-    } else {
-      cat.estimated_cents += estimate;
-    }
-    cat.lineItemNames.push(lineItem);
+    // For the portal: if contracted > 0, mark it booked.
+    // Otherwise use the planned amount as an estimate.
+    categories.push({
+      title:            name,
+      contracted_cents: contracted,
+      estimated_cents:  contracted > 0 ? 0 : planned,
+    });
   }
 
-  return { catMap, catOrder };
+  if (categories.length === 0) throw new Error('No categories found in the Overview sheet.');
+  return categories;
 }
 
+// Parse the payment schedule from the Payments tab.
+// Returns only the vendor payment rows (not the hair & makeup breakdown at the bottom).
 function parsePayments(rows) {
-  const headerIdx = findHeaderRow(rows, 'Budget Line Item');
-  if (headerIdx === -1) throw new Error('Cannot find the "Budget Line Item" header row in the Payments sheet. Make sure the tab is named "Payments".');
+  // Header: Budget Line Item | Due Date | Vendor | Payment | Amount | Status | ...
+  const headerIdx = findHeaderRow(rows, 'Budget Line Item', 'Due Date');
+  if (headerIdx === -1) throw new Error('Cannot find the payment schedule in the Payments sheet. Make sure the tab is named "Payments".');
 
   const h   = rows[headerIdx];
   const col = {
     lineItem: 0,
     dueDate:  h.indexOf('Due Date'),
+    vendor:   h.indexOf('Vendor'),
     payment:  h.indexOf('Payment'),
     amount:   h.indexOf('Amount'),
     status:   h.indexOf('Status'),
@@ -131,16 +124,17 @@ function parsePayments(rows) {
 
   for (let i = headerIdx + 1; i < rows.length; i++) {
     const row      = rows[i];
-    const lineItem = row[col.lineItem] || '';
+    const lineItem = row[0] || '';
     const amount   = parseCents(row[col.amount]);
 
     // Stop at the summary footer
-    if (lineItem === 'Total scheduled' || lineItem === 'Paid' || lineItem === 'Still to pay') break;
+    if (['Total scheduled', 'Paid', 'Still to pay'].includes(lineItem)) break;
     if (!lineItem || !amount) continue;
 
     const isPaid = (row[col.status] || '').toLowerCase() === 'paid';
     payments.push({
       lineItemName: lineItem,
+      vendor:       row[col.vendor] || '',
       name:         row[col.payment] || lineItem,
       due_date:     parseDate(row[col.dueDate]),
       amount_cents: amount,
@@ -152,39 +146,66 @@ function parsePayments(rows) {
   return payments;
 }
 
+// Assign payments to categories.
+// Payment rows reference line items (e.g. "Zuzu Collective planning"); we need
+// to figure out which category each belongs to. We do this by fetching the
+// Budget Detail tab purely for its category→lineItem mapping — we don't use
+// any amounts from it.
+async function buildLineItemCategoryMap(sheetId) {
+  let rows;
+  try {
+    rows = await fetchSheetRows(sheetId, 'Budget Detail');
+  } catch {
+    return new Map(); // If Budget Detail tab is missing, fall back to vendor matching
+  }
+
+  const headerIdx = findHeaderRow(rows, 'Category', 'Line Item');
+  if (headerIdx === -1) return new Map();
+
+  const h   = rows[headerIdx];
+  const col = { lineItem: h.indexOf('Line Item') };
+
+  const map = new Map(); // lineItemName → categoryTitle
+  for (let i = headerIdx + 1; i < rows.length; i++) {
+    const row      = rows[i];
+    const catName  = row[0] || '';
+    const lineItem = row[col.lineItem] || '';
+    if (lineItem.toLowerCase().includes('subtotal') || lineItem.toLowerCase().includes('counted toward')) break;
+    if (catName && lineItem && !lineItem.toLowerCase().includes('subtotal')) {
+      map.set(lineItem, catName);
+    }
+  }
+  return map;
+}
+
 // Public API — returns an array of category objects ready for DB insertion.
 export async function importBudgetFromSheet(spreadsheetUrl) {
   const sheetId = extractSheetId(spreadsheetUrl);
 
-  const [detailRows, paymentRows] = await Promise.all([
-    fetchSheetRows(sheetId, 'Budget Detail'),
+  // Fetch everything in parallel
+  const [overviewRows, paymentRows, lineItemCatMap] = await Promise.all([
+    fetchSheetRows(sheetId, 'Overview'),
     fetchSheetRows(sheetId, 'Payments'),
+    buildLineItemCategoryMap(sheetId),
   ]);
 
-  const { catMap, catOrder } = parseBudgetDetail(detailRows);
-  const payments = parsePayments(paymentRows);
+  const categories = parseOverviewCategories(overviewRows);
+  const payments   = parsePayments(paymentRows);
 
-  // Match each payment row to its category via the line item name.
-  const catPayments = new Map();
+  // Build a quick lookup: category title → category object
+  const catByTitle = new Map(categories.map(c => [c.title, c]));
+  for (const c of categories) c.lines = [];
+
   for (const p of payments) {
-    let found = null;
-    for (const [catTitle, catData] of catMap) {
-      if (catData.lineItemNames.includes(p.lineItemName)) { found = catTitle; break; }
-    }
-    if (!found) continue;
-    if (!catPayments.has(found)) catPayments.set(found, []);
-    catPayments.get(found).push(p);
+    // Find the category for this payment via the line item → category map.
+    const catTitle = lineItemCatMap.get(p.lineItemName);
+    const cat = catTitle ? catByTitle.get(catTitle) : null;
+    if (cat) cat.lines.push(p);
   }
 
-  return catOrder.map((title, i) => {
-    const cat = catMap.get(title);
-    return {
-      title,
-      category_number: i + 1,
-      position:        i + 1,
-      contracted_cents: cat.contracted_cents,
-      estimated_cents:  cat.estimated_cents,
-      lines: catPayments.get(title) || [],
-    };
-  });
+  return categories.map((cat, i) => ({
+    ...cat,
+    category_number: i + 1,
+    position:        i + 1,
+  }));
 }
