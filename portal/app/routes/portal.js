@@ -370,7 +370,11 @@ router.get('/p/:slug/budget', async (req, res, next) => {
     const categoryStats = new Map();
     for (const c of categories) {
       const catLines = linesByCategory.get(c.id) || [];
-      const contracted = catLines.reduce((s, l) => s + (l.amount_cents || 0), 0);
+      // contracted_cents on the category is the authoritative contract total.
+      // Fall back to summing line item amounts for legacy categories that predate this field.
+      const contracted = c.contracted_cents > 0
+        ? c.contracted_cents
+        : catLines.reduce((s, l) => s + (l.amount_cents || 0), 0);
       const actual = catLines.reduce((s, l) => s + (l.paid_cents || 0), 0);
       const estimated = c.estimated_cents || 0;
       const remaining = Math.max(0, contracted - actual);
