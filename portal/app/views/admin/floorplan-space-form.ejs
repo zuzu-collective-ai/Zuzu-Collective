@@ -93,11 +93,12 @@
         <% } %>
 
         <div id="layout-upload-row" style="<%= space?.layout_image_url ? 'display:none;' : '' %>">
-          <label class="admin-btn admin-btn--ghost" style="cursor:pointer; display:inline-block;">
-            Choose image
-            <input type="file" id="layout-file-input" accept=".jpg,.jpeg,.png,.webp" style="display:none;">
+          <label id="layout-drop-zone" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.5rem;border:2px dashed var(--admin-border);border-radius:6px;padding:1.5rem 2rem;cursor:pointer;text-align:center;transition:border-color 0.15s,background 0.15s;">
+            <span style="color:var(--zz-finn-60);font-size:0.875rem;">Drag &amp; drop your floor plan here, or</span>
+            <span class="admin-btn admin-btn--ghost" style="pointer-events:none;">Choose image</span>
+            <input type="file" id="layout-file-input" accept=".jpg,.jpeg,.png,.webp,.pdf" style="display:none;">
           </label>
-          <span id="layout-upload-status" class="admin-field-help" style="margin-left:0.75rem;"></span>
+          <span id="layout-upload-status" class="admin-field-help" style="margin-top:0.4rem;display:block;"></span>
         </div>
       </fieldset>
   <script src="/zz-upload.js"></script>
@@ -301,20 +302,19 @@
         </div>
       `);
 
-      // Layout image upload — auto-uploads when a file is chosen
+      // Layout image upload — file-picker and drag-and-drop
       (function () {
-        const urlInput  = document.getElementById('layout-image-url');
-        const fileInput = document.getElementById('layout-file-input');
-        const uploadRow = document.getElementById('layout-upload-row');
-        const preview   = document.getElementById('layout-preview');
+        const urlInput   = document.getElementById('layout-image-url');
+        const fileInput  = document.getElementById('layout-file-input');
+        const dropZone   = document.getElementById('layout-drop-zone');
+        const uploadRow  = document.getElementById('layout-upload-row');
+        const preview    = document.getElementById('layout-preview');
         const previewImg = preview?.querySelector('img');
-        const removeBtn = document.getElementById('remove-layout-image');
-        const statusEl  = document.getElementById('layout-upload-status');
+        const removeBtn  = document.getElementById('remove-layout-image');
+        const statusEl   = document.getElementById('layout-upload-status');
         if (!fileInput) return;
 
-        fileInput.addEventListener('change', async () => {
-          const file = fileInput.files[0];
-          if (!file) return;
+        async function doUpload(file) {
           fileInput.disabled = true;
           try {
             const url = await window.zzCloudinary.upload(file, urlInput, statusEl);
@@ -328,13 +328,37 @@
             fileInput.disabled = false;
             fileInput.value = '';
           }
+        }
+
+        fileInput.addEventListener('change', () => {
+          const file = fileInput.files[0];
+          if (file) doUpload(file);
         });
+
+        if (dropZone) {
+          dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.style.borderColor = 'var(--zz-finn, #333)';
+            dropZone.style.background  = 'var(--admin-hover, rgba(0,0,0,0.03))';
+          });
+          dropZone.addEventListener('dragleave', () => {
+            dropZone.style.borderColor = '';
+            dropZone.style.background  = '';
+          });
+          dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.style.borderColor = '';
+            dropZone.style.background  = '';
+            const file = e.dataTransfer.files[0];
+            if (file) doUpload(file);
+          });
+        }
 
         if (removeBtn) {
           removeBtn.addEventListener('click', () => {
             urlInput.value = '';
             previewImg.src = '';
-            preview.style.display = 'none';
+            preview.style.display  = 'none';
             uploadRow.style.display = '';
             fileInput.value = '';
             statusEl.textContent = '';
