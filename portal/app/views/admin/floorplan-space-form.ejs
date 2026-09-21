@@ -80,9 +80,14 @@
 
         <input type="hidden" name="layout_image_url" id="layout-image-url" value="<%= space?.layout_image_url || '' %>">
 
+        <% const isPdf = url => /\.pdf(\?|$)/i.test(url || ''); %>
         <% if (space?.layout_image_url) { %>
           <div id="layout-preview" style="margin-bottom: 0.75rem;">
-            <img src="<%= space.layout_image_url %>" alt="Current layout" style="max-width:320px; max-height:200px; object-fit:contain; border:1px solid var(--admin-border); border-radius:4px; display:block;">
+            <% if (isPdf(space.layout_image_url)) { %>
+              <iframe src="<%= space.layout_image_url %>" title="Current layout" style="width:320px;height:200px;border:1px solid var(--admin-border);border-radius:4px;display:block;"></iframe>
+            <% } else { %>
+              <img src="<%= space.layout_image_url %>" alt="Current layout" style="max-width:320px; max-height:200px; object-fit:contain; border:1px solid var(--admin-border); border-radius:4px; display:block;">
+            <% } %>
             <button type="button" id="remove-layout-image" class="admin-btn admin-btn--ghost admin-btn--small" style="margin-top:0.4rem;">Remove image</button>
           </div>
         <% } else { %>
