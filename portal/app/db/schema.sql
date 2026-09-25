@@ -145,6 +145,8 @@ alter table vendors add column if not exists contract_url text;
 alter table vendors add column if not exists contract_status text not null default 'not_started';
 alter table vendors add column if not exists website_url text;
 alter table vendors add column if not exists instagram_url text;
+alter table vendors add column if not exists arrival_time text;
+alter table vendors add column if not exists arrival_note text;
 
 create index if not exists vendors_couple_id_idx on vendors(couple_id);
 create index if not exists vendors_couple_position_idx on vendors(couple_id, position);

@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include('partials/head', { couple, title: 'Timeline · Simple view', extraStyles: ['palette.css', 'timeline.css'] }) %>
+<body>
+
+  <%- include('partials/topbar', { couple, currentPage }) %>
+
+  <%
+    const wd = new Date(couple.wedding_date);
+    const weekdayName = wd.toLocaleDateString('en-US', { weekday: 'long',   timeZone: 'UTC' });
+    const monthName   = wd.toLocaleDateString('en-US', { month:   'long',   timeZone: 'UTC' });
+    const dayNum      = wd.toLocaleDateString('en-US', { day:     'numeric',timeZone: 'UTC' });
+    const yearStr     = wd.toLocaleDateString('en-US', { year:    'numeric',timeZone: 'UTC' });
+    const dateLong    = `${weekdayName}, ${monthName} ${dayNum}, ${yearStr}`;
+    const arrivalVendors = dayOfVendors.filter(v => v.arrival_time);
+    const contactVendors = dayOfVendors.filter(v => v.contact_name || v.phone || v.email);
+  %>
+
+  <div class="ts-toolbar no-print">
+    <a href="/p/<%= couple.slug %>/timeline" class="ts-back">← Full timeline</a>
+    <button onclick="window.print()" class="ts-print-btn">Print</button>
+  </div>
+
+  <div class="ts-wrap">
+
+    <header class="ts-header">
+      <div class="ts-couple"><%= couple.display_name %></div>
+      <h1 class="ts-title">Day-of Timeline</h1>
+      <div class="ts-date"><%= dateLong %></div>
+      <% if (couple.timeline_ceremony_time) { %>
+        <div class="ts-summary-row">
+          Ceremony <strong><%= couple.timeline_ceremony_time %></strong>
+          <% if (couple.timeline_ceremony_note) { %> · <%= couple.timeline_ceremony_note %><% } %>
+        </div>
+      <% } %>
+      <% if (couple.timeline_lastcall_time) { %>
+        <div class="ts-summary-row">
+          Last call <strong><%= couple.timeline_lastcall_time %></strong>
+          <% if (couple.timeline_lastcall_note) { %> · <%= couple.timeline_lastcall_note %><% } %>
+        </div>
+      <% } %>
+    </header>
+
+    <% phases.forEach(phase => { %>
+      <% const events = eventsByPhase.get(phase.id) || []; %>
+      <section class="ts-phase">
+        <div class="ts-phase-head">
+          <span class="ts-phase-num">Phase <%= String(phase.phase_number).padStart(2, '0') %></span>
+          <span class="ts-phase-title"><%= phase.title %></span>
+          <% if (phase.window_text) { %><span class="ts-phase-window"><%= phase.window_text %></span><% } %>
+        </div>
+        <% if (phase.note_text) { %>
+          <div class="ts-phase-note"><%= phase.note_text %></div>
+        <% } %>
+        <% if (events.length > 0) { %>
+          <table class="ts-table">
+            <tbody>
+              <% events.forEach(ev => { %>
+                <tr class="ts-row">
+                  <td class="ts-time"><%= ev.time_text %><% if (ev.meridiem) { %> <span class="ts-meridiem"><%= ev.meridiem %></span><% } %></td>
+                  <td class="ts-event">
+                    <div class="ts-event-title"><%= ev.title %></div>
+                    <% if (ev.where_label || ev.lead_label || ev.with_label) { %>
+                      <div class="ts-meta">
+                        <% if (ev.where_label) { %><span><em>Where:</em> <%= ev.where_label %></span><% } %>
+                        <% if (ev.with_label)  { %><span><em>With:</em> <%= ev.with_label %></span><% } %>
+                        <% if (ev.lead_label)  { %><span><em>Lead:</em> <%= ev.lead_label %></span><% } %>
+                      </div>
+                    <% } %>
+                  </td>
+                  <td class="ts-note"><%= ev.note_text || '' %></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        <% } %>
+      </section>
+    <% }) %>
+
+    <% if (arrivalVendors.length > 0) { %>
+      <section class="ts-phase">
+        <div class="ts-phase-head">
+          <span class="ts-phase-title">Vendor Arrival Times</span>
+        </div>
+        <table class="ts-table">
+          <tbody>
+            <% arrivalVendors.forEach(v => { %>
+              <tr class="ts-row">
+                <td class="ts-time"><%= v.arrival_time %></td>
+                <td class="ts-event">
+                  <div class="ts-event-title"><%= v.vendor_type %><% if (v.display_name) { %> · <%= v.display_name %><% } %></div>
+                  <% if (v.arrival_note) { %><div class="ts-meta"><span><%= v.arrival_note %></span></div><% } %>
+                </td>
+                <td class="ts-note"></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </section>
+    <% } %>
+
+    <% if (contactVendors.length > 0) { %>
+      <section class="ts-phase">
+        <div class="ts-phase-head">
+          <span class="ts-phase-title">Day-of Contacts</span>
+        </div>
+        <table class="ts-table">
+          <tbody>
+            <% contactVendors.forEach(v => { %>
+              <tr class="ts-row">
+                <td class="ts-time ts-vendor-type"><%= v.vendor_type %></td>
+                <td class="ts-event">
+                  <div class="ts-event-title"><%= v.display_name || '' %></div>
+                  <% if (v.contact_name) { %><div class="ts-meta"><span><%= v.contact_name %></span></div><% } %>
+                </td>
+                <td class="ts-note">
+                  <% if (v.phone) { %><div><%= v.phone %></div><% } %>
+                  <% if (v.email) { %><div><%= v.email %></div><% } %>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </section>
+    <% } %>
+
+  </div>
+
+  <%- include('partials/footer', { couple }) %>
+
+  <style>
+    .ts-toolbar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.75rem var(--space-lg);
+      border-bottom: 1px solid var(--zz-finn-10, #e8e4df);
+    }
+    .ts-back {
+      font-family: var(--zz-mono); font-size: 0.7rem; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--zz-finn-60); text-decoration: none;
+    }
+    .ts-back:hover { color: var(--zz-finn); }
+    .ts-print-btn {
+      font-family: var(--zz-mono); font-size: 0.7rem; letter-spacing: 0.12em;
+      text-transform: uppercase; background: none; cursor: pointer;
+      border: 1px solid var(--zz-finn-20); color: var(--zz-finn-60);
+      padding: 0.4em 1.1em; border-radius: 2px;
+    }
+    .ts-print-btn:hover { color: var(--zz-finn); border-color: var(--zz-finn-60); }
+
+    .ts-wrap {
+      max-width: 860px; margin: 0 auto;
+      padding: var(--space-xl) var(--space-lg) var(--space-xl);
+    }
+    .ts-header { margin-bottom: 2.5rem; }
+    .ts-couple {
+      font-family: var(--zz-mono); font-size: 0.65rem; letter-spacing: 0.2em;
+      text-transform: uppercase; color: var(--zz-finn-60); margin-bottom: 0.35rem;
+    }
+    .ts-title {
+      font-family: var(--zz-serif); font-size: 2rem; font-weight: 400;
+      color: var(--zz-finn); margin: 0 0 0.35rem;
+    }
+    .ts-date {
+      font-family: var(--zz-serif); font-size: 1rem; color: var(--zz-finn-60);
+      margin-bottom: 0.75rem;
+    }
+    .ts-summary-row {
+      font-family: var(--zz-mono); font-size: 0.75rem; color: var(--zz-finn-60);
+      letter-spacing: 0.05em; margin-top: 0.25rem;
+    }
+    .ts-summary-row strong { color: var(--zz-finn); }
+
+    .ts-phase { margin-bottom: 2rem; }
+    .ts-phase-head {
+      display: flex; align-items: baseline; gap: 0.75rem;
+      padding-bottom: 0.5rem; border-bottom: 1px solid var(--zz-finn-20);
+      margin-bottom: 0;
+    }
+    .ts-phase-num {
+      font-family: var(--zz-mono); font-size: 0.6rem; letter-spacing: 0.2em;
+      text-transform: uppercase; color: var(--zz-finn-40);
+    }
+    .ts-phase-title {
+      font-family: var(--zz-serif); font-size: 1rem; font-style: italic;
+      color: var(--zz-finn);
+    }
+    .ts-phase-window {
+      font-family: var(--zz-mono); font-size: 0.65rem; color: var(--zz-finn-60);
+      letter-spacing: 0.08em;
+    }
+    .ts-phase-note {
+      font-size: 0.8rem; color: var(--zz-finn-60); padding: 0.5rem 0 0.25rem;
+      font-style: italic;
+    }
+
+    .ts-table { width: 100%; border-collapse: collapse; }
+    .ts-row { border-bottom: 1px solid var(--zz-finn-10, #f0ece8); }
+    .ts-row:last-child { border-bottom: none; }
+    .ts-time {
+      font-family: var(--zz-mono); font-size: 0.75rem; color: var(--zz-finn-60);
+      white-space: nowrap; padding: 0.55rem 1rem 0.55rem 0;
+      vertical-align: top; width: 5.5rem;
+    }
+    .ts-meridiem { font-size: 0.65rem; }
+    .ts-vendor-type { font-size: 0.7rem; letter-spacing: 0.05em; }
+    .ts-event { padding: 0.55rem 1rem 0.55rem 0; vertical-align: top; }
+    .ts-event-title {
+      font-size: 0.875rem; color: var(--zz-finn); font-weight: 500;
+    }
+    .ts-meta {
+      display: flex; flex-wrap: wrap; gap: 0.25rem 1rem;
+      margin-top: 0.2rem;
+    }
+    .ts-meta span { font-size: 0.75rem; color: var(--zz-finn-60); }
+    .ts-meta em { font-style: normal; color: var(--zz-finn-40); }
+    .ts-note {
+      font-size: 0.75rem; color: var(--zz-finn-60); padding: 0.55rem 0;
+      vertical-align: top; max-width: 220px;
+    }
+
+    @media (max-width: 600px) {
+      .ts-note { display: none; }
+      .ts-time { width: 4.5rem; }
+    }
+
+    @media print {
+      .no-print, nav, footer, .topbar { display: none !important; }
+      body { background: white; color: black; }
+      .ts-wrap { max-width: 100%; padding: 1cm; }
+      .ts-table { font-size: 10pt; }
+      .ts-phase { page-break-inside: avoid; }
+      .ts-row { page-break-inside: avoid; }
+    }
+  </style>
+
+</body>
+</html>

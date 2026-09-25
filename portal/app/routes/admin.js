@@ -339,6 +339,8 @@ const VENDOR_FIELDS = [
   'note',
   'contract_url',
   'contract_status',
+  'arrival_time',
+  'arrival_note',
   'position',
 ];
 
