@@ -498,6 +498,36 @@ router.get('/p/:slug/payments', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+router.get('/p/:slug/timeline/simple', async (req, res, next) => {
+  try {
+    const coupleId = res.locals.couple.id;
+    const [phasesRes, eventsRes] = await Promise.all([
+      pool.query(`select * from timeline_phases where couple_id = $1 order by position asc`, [coupleId]),
+      pool.query(`select e.* from timeline_events e join timeline_phases p on p.id = e.phase_id where p.couple_id = $1 order by e.position asc`, [coupleId]),
+    ]);
+    const phases = phasesRes.rows;
+    const events = eventsRes.rows;
+    let dayOfVendors = [];
+    try {
+      const vr = await pool.query(
+        `select vendor_type, display_name, contact_name, phone, email, arrival_time, arrival_note
+           from vendors where couple_id = $1 and status = 'booked'
+             and (contact_name is not null or phone is not null or email is not null or arrival_time is not null)
+           order by position asc`,
+        [coupleId],
+      );
+      dayOfVendors = vr.rows;
+    } catch (e) { console.warn('[timeline/simple] vendor query failed:', e.message); }
+    const eventsByPhase = new Map();
+    for (const e of events) { const list = eventsByPhase.get(e.phase_id) || []; list.push(e); eventsByPhase.set(e.phase_id, list); }
+    res.render('timeline-simple', {
+      currentPage: 'timeline',
+      phases, eventsByPhase, dayOfVendors,
+      summary: { eventCount: events.length, phaseCount: phases.length },
+    });
+  } catch (err) { next(err); }
+});
+
 router.get('/p/:slug/timeline', async (req, res, next) => {
   try {
     const coupleId = res.locals.couple.id;
