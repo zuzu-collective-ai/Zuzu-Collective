@@ -12,8 +12,6 @@
     const dayNum      = wd.toLocaleDateString('en-US', { day:     'numeric',timeZone: 'UTC' });
     const yearStr     = wd.toLocaleDateString('en-US', { year:    'numeric',timeZone: 'UTC' });
     const dateLong    = `${weekdayName}, ${monthName} ${dayNum}, ${yearStr}`;
-    const arrivalVendors = dayOfVendors.filter(v => v.arrival_time);
-    const contactVendors = dayOfVendors.filter(v => v.contact_name || v.phone || v.email);
   %>
 
   <div class="ts-toolbar no-print">
@@ -77,41 +75,20 @@
       </section>
     <% }) %>
 
-    <% if (arrivalVendors.length > 0) { %>
-      <section class="ts-phase">
-        <div class="ts-phase-head">
-          <span class="ts-phase-title">Vendor Arrival Times</span>
-        </div>
-        <table class="ts-table">
-          <tbody>
-            <% arrivalVendors.forEach(v => { %>
-              <tr class="ts-row">
-                <td class="ts-time"><%= v.arrival_time %></td>
-                <td class="ts-event">
-                  <div class="ts-event-title"><%= v.vendor_type %><% if (v.display_name) { %> · <%= v.display_name %><% } %></div>
-                  <% if (v.arrival_note) { %><div class="ts-meta"><span><%= v.arrival_note %></span></div><% } %>
-                </td>
-                <td class="ts-note"></td>
-              </tr>
-            <% }) %>
-          </tbody>
-        </table>
-      </section>
-    <% } %>
-
-    <% if (contactVendors.length > 0) { %>
+    <% if (dayOfVendors.length > 0) { %>
       <section class="ts-phase">
         <div class="ts-phase-head">
           <span class="ts-phase-title">Day-of Contacts</span>
         </div>
         <table class="ts-table">
           <tbody>
-            <% contactVendors.forEach(v => { %>
+            <% dayOfVendors.forEach(v => { %>
               <tr class="ts-row">
                 <td class="ts-time ts-vendor-type"><%= v.vendor_type %></td>
                 <td class="ts-event">
                   <div class="ts-event-title"><%= v.display_name || '' %></div>
                   <% if (v.contact_name) { %><div class="ts-meta"><span><%= v.contact_name %></span></div><% } %>
+                  <% if (v.arrival_time) { %><div class="ts-meta"><span>Arrives <%= v.arrival_time %><% if (v.arrival_note) { %> · <%= v.arrival_note %><% } %></span></div><% } %>
                 </td>
                 <td class="ts-note">
                   <% if (v.phone) { %><div><%= v.phone %></div><% } %>

@@ -146,23 +146,9 @@
             <% if (v.email) { %>
               <a href="mailto:<%= v.email %>" class="vendor-contact-detail"><%= v.email %></a>
             <% } %>
-          </div>
-        <% }) %>
-      </div>
-    </section>
-  <% } %>
-
-  <% const arrivalVendors = dayOfVendors.filter(v => v.arrival_time); %>
-  <% if (arrivalVendors.length > 0) { %>
-    <section class="section vendor-contacts">
-      <h2 class="section-label">Arrival times</h2>
-      <div class="vendor-contact-grid">
-        <% arrivalVendors.forEach(v => { %>
-          <div class="vendor-contact-card">
-            <div class="vendor-contact-type"><%= v.vendor_type %></div>
-            <% if (v.display_name) { %><div class="vendor-contact-name"><%= v.display_name %></div><% } %>
-            <div class="vendor-contact-detail" style="font-weight:600;"><%= v.arrival_time %></div>
-            <% if (v.arrival_note) { %><div class="vendor-contact-person"><%= v.arrival_note %></div><% } %>
+            <% if (v.arrival_time) { %>
+              <div class="vendor-contact-detail" style="margin-top:0.35rem;">Arrives <%= v.arrival_time %><% if (v.arrival_note) { %> · <%= v.arrival_note %><% } %></div>
+            <% } %>
           </div>
         <% }) %>
       </div>
