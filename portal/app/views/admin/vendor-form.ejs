@@ -162,6 +162,20 @@
         <% } %>
       </fieldset>
 
+      <fieldset class="admin-fieldset">
+        <legend class="admin-legend">Day of</legend>
+        <div class="admin-row" style="display: grid; grid-template-columns: 160px 1fr; gap: 1rem;">
+          <label class="admin-field">
+            <span class="admin-field-label">Arrival time</span>
+            <input type="text" name="arrival_time" value="<%= vendor?.arrival_time || '' %>" placeholder="2:00 PM">
+          </label>
+          <label class="admin-field">
+            <span class="admin-field-label">Arrival note</span>
+            <input type="text" name="arrival_note" value="<%= vendor?.arrival_note || '' %>" placeholder="Load-in via side entrance">
+          </label>
+        </div>
+      </fieldset>
+
       <div class="admin-form-actions">
         <button type="submit" class="admin-btn admin-btn--primary">
           <%= vendor ? 'Save changes' : 'Add vendor' %>

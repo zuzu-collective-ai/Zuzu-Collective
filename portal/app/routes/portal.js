@@ -525,11 +525,11 @@ router.get('/p/:slug/timeline', async (req, res, next) => {
     let dayOfVendors = [];
     try {
       const vendorsRes = await pool.query(
-        `select vendor_type, display_name, contact_name, phone, email
+        `select vendor_type, display_name, contact_name, phone, email, arrival_time, arrival_note
            from vendors
           where couple_id = $1
             and status = 'booked'
-            and (contact_name is not null or phone is not null or email is not null)
+            and (contact_name is not null or phone is not null or email is not null or arrival_time is not null)
           order by position asc`,
         [coupleId],
       );
