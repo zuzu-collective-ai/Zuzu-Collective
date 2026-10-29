@@ -1,0 +1,123 @@
+/* ── Meet Zoe hero ───────────────────────────────────────────────────────── */
+.about-hero {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 90vh;
+  background: var(--cream);
+}
+
+.about-hero-text {
+  padding: 80px 60px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.about-hero-text h1 {
+  font-family: var(--font-header);
+  font-size: clamp(40px, 6vw, 80px);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  color: var(--ink);
+  margin-bottom: 40px;
+}
+
+.about-hero-text p {
+  font-family: var(--font-body);
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--ink);
+  max-width: 420px;
+}
+
+.about-hero-image {
+  overflow: hidden;
+}
+.about-hero-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+}
+
+/* ── Why Zuzu ────────────────────────────────────────────────────────────── */
+.why-zuzu {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
+  padding: 100px 80px;
+  background: var(--cream);
+  align-items: start;
+}
+
+.why-images {
+  position: relative;
+  height: 560px;
+}
+
+.why-images .img-back {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 80%;
+  border: 1px solid var(--ink);
+  z-index: 1;
+}
+
+.why-images .img-front {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 55%;
+  border: 1px solid var(--ink);
+  z-index: 2;
+}
+
+.why-text h2 {
+  font-family: var(--font-header);
+  font-size: clamp(40px, 5vw, 64px);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  color: var(--ink);
+  margin-bottom: 36px;
+}
+
+.why-text p {
+  font-family: var(--font-body);
+  font-size: 12px;
+  line-height: 1.85;
+  color: var(--ink);
+  margin-bottom: 24px;
+}
+.why-text p em { font-style: italic; }
+
+/* ── Passion tagline ─────────────────────────────────────────────────────── */
+.passion-tagline {
+  background: var(--cream);
+  padding: 80px 80px 100px;
+  border-top: 1px solid rgba(65,39,52,0.15);
+}
+
+.passion-tagline h2 {
+  font-family: var(--font-header);
+  font-size: clamp(48px, 8vw, 100px);
+  font-weight: 400;
+  letter-spacing: -0.03em;
+  line-height: 0.95;
+  color: var(--ink);
+  max-width: 700px;
+}
+
+/* ── Mobile ──────────────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .about-hero { grid-template-columns: 1fr; min-height: auto; }
+  .about-hero-image { height: 60vw; }
+  .about-hero-text { padding: 60px 24px; }
+
+  .why-zuzu { grid-template-columns: 1fr; padding: 60px 24px; gap: 40px; }
+  .why-images { height: 380px; }
+
+  .passion-tagline { padding: 60px 24px; }
+}

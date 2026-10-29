@@ -1,0 +1,235 @@
+/* ── Investment page ─────────────────────────────────────────────────────── */
+body { background: var(--cream); }
+
+/* ── Eyebrow label (reused across sections) ─────────────────────────────── */
+.invest-eyebrow {
+  font-family: var(--font-body);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink);
+  opacity: 0.45;
+  margin-bottom: 16px;
+}
+
+/* ── Intro ───────────────────────────────────────────────────────────────── */
+.invest-intro {
+  padding: 100px 80px 60px;
+  background: var(--cream);
+  border-bottom: 1px solid rgba(65,39,52,0.12);
+  max-width: 800px;
+}
+
+.invest-intro h1 {
+  font-family: var(--font-header);
+  font-size: clamp(48px, 7vw, 88px);
+  font-weight: 400;
+  letter-spacing: -0.03em;
+  line-height: 0.95;
+  color: var(--ink);
+  margin-bottom: 24px;
+}
+
+.invest-sub {
+  font-family: var(--font-body);
+  font-size: 12px;
+  line-height: 1.85;
+  color: var(--ink);
+  max-width: 520px;
+}
+
+/* ── Package cards ───────────────────────────────────────────────────────── */
+.invest-packages {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 32px;
+  padding: 80px 80px;
+  background: var(--cream);
+}
+
+.invest-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.invest-card-img {
+  border-radius: 12px;
+  overflow: hidden;
+  aspect-ratio: 3 / 4;
+  background: rgba(65,39,52,0.06);
+  margin-bottom: 24px;
+}
+
+.invest-card-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+}
+
+.invest-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+}
+
+.invest-card h3 {
+  font-family: var(--font-header);
+  font-size: clamp(22px, 2.4vw, 34px);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  color: var(--ink);
+}
+
+.invest-card--featured .invest-card-img {
+  outline: 2px solid var(--plum);
+  outline-offset: -2px;
+}
+
+.invest-price {
+  font-family: var(--font-body);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--ink);
+  opacity: 0.6;
+}
+
+.invest-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+  margin-bottom: 8px;
+}
+
+.invest-list li {
+  font-family: var(--font-body);
+  font-size: 11px;
+  line-height: 1.65;
+  padding-left: 18px;
+  position: relative;
+  color: var(--ink);
+}
+
+.invest-list li::before {
+  content: '—';
+  position: absolute;
+  left: 0;
+  opacity: 0.4;
+}
+
+/* ── "Not sure" note ─────────────────────────────────────────────────────── */
+.invest-note {
+  padding: 0 80px 60px;
+  background: var(--cream);
+  text-align: center;
+}
+
+.invest-note p {
+  font-family: var(--font-header);
+  font-style: italic;
+  font-size: clamp(20px, 2.2vw, 28px);
+  font-weight: 400;
+  color: var(--ink);
+  opacity: 0.55;
+}
+
+/* ── Planning Intensive ──────────────────────────────────────────────────── */
+.invest-intensive {
+  background: var(--plum);
+  padding: 80px 80px;
+}
+
+.invest-intensive-inner {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
+  align-items: center;
+  max-width: 960px;
+}
+
+.invest-intensive .invest-eyebrow {
+  color: var(--cream);
+  opacity: 0.5;
+}
+
+.invest-intensive-text h2 {
+  font-family: var(--font-header);
+  font-size: clamp(40px, 5.5vw, 72px);
+  font-weight: 400;
+  letter-spacing: -0.03em;
+  line-height: 0.95;
+  color: var(--cream);
+  margin-bottom: 16px;
+}
+
+.invest-intensive-price {
+  font-family: var(--font-body);
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  color: var(--cream);
+  opacity: 0.7;
+  margin-bottom: 20px;
+}
+
+.invest-intensive-desc {
+  font-family: var(--font-body);
+  font-size: 12px;
+  line-height: 1.85;
+  color: var(--cream);
+  opacity: 0.85;
+  max-width: 400px;
+}
+
+.invest-intensive-cta {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.invest-intensive-cta-note {
+  font-family: var(--font-body);
+  font-size: 11px;
+  line-height: 1.7;
+  color: var(--cream);
+  opacity: 0.6;
+  max-width: 280px;
+}
+
+.btn-outline-plum {
+  display: inline-block;
+  border: 1px solid var(--cream);
+  color: var(--cream);
+  font-family: var(--font-body);
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  padding: 16px 40px;
+  transition: background 0.2s, color 0.2s;
+  align-self: flex-start;
+}
+.btn-outline-plum:hover {
+  background: var(--cream);
+  color: var(--plum);
+}
+
+/* ── Mobile ──────────────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .invest-intro { padding: 80px 24px 48px; }
+
+  .invest-packages {
+    grid-template-columns: 1fr;
+    padding: 60px 24px;
+    gap: 48px;
+  }
+
+  .invest-card-img { aspect-ratio: 4 / 3; }
+
+  .invest-note { padding: 0 24px 48px; }
+
+  .invest-intensive { padding: 60px 24px; }
+  .invest-intensive-inner { grid-template-columns: 1fr; gap: 40px; }
+}
