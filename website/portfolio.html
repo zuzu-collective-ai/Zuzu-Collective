@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portfolio | Zuzu Collective | Luxury Wedding Planning</title>
+  <meta name="description" content="Real weddings planned by Zuzu Collective — a luxury wedding planning studio in San Diego and worldwide.">
+  <link rel="canonical" href="https://www.zuzucollective.com/portfolio">
+  <link rel="stylesheet" href="styles/tokens.css">
+  <link rel="stylesheet" href="styles/base.css">
+  <link rel="stylesheet" href="styles/portfolio.css">
+</head>
+<body>
+
+  <!-- ── Mobile nav toggle ──────────────────────────────────────────────── -->
+  <button class="nav-toggle" aria-label="Open menu" aria-expanded="false">
+    <span></span><span></span><span></span>
+  </button>
+
+  <!-- ── Left sidebar nav ───────────────────────────────────────────────── -->
+  <nav class="sidenav" aria-label="Site sections">
+    <a href="index.html" class="sidenav-logo">Zuzu<br>Collective</a>
+    <ul class="sidenav-list">
+      <li class="sidenav-item"><a href="index.html">Home</a></li>
+      <li class="sidenav-item"><a href="about.html">About</a></li>
+      <li class="sidenav-item"><a href="portfolio.html">Portfolio</a></li>
+      <li class="sidenav-item"><a href="investment.html">Investment</a></li>
+      <li class="sidenav-item"><a href="journal.html">Journal</a></li>
+      <li class="sidenav-item"><a href="index.html#testimonials">Testimonials</a></li>
+      <li class="sidenav-item"><a href="contact.html">Contact</a></li>
+    </ul>
+    <a href="https://www.instagram.com/zuzucollective" target="_blank" rel="noopener noreferrer" class="sidenav-social">@zuzucollective</a>
+  </nav>
+
+  <div class="page-wrap">
+
+    <!-- ── Page header ────────────────────────────────────────────────────── -->
+    <header class="portfolio-header">
+      <h1><em>The</em><br>Work</h1>
+      <p>Every wedding we plan is a world of its own — built from the ground up around each couple's story. Here's a look at what's possible.</p>
+    </header>
+
+    <!-- ── Masonry portfolio grid ─────────────────────────────────────────
+         Photos are intentionally mixed — portrait and landscape, B&W and
+         color, intimate details and wide scenes — to create an editorial flow.
+         To add more: copy a .portfolio-item block and update the src.
+         Placeholder slots (--placeholder class) are for photos still coming.
+    ─────────────────────────────────────────────────────────────────────── -->
+    <section class="portfolio-grid" aria-label="Wedding portfolio">
+
+      <!-- ROW FLOW: mixed to avoid same-type photos stacking -->
+
+      <!-- 1. Ring on calla lily — PLACEHOLDER (photo coming) -->
+      <div class="portfolio-item portfolio-item--placeholder" aria-hidden="true">
+        <!-- Replace: pear diamond ring resting on deep burgundy calla lily -->
+        <!-- File: portfolio-ring-calla-lily.jpg -->
+      </div>
+
+      <!-- 2. B&W bride on dance floor -->
+      <div class="portfolio-item">
+        <img src="images/portfolio-bride-dance-floor.jpg" alt="Bride on the dance floor during wedding reception" loading="lazy">
+      </div>
+
+      <!-- 3. Bridal bouquet — PLACEHOLDER (photo coming) -->
+      <div class="portfolio-item portfolio-item--placeholder" aria-hidden="true">
+        <!-- Replace: cascading bouquet with white anthuriums, dark ranunculus, blush roses, red amaranthus -->
+        <!-- File: portfolio-bouquet-cascading.jpg -->
+      </div>
+
+      <!-- 4. Aerial ceremony shot (landscape) -->
+      <div class="portfolio-item">
+        <img src="images/portfolio-ceremony-aerial.jpg" alt="Aerial view of outdoor wedding ceremony" loading="lazy">
+      </div>
+
+      <!-- 5. Vinny's Cocktails sign with dog -->
+      <div class="portfolio-item">
+        <img src="images/portfolio-vinnys-cocktails.jpg" alt="Cocktail bar detail at wedding reception" loading="lazy">
+      </div>
+
+      <!-- 6. Handkerchief moment — PLACEHOLDER (photo coming) -->
+      <div class="portfolio-item portfolio-item--placeholder" aria-hidden="true">
+        <!-- Replace: bride holding handwritten handkerchief, getting-ready moment -->
+        <!-- File: portfolio-handkerchief-moment.jpg -->
+      </div>
+
+      <!-- 7. Zoe arranging florals on pedestals (color) -->
+      <div class="portfolio-item">
+        <img src="images/portfolio-floral-pedestals.jpg" alt="Lush floral arrangements on white pedestals" loading="lazy">
+      </div>
+
+      <!-- 8. B&W menu card detail -->
+      <div class="portfolio-item">
+        <img src="images/portfolio-menu-card.jpg" alt="Wedding menu card detail on charger plate" loading="lazy">
+      </div>
+
+    </section>
+
+    <!-- ── Footer CTA ──────────────────────────────────────────────────────── -->
+    <section class="portfolio-cta">
+      <h2>Ready to build<br><em>your</em> world?</h2>
+      <a href="contact.html" class="btn-outline">Inquire</a>
+    </section>
+
+    <!-- ── Footer ─────────────────────────────────────────────────────────── -->
+    <footer class="footer">
+      <div class="footer-inner">
+        <div class="footer-logo">
+          <svg viewBox="0 0 220 220" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <text x="10" y="180" font-family="'Cormorant Garamond', serif" font-size="200" fill="#EFEDE1" letter-spacing="-8">Z</text>
+            <circle cx="158" cy="140" r="52" stroke="#EFEDE1" stroke-width="1.2" fill="none" opacity="0.9"/>
+            <circle cx="158" cy="140" r="41" stroke="#EFEDE1" stroke-width="1"   fill="none" opacity="0.8"/>
+            <circle cx="158" cy="140" r="30" stroke="#EFEDE1" stroke-width="1"   fill="none" opacity="0.7"/>
+            <circle cx="158" cy="140" r="19" stroke="#EFEDE1" stroke-width="1"   fill="none" opacity="0.6"/>
+            <circle cx="158" cy="140" r="9"  stroke="#EFEDE1" stroke-width="1"   fill="none" opacity="0.5"/>
+          </svg>
+        </div>
+        <div class="footer-brand">
+          <p class="footer-name">ZUZU COLLECTIVE</p>
+          <p class="footer-tagline">Luxury wedding planning &amp; design.</p>
+          <p class="footer-sub">San Diego + Worldwide.</p>
+        </div>
+        <nav class="footer-nav" aria-label="Footer navigation">
+          <a href="index.html">Home</a>
+          <a href="about.html">About</a>
+          <a href="portfolio.html">Portfolio</a>
+          <a href="investment.html">Investment</a>
+          <a href="journal.html">Journal</a>
+          <a href="contact.html">Contact</a>
+        </nav>
+        <form class="newsletter-form" action="#" method="post" aria-label="Newsletter signup">
+          <input type="email" name="email" placeholder="email address" required>
+          <button type="submit" aria-label="Subscribe">→</button>
+        </form>
+      </div>
+      <div class="footer-bottom">
+        <a href="https://www.instagram.com/zuzucollective" target="_blank" rel="noopener noreferrer" class="footer-credit">@zuzucollective</a>
+      </div>
+    </footer>
+
+  </div><!-- /.page-wrap -->
+
+  <script src="scripts/main.js"></script>
+</body>
+</html>
