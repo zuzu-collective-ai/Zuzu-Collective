@@ -80,8 +80,16 @@
     (function () {
       var dateStr = '<%= couple.wedding_date %>';
       if (!dateStr) return;
-      var target = new Date(dateStr);
-      target.setUTCHours(0, 0, 0, 0);
+      // Target = midnight Pacific time (America/Los_Angeles) on the wedding date.
+      // Use noon UTC as a reference point — guaranteed same calendar date in PT —
+      // then read the Pacific hour via Intl to derive the UTC→PT offset.
+      var p = dateStr.split('-').map(Number);
+      var ref = new Date(Date.UTC(p[0], p[1] - 1, p[2], 12));
+      var ptHour = parseInt(
+        new Intl.DateTimeFormat('en-US', { timeZone: 'America/Los_Angeles', hour: '2-digit', hourCycle: 'h23' }).format(ref)
+      );
+      // PDT (UTC-7): noon UTC → 5 am PT, offset = 7. PST (UTC-8): → 4 am PT, offset = 8.
+      var target = new Date(Date.UTC(p[0], p[1] - 1, p[2], 12 - ptHour));
       var daysEl  = document.getElementById('cd-days');
       var hoursEl = document.getElementById('cd-hours');
       var minsEl  = document.getElementById('cd-mins');
