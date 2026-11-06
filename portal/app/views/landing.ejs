@@ -80,11 +80,12 @@
     (function () {
       var dateStr = '<%= couple.wedding_date %>';
       if (!dateStr) return;
-      // Target = midnight Pacific time on the wedding date.
-      // California is PDT (UTC-7) March–October, PST (UTC-8) November–February.
-      var mo = parseInt(dateStr.split('-')[1], 10);
+      // Slice to YYYY-MM-DD — the DB value may come through as a full ISO timestamp.
+      // Target = midnight Pacific time (PDT UTC-7 Mar–Oct, PST UTC-8 Nov–Feb).
+      var datePart = String(dateStr).slice(0, 10);
+      var mo = parseInt(datePart.split('-')[1], 10);
       var tzOffset = (mo >= 3 && mo <= 10) ? '-07:00' : '-08:00';
-      var target = new Date(dateStr + 'T00:00:00' + tzOffset);
+      var target = new Date(datePart + 'T00:00:00' + tzOffset);
       var daysEl  = document.getElementById('cd-days');
       var hoursEl = document.getElementById('cd-hours');
       var minsEl  = document.getElementById('cd-mins');
