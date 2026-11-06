@@ -78,11 +78,10 @@
 
   <script>
     (function () {
-      var dateStr = '<%= couple.wedding_date %>';
-      if (!dateStr) return;
-      // Slice to YYYY-MM-DD — the DB value may come through as a full ISO timestamp.
+      // Format date server-side to guarantee YYYY-MM-DD regardless of how pg returns it.
+      var datePart = '<%= couple.wedding_date ? new Date(couple.wedding_date).toISOString().slice(0, 10) : "" %>';
+      if (!datePart) return;
       // Target = midnight Pacific time (PDT UTC-7 Mar–Oct, PST UTC-8 Nov–Feb).
-      var datePart = String(dateStr).slice(0, 10);
       var mo = parseInt(datePart.split('-')[1], 10);
       var tzOffset = (mo >= 3 && mo <= 10) ? '-07:00' : '-08:00';
       var target = new Date(datePart + 'T00:00:00' + tzOffset);
